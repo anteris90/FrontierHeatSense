@@ -1,301 +1,71 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EVE Frontier Heat Calculator</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            min-height: 100vh; padding: 20px; color: #fff;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .container {
-            max-width: 600px; width: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px; padding: 40px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-        h1 { text-align: center; margin-bottom: 10px; font-size: 2.2em; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
-        .subtitle { text-align: center; margin-bottom: 35px; opacity: 0.9; font-size: 1em; }
-        .input-group { margin-bottom: 25px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 1em; }
-        input {
-            width: 100%; padding: 14px; font-size: 1.1em;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px; background: rgba(255, 255, 255, 0.9);
-            transition: all 0.3s;
-        }
-        input:focus { outline: none; border-color: #4CAF50; background: #fff; }
-        input::placeholder { color: #999; }
-        .btn {
-            width: 100%; padding: 16px; font-size: 1.2em; font-weight: bold;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; border: none; border-radius: 10px;
-            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 10px;
-        }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
-        .btn:active { transform: translateY(0); }
-        .result {
-            margin-top: 35px; padding: 25px;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 15px; display: none; animation: fadeIn 0.5s;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .result h2 { margin-bottom: 15px; text-align: center; font-size: 1.5em; }
-        .heat-value {
-            text-align: center; font-size: 3.5em; font-weight: bold;
-            margin: 15px 0; text-shadow: 2px 2px 8px rgba(0,0,0,0.4);
-        }
-        .zone {
-            text-align: center; font-size: 1.3em; padding: 12px;
-            border-radius: 10px; margin: 15px 0; font-weight: bold;
-        }
-        .zone-safe { background: rgba(76, 175, 80, 0.3); border: 2px solid #4CAF50; }
-        .zone-moderate { background: rgba(255, 193, 7, 0.3); border: 2px solid #FFC107; }
-        .zone-dangerous { background: rgba(255, 87, 34, 0.3); border: 2px solid #FF5722; }
-        .zone-critical {
-            background: rgba(244, 67, 54, 0.3); border: 2px solid #F44336;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
-            50% { box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
-        }
-        .details {
-            background: rgba(0, 0, 0, 0.2); padding: 15px;
-            border-radius: 10px; margin-top: 15px; font-size: 0.95em;
-        }
-        .details p { margin: 6px 0; }
-        .warning {
-            background: rgba(255, 152, 0, 0.2); border-left: 4px solid #FF9800;
-            padding: 12px; margin-top: 15px; border-radius: 5px; font-size: 0.9em;
-        }
-        .hint { text-align: center; font-size: 0.85em; opacity: 0.7; margin-top: 5px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVE Frontier Heat Calculator</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:radial-gradient(ellipse at 30% 20%, rgba(80,20,10,0.4) 0%, transparent 50%),radial-gradient(ellipse at 70% 80%, rgba(120,30,0,0.3) 0%, transparent 50%),radial-gradient(ellipse at 50% 50%, rgba(60,10,5,0.5) 0%, transparent 70%),linear-gradient(135deg, #0a0505 0%, #1a0a0a 50%, #0f0505 100%);min-height:100vh;padding:20px;color:#fff;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;background-image:radial-gradient(2px 2px at 20% 30%,rgba(255,255,255,0.8),transparent),radial-gradient(2px 2px at 60% 70%,rgba(255,255,255,0.6),transparent),radial-gradient(1px 1px at 50% 50%,rgba(255,255,255,0.9),transparent),radial-gradient(1px 1px at 80% 10%,rgba(255,255,255,0.7),transparent),radial-gradient(2px 2px at 90% 60%,rgba(255,255,255,0.5),transparent),radial-gradient(1px 1px at 33% 85%,rgba(255,255,255,0.8),transparent),radial-gradient(1px 1px at 75% 28%,rgba(255,255,255,0.6),transparent),radial-gradient(2px 2px at 15% 95%,rgba(255,255,255,0.9),transparent),radial-gradient(1px 1px at 45% 15%,rgba(255,255,255,0.7),transparent);background-size:200px 200px,300px 300px,150px 150px,250px 250px,180px 180px,220px 220px,280px 280px,190px 190px,240px 240px;background-position:0 0,40px 60px,130px 270px,70px 100px,150px 50px,90px 180px,200px 30px,50px 150px,180px 90px;opacity:0.7;z-index:0}
+.container{max-width:600px;width:100%;background:rgba(25,15,10,.9);backdrop-filter:blur(10px);border-radius:20px;padding:40px;box-shadow:0 8px 32px 0 rgba(255,100,0,.3),0 0 80px rgba(255,50,0,.1);border:1px solid rgba(255,100,50,.3);position:relative;z-index:1}
+h1{text-align:center;margin-bottom:10px;font-size:2.2em;color:#ffaa77;font-weight:600}
+.subtitle{text-align:center;margin-bottom:35px;font-size:1em;color:#ffccaa}
+.input-group{margin-bottom:25px}
+label{display:block;margin-bottom:8px;font-weight:600;font-size:1em;color:#ffaa77}
+input{width:100%;padding:14px;font-size:1.1em;border:2px solid rgba(255,100,50,.3);border-radius:10px;background:rgba(10,5,0,.6);color:#ffddcc;transition:all .3s}
+input:focus{outline:none;border-color:#f60;background:rgba(20,10,5,.8);box-shadow:0 0 15px rgba(255,100,0,.3)}
+input::placeholder{color:#aa8866}
+.btn{width:100%;padding:16px;font-size:1.2em;font-weight:bold;background:linear-gradient(135deg,#f60 0%,#c30 100%);color:#fff;border:none;border-radius:10px;cursor:pointer;transition:all .3s;margin-top:10px;box-shadow:0 4px 15px rgba(255,100,0,.4)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 25px rgba(255,100,0,.6);background:linear-gradient(135deg,#f70 0%,#d40 100%)}
+.btn:active{transform:translateY(0)}
+.result{margin-top:35px;padding:25px;background:rgba(30,15,10,.8);border-radius:15px;border:2px solid rgba(255,100,50,.3);display:none;animation:fadeIn .5s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.result h2{margin-bottom:15px;text-align:center;font-size:1.5em;color:#ffaa77}
+.heat-value{text-align:center;font-size:3.5em;font-weight:bold;margin:15px 0;color:#ff8844;text-shadow:0 0 20px rgba(255,100,0,.6)}
+.zone{text-align:center;font-size:1.3em;padding:12px;border-radius:10px;margin:15px 0;font-weight:bold}
+.zone-safe{background:rgba(50,150,50,.3);border:2px solid #5f5;box-shadow:0 0 15px rgba(50,255,50,.3);color:#aaffaa}
+.zone-moderate{background:rgba(200,150,0,.3);border:2px solid #fc0;box-shadow:0 0 15px rgba(255,200,0,.3);color:#ffffaa}
+.zone-dangerous{background:rgba(255,100,0,.3);border:2px solid #f60;box-shadow:0 0 15px rgba(255,100,0,.4);color:#ffccaa}
+.zone-critical{background:rgba(255,0,0,.4);border:2px solid red;animation:pulse 2s infinite;box-shadow:0 0 25px rgba(255,0,0,.6);color:#ffaaaa}
+@keyframes pulse{0%,100%{box-shadow:0 0 25px rgba(255,0,0,.6)}50%{box-shadow:0 0 40px rgba(255,0,0,.9)}}
+.details{background:rgba(0,0,0,.4);padding:15px;border-radius:10px;margin-top:15px;font-size:.95em;border:1px solid rgba(255,100,50,.2)}
+.details p{margin:6px 0;color:#ffddcc}
+.warning{background:rgba(255,100,0,.2);border-left:4px solid #f60;padding:12px;margin-top:15px;border-radius:5px;font-size:.9em;color:#ffddcc}
+.hint{text-align:center;font-size:.85em;opacity:.7;margin-top:5px;color:#bbaa99}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔥 EVE Frontier Heat Calculator</h1>
-        <p class="subtitle">Estimate external heat based on star data</p>
-        
-        <div class="input-group">
-            <label for="starType">Star Type:</label>
-            <input type="text" id="starType" placeholder="e.g. M8, K5, G2, F4, A8" autocomplete="off">
-            <p class="hint">Enter a type: M0-M9, K0-K9, G0-G9, F0-F9, A0-A9</p>
-        </div>
-        
-        <div class="input-group">
-            <label for="temp">Temperature (K):</label>
-            <input type="number" id="temp" placeholder="e.g. 5530" min="1500" max="10000">
-        </div>
-        
-        <div class="input-group">
-            <label for="distance">Distance (AU):</label>
-            <input type="number" id="distance" placeholder="e.g. 6.26" min="0.01" max="100" step="0.01">
-        </div>
-        
-        <button class="btn" onclick="calculateHeat()">🔥 Calculate</button>
-        
-        <div id="result" class="result">
-            <h2>Estimated Heat</h2>
-            <div id="heatValue" class="heat-value"></div>
-            <div id="zone" class="zone"></div>
-            <div class="details">
-                <p><strong>Range:</strong> <span id="range"></span></p>
-                <p><strong>Confidence:</strong> <span id="confidence"></span></p>
-            </div>
-            <div id="warning" class="warning" style="display:none;"></div>
-        </div>
-    </div>
-
-    <script>
-        function calculateHeat() {
-            const starTypeInput = document.getElementById('starType').value.trim().toUpperCase();
-            const temp = parseFloat(document.getElementById('temp').value);
-            const distance = parseFloat(document.getElementById('distance').value);
-            
-            if (!temp || !distance) {
-                alert('Please enter temperature and distance!');
-                return;
-            }
-            
-            const validPattern = /^[MKGFA]\d$/;
-            if (starTypeInput && !validPattern.test(starTypeInput)) {
-                alert('Invalid star type! Use format like: M8, K5, G2, F4, A8');
-                return;
-            }
-            
-            const starClass = starTypeInput ? starTypeInput.charAt(0) : getStarClassByTemp(temp);
-            let heat;
-            
-            // EXTREME CLOSE distances (<0.15 AU) - linear model
-            if (distance < 0.15) {
-                const tempFactor = temp / 3000;
-                let baseFactor = 18;
-                
-                if (starClass === 'M' && temp < 2500) {
-                    baseFactor = 12;
-                } else if (starClass === 'M' && temp < 3200) {
-                    baseFactor = 15;
-                }
-                
-                if (starClass === 'M') {
-                    heat = baseFactor * tempFactor / Math.sqrt(distance);
-                } else if (starClass === 'K') {
-                    heat = baseFactor * 1.1 * tempFactor / Math.sqrt(distance);
-                } else if (starClass === 'G') {
-                    heat = baseFactor * 1.15 * tempFactor / Math.sqrt(distance);
-                } else if (starClass === 'F') {
-                    heat = baseFactor * 1.25 * tempFactor / Math.sqrt(distance);
-                } else {
-                    heat = baseFactor * 1.35 * tempFactor / Math.sqrt(distance);
-                }
-            }
-            // TRANSITION ZONE (0.15 - 0.3 AU) - blend between models
-            else if (distance < 0.3) {
-                const tempFactor = temp / 3000;
-                
-                // For very cold M stars in transition zone, use exponential decay
-                if (starClass === 'M' && temp < 2600) {
-                    // Exponential drop after 0.15 AU for cold M stars
-                    const distRatio = (distance - 0.15) / 0.15;
-                    const decayFactor = Math.exp(-2.5 * distRatio); // Tuned for M9 2418K 0.24AU = 10
-                    heat = 25 * tempFactor * decayFactor / Math.sqrt(distance);
-                } else {
-                    // Normal blend for other stars
-                    let baseFactor = 18;
-                    
-                    if (starClass === 'M' && temp < 3200) {
-                        baseFactor = 15;
-                    }
-                    
-                    const extremeHeat = (starClass === 'M' ? baseFactor : baseFactor * 1.1) * tempFactor / Math.sqrt(distance);
-                    
-                    const baseHeat = Math.pow(tempFactor, 3.5) / Math.pow(distance, 2);
-                    let correction = 0.75;
-                    const normalHeat = baseHeat * 35 * correction;
-                    
-                    const blendFactor = (distance - 0.15) / 0.15;
-                    heat = extremeHeat * (1 - blendFactor) + normalHeat * blendFactor;
-                }
-            }
-            // NORMAL distances (>= 0.3 AU) - inverse square with corrections
-            else {
-                const baseHeat = Math.pow(temp / 3000, 3.5) / Math.pow(distance, 2);
-                let scaleFactor = 35;
-                let correction = 1.0;
-                
-                if (starClass === 'M') {
-                    if (temp < 2800) {
-                        if (distance < 1) correction = 0.65;
-                        else if (distance < 3) correction = 0.8;
-                    } else if (temp < 3500) {
-                        if (distance < 1) correction = 0.72;
-                        else if (distance < 3) correction = 0.85;
-                    } else {
-                        if (distance < 0.2) correction = 0.75;
-                        else if (distance < 1) correction = 0.78;
-                        else if (distance < 3) correction = 0.75;
-                        else if (distance < 5) correction = 0.85;
-                    }
-                }
-                else if (starClass === 'K') {
-                    if (distance < 1) correction = 0.75;
-                    else if (distance < 1.5) correction = 0.73;
-                    else if (distance < 3) correction = 0.85;
-                }
-                else if (starClass === 'G') {
-                    if (distance < 2) correction = 0.70;
-                    else if (distance < 3) correction = 0.68;
-                    else if (distance < 5) correction = 0.85;
-                }
-                else if (starClass === 'F') {
-                    if (distance < 3) correction = 0.72;
-                    else if (distance < 5) correction = 0.80;
-                    else if (distance < 8) correction = 0.88;
-                }
-                else if (starClass === 'A') {
-                    if (distance < 5) correction = 0.75;
-                    else if (distance < 10) correction = 0.90;
-                    else if (distance < 15) correction = 0.85;
-                }
-                
-                heat = baseHeat * scaleFactor * correction;
-                
-                if (distance > 20 && heat < 0.5) heat = heat * 0.5;
-                if (distance > 30 && heat < 0.3) heat = heat * 0.4;
-            }
-            
-            heat = Math.round(heat * 10) / 10;
-            
-            const rangeLow = Math.max(0.1, Math.round((heat * 0.85) * 10) / 10);
-            const rangeHigh = Math.round((heat * 1.15) * 10) / 10;
-            
-            let zone, zoneClass, zoneEmoji;
-            if (heat < 30) {
-                zone = 'Safe'; zoneClass = 'zone-safe'; zoneEmoji = '🟢';
-            } else if (heat < 60) {
-                zone = 'High Load'; zoneClass = 'zone-moderate'; zoneEmoji = '🟡';
-            } else if (heat < 80) {
-                zone = 'Dangerous'; zoneClass = 'zone-dangerous'; zoneEmoji = '🔴';
-            } else {
-                zone = 'Supercritical'; zoneClass = 'zone-critical'; zoneEmoji = '☠️';
-            }
-            
-            let confidence;
-            if (distance < 0.15) {
-                confidence = '🟡 Medium (extremely close)';
-            } else if (distance > 10 || (starClass === 'M' && distance > 5)) {
-                confidence = '🟢 High';
-            } else if (distance < 0.5 || heat > 70) {
-                confidence = '🟡 Medium';
-            } else {
-                confidence = '🟢 Good';
-            }
-            
-            document.getElementById('heatValue').textContent = heat.toFixed(1);
-            document.getElementById('zone').textContent = zoneEmoji + ' ' + zone;
-            document.getElementById('zone').className = 'zone ' + zoneClass;
-            document.getElementById('range').textContent = rangeLow + ' - ' + rangeHigh;
-            document.getElementById('confidence').textContent = confidence;
-            
-            const warningDiv = document.getElementById('warning');
-            if (heat >= 60) {
-                let warningText = '⚠️ ';
-                if (heat >= 80) {
-                    warningText += '<strong>SUPERCRITICAL!</strong> Easily reaches 150 limit after jump!';
-                } else {
-                    warningText += '<strong>DANGEROUS!</strong> Jump distance limited, short jumps recommended.';
-                }
-                warningDiv.innerHTML = warningText;
-                warningDiv.style.display = 'block';
-            } else {
-                warningDiv.style.display = 'none';
-            }
-            
-            document.getElementById('result').style.display = 'block';
-        }
-        
-        function getStarClassByTemp(temp) {
-            if (temp < 3900) return 'M';
-            if (temp < 5200) return 'K';
-            if (temp < 6000) return 'G';
-            if (temp < 7500) return 'F';
-            return 'A';
-        }
-        
-        ['starType', 'temp', 'distance'].forEach(id => {
-            document.getElementById(id).addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') calculateHeat();
-            });
-        });
-    </script>
+<div class="container">
+<h1>EVE Frontier Heat Calculator</h1>
+<p class="subtitle">Estimate external heat based on star data</p>
+<div class="input-group">
+<label for="starType">Star Type:</label>
+<input type="text" id="starType" placeholder="e.g. M8, K5, G2, F4, A8" autocomplete="off">
+<p class="hint">Enter a type: M0-M9, K0-K9, G0-G9, F0-F9, A0-A9</p>
+</div>
+<div class="input-group">
+<label for="temp">Temperature (K):</label>
+<input type="number" id="temp" placeholder="e.g. 5530" min="1500" max="10000">
+</div>
+<div class="input-group">
+<label for="distance">Distance (AU):</label>
+<input type="number" id="distance" placeholder="e.g. 6.26" min="0.01" max="100" step="0.01">
+</div>
+<button class="btn" onclick="calc()">Calculate</button>
+<div id="result" class="result">
+<h2>Estimated Heat</h2>
+<div id="heatValue" class="heat-value"></div>
+<div id="zone" class="zone"></div>
+<div class="details">
+<p><strong>Range:</strong> <span id="range"></span></p>
+<p><strong>Confidence:</strong> <span id="confidence"></span></p>
+</div>
+<div id="warning" class="warning" style="display:none;"></div>
+</div>
+</div>
+<script>
+function calc(){const a=document.getElementById('starType').value.trim().toUpperCase(),b=parseFloat(document.getElementById('temp').value),c=parseFloat(document.getElementById('distance').value);if(!b||!c)return void alert('Please enter temperature and distance!');if(a&&!/^[MKGFA]\d$/.test(a))return void alert('Invalid star type! Use format like: M8, K5, G2, F4, A8');const d=a?a.charAt(0):getS(b);let e;if(c<.15){const f=b/3e3;let g=18;'M'===d&&b<2500?g=12:'M'===d&&b<3200&&(g=15),e='M'===d?g*f/Math.sqrt(c):'K'===d?1.1*g*f/Math.sqrt(c):'G'===d?1.15*g*f/Math.sqrt(c):'F'===d?1.25*g*f/Math.sqrt(c):1.35*g*f/Math.sqrt(c)}else if(c<.3){const f=b/3e3;if('M'===d&&b<2600){const a=(c-.15)/.15,g=Math.exp(-2.5*a);e=25*f*g/Math.sqrt(c)}else{let a=18;'M'===d&&b<3200&&(a=15);const g=('M'===d?a:1.1*a)*f/Math.sqrt(c),h=Math.pow(f,3.5)/Math.pow(c,2),i=.75*h*35,j=(c-.15)/.15;e=g*(1-j)+i*j}}else{const f=b/3e3,g=Math.pow(f,3.5)/Math.pow(c,2);let h=35,i=1;if('M'===d)b<2800?i=c<1?.65:c<3?.8:1:b<3500?i=c<1?.72:c<3?.85:1:i=c<.2?.75:c<1?.78:c<3?.75:c<5?.85:1;else if('K'===d)i=c<1?.75:c<1.5?.73:c<3?.85:1;else if('G'===d)i=c<2?.7:c<3?.68:c<5?.85:1;else if('F'===d)i=c<3?.72:c<5?.8:c<8?.88:1;else if('A'===d||'B'===d)i=c<5?.75:c<10?.9:c<15?.85:1;e=g*h*i,c>20&&e<.5&&(e*=.5),c>30&&e<.3&&(e*=.4)}e=Math.round(10*e)/10;const f=Math.max(.1,Math.round(.85*e*10)/10),g=Math.round(1.15*e*10)/10;let h,i,j;e<30?(h='Safe',i='zone-safe',j='🟢'):e<60?(h='High Load',i='zone-moderate',j='🟡'):e<80?(h='Dangerous',i='zone-dangerous',j='🔴'):(h='Supercritical',i='zone-critical',j='☠️');let k;k=c<.15?'🟡 Medium (extremely close)':c>10||'M'===d&&c>5?'🟢 High':c<.5||e>70?'🟡 Medium':'🟢 Good',document.getElementById('heatValue').textContent=e.toFixed(1),document.getElementById('zone').textContent=j+' '+h,document.getElementById('zone').className='zone '+i,document.getElementById('range').textContent=f+' - '+g,document.getElementById('confidence').textContent=k;const l=document.getElementById('warning');e>=60?(l.innerHTML=e>=80?'⚠️ <strong>SUPERCRITICAL!</strong> Easily reaches 150 limit after jump!':'⚠️ <strong>DANGEROUS!</strong> Jump distance limited, short jumps recommended.',l.style.display='block'):l.style.display='none',document.getElementById('result').style.display='block'}function getS(a){return a<3900?'M':a<5200?'K':a<6e3?'G':a<7500?'F':'A'}['starType','temp','distance'].forEach(a=>{document.getElementById(a).addEventListener('keypress',function(a){'Enter'===a.key&&calc()})});
+</script>
 </body>
 </html>
