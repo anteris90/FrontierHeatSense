@@ -11,7 +11,11 @@ body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;backg
 .container{max-width:600px;width:100%;background:rgba(25,15,10,.9);backdrop-filter:blur(10px);border-radius:20px;padding:40px;box-shadow:0 8px 32px 0 rgba(255,100,0,.3),0 0 80px rgba(255,50,0,.1);border:1px solid rgba(255,100,50,.3);position:relative;z-index:1}
 h1{text-align:center;margin-bottom:10px;font-size:2.2em;color:#ffaa77;font-weight:600}
 .subtitle{text-align:center;margin-bottom:15px;font-size:1em;color:#ffccaa}
-.version{text-align:center;margin-bottom:30px;font-size:0.85em;color:#aa8866;font-style:italic}
+.version{text-align:center;margin-bottom:20px;font-size:0.85em;color:#aa8866;font-style:italic}
+.info-banner{background:rgba(100,150,255,.15);border:2px solid rgba(100,150,255,.4);border-radius:12px;padding:15px;margin-bottom:25px;text-align:center}
+.info-banner p{color:#cce5ff;font-size:.9em;line-height:1.5;margin-bottom:10px}
+.info-banner a{color:#6cf;font-weight:600;text-decoration:none;transition:all .3s;display:inline-flex;align-items:center;gap:5px}
+.info-banner a:hover{color:#9df;text-shadow:0 0 10px rgba(100,200,255,.5)}
 .model-selector{background:rgba(40,20,15,.8);padding:15px;border-radius:12px;margin-bottom:25px;border:2px solid rgba(255,100,50,.3)}
 .model-selector label{display:block;margin-bottom:10px;font-size:.95em;color:#ffaa77;font-weight:600}
 .radio-group{display:flex;gap:10px}
@@ -58,6 +62,13 @@ input[type="number"]::placeholder{color:#aa8866}
 <h1>EVE Frontier Heat Calculator</h1>
 <p class="subtitle">Triple-model prediction system</p>
 <p class="version">v6.1 - Mix | Exponential (Ergod) | Universal (Best)</p>
+
+<div class="info-banner">
+<p>🗺️ Need star temperature and distance data before jumping?</p>
+<a href="https://ef-map.com/" target="_blank" rel="noopener noreferrer">
+Visit Lacal's Starmap →
+</a>
+</div>
 
 <div class="model-selector">
 <label>Prediction Model:</label>
