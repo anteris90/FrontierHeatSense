@@ -20,8 +20,14 @@ h1{text-align:center;margin-bottom:10px;font-size:2.2em;color:#ffaa77;font-weigh
 .radio-option label{display:block;padding:12px;background:rgba(20,10,5,.6);border:2px solid rgba(255,100,50,.3);border-radius:8px;cursor:pointer;text-align:center;transition:all .3s;font-size:.9em}
 .radio-option input[type="radio"]:checked + label{background:rgba(255,100,0,.3);border-color:#f60;box-shadow:0 0 15px rgba(255,100,0,.4)}
 .radio-option label:hover{background:rgba(255,100,0,.2);transform:translateY(-2px)}
-.input-group{margin-bottom:25px}
+.input-group{margin-bottom:25px;position:relative}
 label{display:block;margin-bottom:8px;font-weight:600;font-size:1em;color:#ffaa77}
+.distance-wrapper{display:flex;gap:10px;align-items:stretch}
+.distance-wrapper input{flex:1}
+.unit-selector{display:flex;background:rgba(20,10,5,.6);border:2px solid rgba(255,100,50,.3);border-radius:8px;overflow:hidden}
+.unit-btn{padding:10px 20px;background:transparent;border:none;color:#ffaa77;cursor:pointer;transition:all .3s;font-size:.9em;font-weight:600}
+.unit-btn.active{background:rgba(255,100,0,.3);color:#fff}
+.unit-btn:hover:not(.active){background:rgba(255,100,0,.15)}
 input[type="number"]{width:100%;padding:14px;font-size:1.1em;border:2px solid rgba(255,100,50,.3);border-radius:10px;background:rgba(10,5,0,.6);color:#ffddcc;transition:all .3s}
 input[type="number"]:focus{outline:none;border-color:#f60;background:rgba(20,10,5,.8);box-shadow:0 0 15px rgba(255,100,0,.3)}
 input[type="number"]::placeholder{color:#aa8866}
@@ -60,7 +66,7 @@ input[type="number"]::placeholder{color:#aa8866}
 </div>
 <div class="radio-option">
 <input type="radio" id="modelExp" name="model" value="exponential">
-<label for="modelExp">Exponential<br><small>(MAE: 5.13, from Ergod)</small></label>
+<label for="modelExp">Exponential<br><small>(MAE: 7.06, from Ergod)</small></label>
 </div>
 </div>
 </div>
@@ -70,8 +76,14 @@ input[type="number"]::placeholder{color:#aa8866}
 <input type="number" id="temp" placeholder="e.g. 5530" min="1500" max="15000" autofocus>
 </div>
 <div class="input-group">
-<label for="distance">Distance (AU):</label>
-<input type="number" id="distance" placeholder="e.g. 6.26" min="0.01" max="100" step="0.01">
+<label>Distance:</label>
+<div class="distance-wrapper">
+<input type="number" id="distance" placeholder="e.g. 6.26 or 2104" min="0.01" step="0.01">
+<div class="unit-selector">
+<button class="unit-btn active" onclick="setUnit('AU')">AU</button>
+<button class="unit-btn" onclick="setUnit('LS')">LS</button>
+</div>
+</div>
 </div>
 <button class="btn" onclick="calc()">Calculate</button>
 <div id="result" class="result">
@@ -79,6 +91,7 @@ input[type="number"]::placeholder{color:#aa8866}
 <div id="heatValue" class="heat-value"></div>
 <div id="zone" class="zone"></div>
 <div class="details">
+<p><strong>Distance:</strong> <span id="distDisplay"></span></p>
 <p><strong>Range:</strong> <span id="range"></span></p>
 <p><strong>Model Used:</strong> <span id="model"></span></p>
 <p><strong>Star Type:</strong> <span id="starType"></span></p>
@@ -89,9 +102,28 @@ input[type="number"]::placeholder{color:#aa8866}
 </div>
 </div>
 <script>
+let currentUnit = 'AU';
+
+function setUnit(unit){
+    currentUnit = unit;
+    document.querySelectorAll('.unit-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    const distInput = document.getElementById('distance');
+    if(unit === 'AU'){
+        distInput.placeholder = 'e.g. 6.26';
+        distInput.step = '0.01';
+    } else {
+        distInput.placeholder = 'e.g. 2104';
+        distInput.step = '1';
+    }
+}
+
 function calc(){
     const temp=parseFloat(document.getElementById('temp').value);
-    const dist=parseFloat(document.getElementById('distance').value);
+    let dist=parseFloat(document.getElementById('distance').value);
     const modelType=document.querySelector('input[name="model"]:checked').value;
     
     if(!temp||!dist){
@@ -99,13 +131,17 @@ function calc(){
         return;
     }
     
+    // Convert LS to AU if needed
+    const distLS = currentUnit === 'LS' ? dist : dist * 336;
+    const distAU = currentUnit === 'AU' ? dist : dist / 336;
+    
     let heat, starType, modelUsed, modelDesc, accuracyText;
     
     if(modelType === 'mix'){
-        // Mix Model (Power Law v5.2)
+        // Mix Model (Power Law)
         if(temp < 6000){
             const tempFactor = Math.pow(temp/3000, 1.03);
-            const distFactor = Math.pow(dist, 0.334);
+            const distFactor = Math.pow(distAU, 0.334);
             heat = 26.46 * tempFactor / distFactor;
             modelUsed = 'Mix - Cool (M/K/G)';
             
@@ -114,19 +150,19 @@ function calc(){
             else starType = 'G-type (yellow dwarf)';
         } else if(temp < 7500){
             const tempFactor = Math.pow(temp/3000, 0.031);
-            const distFactor = Math.pow(dist, 0.446);
+            const distFactor = Math.pow(distAU, 0.446);
             heat = 79.67 * tempFactor / distFactor;
             modelUsed = 'Mix - Medium (F)';
             starType = 'F-type (yellow-white)';
         } else {
-            if(dist < 3){
+            if(distAU < 3){
                 const tempFactor = Math.pow(temp/3000, 0.412);
-                const distFactor = Math.pow(dist, 0.064);
+                const distFactor = Math.pow(distAU, 0.064);
                 heat = 55.88 * tempFactor / distFactor;
                 modelUsed = 'Mix - Hot Close (A/B)';
             } else {
                 const tempFactor = Math.pow(temp/3000, 0.896);
-                const distFactor = Math.pow(dist, 0.585);
+                const distFactor = Math.pow(distAU, 0.585);
                 heat = 62.81 * tempFactor / distFactor;
                 modelUsed = 'Mix - Hot Far (A/B)';
             }
@@ -136,43 +172,38 @@ function calc(){
         if(heat > 100) heat = 100;
         
         modelDesc = '<strong>Mix Model (4-tier power law):</strong><br>• Cool: 26.46×(T/3000)^1.03/d^0.33<br>• F: 79.67×(T/3000)^0.03/d^0.45<br>• A close: 55.88×(T/3000)^0.41/d^0.06<br>• A far: 62.81×(T/3000)^0.90/d^0.59<br>• Game cap at 100 Heat';
-        accuracyText = '⭐ Mix Model: 71% <10 Heat error | 7.49 MAE';
+        accuracyText = '⭐ Mix: 71% <10 Heat | 38% <5 Heat | MAE: 7.49';
         
     } else {
-        // Exponential Model (Ergod's)
+        // Exponential Model (Ergod)
         let A, lambda, B;
         
         if(temp < 3900){
-            // M-type
             A = 77.75; lambda = 1.97340; B = 5.88;
             modelUsed = 'Exponential - M-type';
             starType = 'M-type (red dwarf)';
         } else if(temp < 5200){
-            // K-type
             A = 92.46; lambda = 0.78511; B = 4.38;
             modelUsed = 'Exponential - K-type';
             starType = 'K-type (orange dwarf)';
         } else if(temp < 6000){
-            // G-type
             A = 77.90; lambda = 0.32233; B = 8.04;
             modelUsed = 'Exponential - G-type';
             starType = 'G-type (yellow dwarf)';
         } else if(temp < 7500){
-            // F-type
             A = 89.46; lambda = 0.18944; B = 8.06;
             modelUsed = 'Exponential - F-type';
             starType = 'F-type (yellow-white)';
         } else {
-            // A/B-type
             A = 87.12; lambda = 0.09097; B = 10.37;
             modelUsed = 'Exponential - A/B-type';
             starType = temp < 10000 ? 'A-type (white)' : 'B-type (blue-white)';
         }
         
-        heat = A * Math.exp(-lambda * dist) + B;
+        heat = A * Math.exp(-lambda * distAU) + B;
         
         modelDesc = '<strong>Exponential Model (from Ergod):</strong><br>Heat = A×e^(-λ×D) + B<br>• M: 77.75×e^(-1.97×D)+5.88<br>• K: 92.46×e^(-0.79×D)+4.38<br>• G: 77.90×e^(-0.32×D)+8.04<br>• F: 89.46×e^(-0.19×D)+8.06<br>• A: 87.12×e^(-0.09×D)+10.37';
-        accuracyText = '⭐ Exponential Model: 86% <10 Heat error | 5.13 MAE';
+        accuracyText = '⭐ Exponential: 83% <10 Heat | 55% <5 Heat | MAE: 7.06';
     }
     
     heat = Math.round(heat * 10) / 10;
@@ -202,6 +233,7 @@ function calc(){
     document.getElementById('heatValue').textContent = heat.toFixed(1);
     document.getElementById('zone').textContent = zoneEmoji + ' ' + zone;
     document.getElementById('zone').className = 'zone ' + zoneClass;
+    document.getElementById('distDisplay').textContent = distAU.toFixed(2) + ' AU (' + Math.round(distLS) + ' LS)';
     document.getElementById('range').textContent = rangeMin + ' - ' + rangeMax;
     document.getElementById('model').textContent = modelUsed;
     document.getElementById('starType').textContent = starType;
