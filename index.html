@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EVE Frontier Heat Calculator v5.2</title>
+<title>EVE Frontier Heat Calculator v6.0</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:radial-gradient(ellipse at 30% 20%, rgba(80,20,10,0.4) 0%, transparent 50%),radial-gradient(ellipse at 70% 80%, rgba(120,30,0,0.3) 0%, transparent 50%),radial-gradient(ellipse at 50% 50%, rgba(60,10,5,0.5) 0%, transparent 70%),linear-gradient(135deg, #0a0505 0%, #1a0a0a 50%, #0f0505 100%);min-height:100vh;padding:20px;color:#fff;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
@@ -12,11 +12,19 @@ body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;backg
 h1{text-align:center;margin-bottom:10px;font-size:2.2em;color:#ffaa77;font-weight:600}
 .subtitle{text-align:center;margin-bottom:15px;font-size:1em;color:#ffccaa}
 .version{text-align:center;margin-bottom:30px;font-size:0.85em;color:#aa8866;font-style:italic}
+.model-selector{background:rgba(40,20,15,.8);padding:15px;border-radius:12px;margin-bottom:25px;border:2px solid rgba(255,100,50,.3)}
+.model-selector label{display:block;margin-bottom:10px;font-size:.95em;color:#ffaa77;font-weight:600}
+.radio-group{display:flex;gap:15px}
+.radio-option{flex:1;position:relative}
+.radio-option input[type="radio"]{position:absolute;opacity:0}
+.radio-option label{display:block;padding:12px;background:rgba(20,10,5,.6);border:2px solid rgba(255,100,50,.3);border-radius:8px;cursor:pointer;text-align:center;transition:all .3s;font-size:.9em}
+.radio-option input[type="radio"]:checked + label{background:rgba(255,100,0,.3);border-color:#f60;box-shadow:0 0 15px rgba(255,100,0,.4)}
+.radio-option label:hover{background:rgba(255,100,0,.2);transform:translateY(-2px)}
 .input-group{margin-bottom:25px}
 label{display:block;margin-bottom:8px;font-weight:600;font-size:1em;color:#ffaa77}
-input{width:100%;padding:14px;font-size:1.1em;border:2px solid rgba(255,100,50,.3);border-radius:10px;background:rgba(10,5,0,.6);color:#ffddcc;transition:all .3s}
-input:focus{outline:none;border-color:#f60;background:rgba(20,10,5,.8);box-shadow:0 0 15px rgba(255,100,0,.3)}
-input::placeholder{color:#aa8866}
+input[type="number"]{width:100%;padding:14px;font-size:1.1em;border:2px solid rgba(255,100,50,.3);border-radius:10px;background:rgba(10,5,0,.6);color:#ffddcc;transition:all .3s}
+input[type="number"]:focus{outline:none;border-color:#f60;background:rgba(20,10,5,.8);box-shadow:0 0 15px rgba(255,100,0,.3)}
+input[type="number"]::placeholder{color:#aa8866}
 .btn{width:100%;padding:16px;font-size:1.2em;font-weight:bold;background:linear-gradient(135deg,#f60 0%,#c30 100%);color:#fff;border:none;border-radius:10px;cursor:pointer;transition:all .3s;margin-top:10px;box-shadow:0 4px 15px rgba(255,100,0,.4)}
 .btn:hover{transform:translateY(-2px);box-shadow:0 6px 25px rgba(255,100,0,.6);background:linear-gradient(135deg,#f70 0%,#d40 100%)}
 .btn:active{transform:translateY(0)}
@@ -33,7 +41,6 @@ input::placeholder{color:#aa8866}
 .details{background:rgba(0,0,0,.4);padding:15px;border-radius:10px;margin-top:15px;font-size:.95em;border:1px solid rgba(255,100,50,.2)}
 .details p{margin:6px 0;color:#ffddcc}
 .warning{background:rgba(255,100,0,.2);border-left:4px solid #f60;padding:12px;margin-top:15px;border-radius:5px;font-size:.9em;color:#ffddcc}
-.cap-notice{background:rgba(255,200,0,.15);border-left:3px solid #fc0;padding:10px;margin-top:10px;border-radius:5px;font-size:.85em;color:#ffddaa;display:none}
 .model-note{background:rgba(100,200,255,.15);border-left:3px solid #6cf;padding:10px;margin-top:15px;border-radius:5px;font-size:.82em;color:#ccddff;line-height:1.6}
 .accuracy-badge{background:rgba(50,255,100,.2);border:1px solid rgba(50,255,100,.4);padding:8px 12px;border-radius:8px;display:inline-block;margin-top:10px;font-size:.9em;color:#aaffcc}
 </style>
@@ -41,8 +48,23 @@ input::placeholder{color:#aa8866}
 <body>
 <div class="container">
 <h1>EVE Frontier Heat Calculator</h1>
-<p class="subtitle">4-Tier optimized prediction system</p>
-<p class="version">v5.2 - With 100 Heat game cap | 118 measurements | MAE: 7.49</p>
+<p class="subtitle">Dual-model prediction system</p>
+<p class="version">v6.0 - Mix (Power Law) vs Exponential (Ergod's Model)</p>
+
+<div class="model-selector">
+<label>Prediction Model:</label>
+<div class="radio-group">
+<div class="radio-option">
+<input type="radio" id="modelMix" name="model" value="mix" checked>
+<label for="modelMix">Mix<br><small>(MAE: 7.49)</small></label>
+</div>
+<div class="radio-option">
+<input type="radio" id="modelExp" name="model" value="exponential">
+<label for="modelExp">Exponential<br><small>(MAE: 5.13, from Ergod)</small></label>
+</div>
+</div>
+</div>
+
 <div class="input-group">
 <label for="temp">Star Temperature (K):</label>
 <input type="number" id="temp" placeholder="e.g. 5530" min="1500" max="15000" autofocus>
@@ -58,95 +80,105 @@ input::placeholder{color:#aa8866}
 <div id="zone" class="zone"></div>
 <div class="details">
 <p><strong>Range:</strong> <span id="range"></span></p>
-<p><strong>Model Tier:</strong> <span id="model"></span></p>
+<p><strong>Model Used:</strong> <span id="model"></span></p>
 <p><strong>Star Type:</strong> <span id="starType"></span></p>
 </div>
-<div id="capNotice" class="cap-notice">
-ℹ️ Game cap applied: Heat limited to 100 (extremely close distance)
-</div>
 <div id="warning" class="warning" style="display:none;"></div>
-<div class="accuracy-badge">
-⭐ Overall accuracy: 68% <10 Heat error | 7.49 MAE
-</div>
-<div class="model-note">
-<strong>4-Tier Model with Game Cap:</strong><br>
-• Cool (M/K/G, T<6000K): Heat = 26.46 × (T/3000)^1.03 / d^0.33<br>
-• Medium (F, 6000-7500K): Heat = 79.67 × (T/3000)^0.03 / d^0.45<br>
-• Hot-Close (A, T≥7500K, d<3AU): Heat = 55.88 × (T/3000)^0.41 / d^0.06<br>
-• Hot-Far (A, T≥7500K, d≥3AU): Heat = 62.81 × (T/3000)^0.90 / d^0.59<br>
-• B-type (T>10000K): Uses Hot-A formulas + cap notice<br>
-• <strong>Game Cap:</strong> Heat capped at 100 (observed game mechanic)
-</div>
+<div id="accuracyBadge" class="accuracy-badge"></div>
+<div id="modelNote" class="model-note"></div>
 </div>
 </div>
 <script>
 function calc(){
     const temp=parseFloat(document.getElementById('temp').value);
     const dist=parseFloat(document.getElementById('distance').value);
+    const modelType=document.querySelector('input[name="model"]:checked').value;
     
     if(!temp||!dist){
         alert('Please enter temperature and distance!');
         return;
     }
     
-    let starType, modelTier;
-    let heat;
-    let cappedApplied = false;
+    let heat, starType, modelUsed, modelDesc, accuracyText;
     
-    if(temp < 6000){
-        // Cool stars: M/K/G
-        const tempFactor = Math.pow(temp/3000, 1.03);
-        const distFactor = Math.pow(dist, 0.334);
-        heat = 26.46 * tempFactor / distFactor;
-        modelTier = 'Cool (M/K/G)';
+    if(modelType === 'mix'){
+        // Mix Model (Power Law v5.2)
+        if(temp < 6000){
+            const tempFactor = Math.pow(temp/3000, 1.03);
+            const distFactor = Math.pow(dist, 0.334);
+            heat = 26.46 * tempFactor / distFactor;
+            modelUsed = 'Mix - Cool (M/K/G)';
+            
+            if(temp < 3900) starType = 'M-type (red dwarf)';
+            else if(temp < 5200) starType = 'K-type (orange dwarf)';
+            else starType = 'G-type (yellow dwarf)';
+        } else if(temp < 7500){
+            const tempFactor = Math.pow(temp/3000, 0.031);
+            const distFactor = Math.pow(dist, 0.446);
+            heat = 79.67 * tempFactor / distFactor;
+            modelUsed = 'Mix - Medium (F)';
+            starType = 'F-type (yellow-white)';
+        } else {
+            if(dist < 3){
+                const tempFactor = Math.pow(temp/3000, 0.412);
+                const distFactor = Math.pow(dist, 0.064);
+                heat = 55.88 * tempFactor / distFactor;
+                modelUsed = 'Mix - Hot Close (A/B)';
+            } else {
+                const tempFactor = Math.pow(temp/3000, 0.896);
+                const distFactor = Math.pow(dist, 0.585);
+                heat = 62.81 * tempFactor / distFactor;
+                modelUsed = 'Mix - Hot Far (A/B)';
+            }
+            starType = temp < 10000 ? 'A-type (white)' : 'B-type (blue-white)';
+        }
+        
+        if(heat > 100) heat = 100;
+        
+        modelDesc = '<strong>Mix Model (4-tier power law):</strong><br>• Cool: 26.46×(T/3000)^1.03/d^0.33<br>• F: 79.67×(T/3000)^0.03/d^0.45<br>• A close: 55.88×(T/3000)^0.41/d^0.06<br>• A far: 62.81×(T/3000)^0.90/d^0.59<br>• Game cap at 100 Heat';
+        accuracyText = '⭐ Mix Model: 71% <10 Heat error | 7.49 MAE';
+        
+    } else {
+        // Exponential Model (Ergod's)
+        let A, lambda, B;
         
         if(temp < 3900){
+            // M-type
+            A = 77.75; lambda = 1.97340; B = 5.88;
+            modelUsed = 'Exponential - M-type';
             starType = 'M-type (red dwarf)';
         } else if(temp < 5200){
+            // K-type
+            A = 92.46; lambda = 0.78511; B = 4.38;
+            modelUsed = 'Exponential - K-type';
             starType = 'K-type (orange dwarf)';
-        } else {
+        } else if(temp < 6000){
+            // G-type
+            A = 77.90; lambda = 0.32233; B = 8.04;
+            modelUsed = 'Exponential - G-type';
             starType = 'G-type (yellow dwarf)';
-        }
-    } else if(temp < 7500){
-        // Medium stars: F
-        const tempFactor = Math.pow(temp/3000, 0.031);
-        const distFactor = Math.pow(dist, 0.446);
-        heat = 79.67 * tempFactor / distFactor;
-        modelTier = 'Medium (F)';
-        starType = 'F-type (yellow-white)';
-    } else {
-        // Hot stars: A/B with distance split
-        if(dist < 3){
-            // Close
-            const tempFactor = Math.pow(temp/3000, 0.412);
-            const distFactor = Math.pow(dist, 0.064);
-            heat = 55.88 * tempFactor / distFactor;
-            modelTier = 'Hot-Close (A/B <3AU)';
+        } else if(temp < 7500){
+            // F-type
+            A = 89.46; lambda = 0.18944; B = 8.06;
+            modelUsed = 'Exponential - F-type';
+            starType = 'F-type (yellow-white)';
         } else {
-            // Far
-            const tempFactor = Math.pow(temp/3000, 0.896);
-            const distFactor = Math.pow(dist, 0.585);
-            heat = 62.81 * tempFactor / distFactor;
-            modelTier = 'Hot-Far (A/B ≥3AU)';
+            // A/B-type
+            A = 87.12; lambda = 0.09097; B = 10.37;
+            modelUsed = 'Exponential - A/B-type';
+            starType = temp < 10000 ? 'A-type (white)' : 'B-type (blue-white)';
         }
         
-        if(temp < 10000){
-            starType = 'A-type (white)';
-        } else {
-            starType = 'B-type (blue-white)';
-        }
-    }
-    
-    // Apply 100 Heat game cap
-    if(heat > 100){
-        heat = 100;
-        cappedApplied = true;
+        heat = A * Math.exp(-lambda * dist) + B;
+        
+        modelDesc = '<strong>Exponential Model (from Ergod):</strong><br>Heat = A×e^(-λ×D) + B<br>• M: 77.75×e^(-1.97×D)+5.88<br>• K: 92.46×e^(-0.79×D)+4.38<br>• G: 77.90×e^(-0.32×D)+8.04<br>• F: 89.46×e^(-0.19×D)+8.06<br>• A: 87.12×e^(-0.09×D)+10.37';
+        accuracyText = '⭐ Exponential Model: 86% <10 Heat error | 5.13 MAE';
     }
     
     heat = Math.round(heat * 10) / 10;
     
     const rangeMin = Math.max(0.1, Math.round(heat * 0.85 * 10) / 10);
-    const rangeMax = cappedApplied ? 100 : Math.round(heat * 1.15 * 10) / 10;
+    const rangeMax = Math.round(heat * 1.15 * 10) / 10;
     
     let zone, zoneClass, zoneEmoji;
     if(heat < 30){
@@ -171,11 +203,10 @@ function calc(){
     document.getElementById('zone').textContent = zoneEmoji + ' ' + zone;
     document.getElementById('zone').className = 'zone ' + zoneClass;
     document.getElementById('range').textContent = rangeMin + ' - ' + rangeMax;
-    document.getElementById('model').textContent = modelTier;
+    document.getElementById('model').textContent = modelUsed;
     document.getElementById('starType').textContent = starType;
-    
-    // Show cap notice if applied
-    document.getElementById('capNotice').style.display = cappedApplied ? 'block' : 'none';
+    document.getElementById('accuracyBadge').textContent = accuracyText;
+    document.getElementById('modelNote').innerHTML = modelDesc;
     
     const warning = document.getElementById('warning');
     if(heat >= 60){
