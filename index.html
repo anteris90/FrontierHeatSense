@@ -51,7 +51,7 @@ input[type="number"]::placeholder{color:#aa8866}
 <div class="container">
 <h1>EVE Frontier :: HeatSense</h1>
 <p class="subtitle">Universal Exponential Model</p>
-<p class="version">Based on 166 measurements with metallicity data</p>
+<p class="version">Based on 184 measurements with metallicity data</p>
 
 <div class="info-banner">
 <p>🗺️ Need star temperature and distance data before jumping?</p>
@@ -221,7 +221,7 @@ function calc(){
     document.getElementById('range').textContent = rangeMin + ' - ' + rangeMax;
     document.getElementById('starType').textContent = starType;
     
-    const accuracyText = '⭐ Universal Model: 82% <10 Heat | 50% <5 Heat | MAE: 6.79';
+    const accuracyText = '⭐ Universal Model: 82% <10 Heat | 51% <5 Heat | MAE: 6.95';
     document.getElementById('accuracyBadge').textContent = accuracyText;
     
     const modelDesc = '<strong>Universal Exponential Model:</strong><br>' +
@@ -230,7 +230,7 @@ function calc(){
         '• A = 85 (amplitude normalization)<br>' +
         '• B(T) = 0.000791×T + 2.7 (background radiation)<br>' +
         '• Smooth transitions, no class boundaries<br>' +
-        '• Based on 166 measurements across 47 star systems<br>' +
+        '• Based on 184 measurements across 52 star systems<br>' +
         '• Metallicity-aware dataset';
     document.getElementById('modelNote').innerHTML = modelDesc;
     
