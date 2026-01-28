@@ -1,4 +1,4 @@
-# EVE Frontier Heat Calculator
+# EVE Frontier :: Frontier:HeatSense
 
 A scientifically calibrated heat prediction tool for EVE Frontier, helping pilots navigate star systems safely by estimating external heat based on star temperature and distance.
 
