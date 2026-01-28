@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EVE Frontier Heat Calculator v4.0</title>
+<title>EVE Frontier Heat Calculator v5.0</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:radial-gradient(ellipse at 30% 20%, rgba(80,20,10,0.4) 0%, transparent 50%),radial-gradient(ellipse at 70% 80%, rgba(120,30,0,0.3) 0%, transparent 50%),radial-gradient(ellipse at 50% 50%, rgba(60,10,5,0.5) 0%, transparent 70%),linear-gradient(135deg, #0a0505 0%, #1a0a0a 50%, #0f0505 100%);min-height:100vh;padding:20px;color:#fff;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
@@ -33,17 +33,17 @@ input::placeholder{color:#aa8866}
 .details{background:rgba(0,0,0,.4);padding:15px;border-radius:10px;margin-top:15px;font-size:.95em;border:1px solid rgba(255,100,50,.2)}
 .details p{margin:6px 0;color:#ffddcc}
 .warning{background:rgba(255,100,0,.2);border-left:4px solid #f60;padding:12px;margin-top:15px;border-radius:5px;font-size:.9em;color:#ffddcc}
-.model-note{background:rgba(100,200,255,.15);border-left:3px solid #6cf;padding:10px;margin-top:15px;border-radius:5px;font-size:.85em;color:#ccddff}
+.model-note{background:rgba(100,200,255,.15);border-left:3px solid #6cf;padding:10px;margin-top:15px;border-radius:5px;font-size:.85em;color:#ccddff;line-height:1.5}
 </style>
 </head>
 <body>
 <div class="container">
 <h1>EVE Frontier Heat Calculator</h1>
-<p class="subtitle">Dual-model prediction system</p>
-<p class="version">v4.0 - Calibrated from 69 measurements across 19 star systems</p>
+<p class="subtitle">3-Tier prediction system</p>
+<p class="version">v5.0 - Calibrated from 115 measurements across 30 star systems</p>
 <div class="input-group">
 <label for="temp">Star Temperature (K):</label>
-<input type="number" id="temp" placeholder="e.g. 5530" min="1500" max="12000" autofocus>
+<input type="number" id="temp" placeholder="e.g. 5530" min="1500" max="15000" autofocus>
 </div>
 <div class="input-group">
 <label for="distance">Distance (AU):</label>
@@ -56,13 +56,15 @@ input::placeholder{color:#aa8866}
 <div id="zone" class="zone"></div>
 <div class="details">
 <p><strong>Range:</strong> <span id="range"></span></p>
-<p><strong>Model:</strong> <span id="model"></span></p>
+<p><strong>Model Tier:</strong> <span id="model"></span></p>
 <p><strong>Star Type:</strong> <span id="starType"></span></p>
 </div>
 <div id="warning" class="warning" style="display:none;"></div>
 <div class="model-note">
-ℹ️ <strong>Cool stars (M/K/G, T<6000K):</strong> Heat = 26.64 × (T/3000)^0.99 / d^0.33<br>
-ℹ️ <strong>Hot stars (F/A, T≥6000K):</strong> Heat = 36.06 × (T/3000)^0.74 / d^0.21
+ℹ️ <strong>3-Tier Model (MAE: 9.96 Heat):</strong><br>
+• Cool (M/K/G, T<6000K): Heat = 26.46 × (T/3000)^1.03 / d^0.33<br>
+• Medium (F, 6000-7500K): Heat = 79.67 × (T/3000)^0.03 / d^0.45<br>
+• Hot (A/B, T>7500K): Heat = 26.82 × (T/3000)^1.00 / d^0.19
 </div>
 </div>
 </div>
@@ -76,45 +78,46 @@ function calc(){
         return;
     }
     
-    // Determine star type based on temperature
-    let starType, modelUsed;
+    let starType, modelTier;
     let heat;
     
     if(temp < 6000){
         // Cool stars: M/K/G
-        // Heat = 26.64 × (T/3000)^0.99 / d^0.33
-        const tempFactor = Math.pow(temp/3000, 0.99);
-        const distFactor = Math.pow(dist, 0.33);
-        heat = 26.64 * tempFactor / distFactor;
-        modelUsed = 'Cool Star (M/K/G)';
+        // Heat = 26.46 × (T/3000)^1.03 / d^0.33
+        const tempFactor = Math.pow(temp/3000, 1.03);
+        const distFactor = Math.pow(dist, 0.334);
+        heat = 26.46 * tempFactor / distFactor;
+        modelTier = 'Cool (M/K/G)';
         
         if(temp < 3900){
             starType = 'M-type (red dwarf)';
         } else if(temp < 5200){
-            starType = 'K-type (orange)';
+            starType = 'K-type (orange dwarf)';
         } else {
-            starType = 'G-type (yellow)';
+            starType = 'G-type (yellow dwarf)';
         }
+    } else if(temp < 7500){
+        // Medium stars: F
+        // Heat = 79.67 × (T/3000)^0.03 / d^0.45
+        // Note: Temperature effect is minimal (^0.03)
+        const tempFactor = Math.pow(temp/3000, 0.031);
+        const distFactor = Math.pow(dist, 0.446);
+        heat = 79.67 * tempFactor / distFactor;
+        modelTier = 'Medium (F)';
+        starType = 'F-type (yellow-white)';
     } else {
-        // Hot stars: F/A
-        // Heat = 36.06 × (T/3000)^0.74 / d^0.21
-        const tempFactor = Math.pow(temp/3000, 0.74);
-        const distFactor = Math.pow(dist, 0.21);
-        heat = 36.06 * tempFactor / distFactor;
-        modelUsed = 'Hot Star (F/A)';
+        // Hot stars: A/B
+        // Heat = 26.82 × (T/3000)^1.00 / d^0.19
+        const tempFactor = Math.pow(temp/3000, 0.995);
+        const distFactor = Math.pow(dist, 0.193);
+        heat = 26.82 * tempFactor / distFactor;
+        modelTier = 'Hot (A/B)';
         
-        if(temp < 7500){
-            starType = 'F-type (yellow-white)';
-        } else if(temp < 10000){
+        if(temp < 10000){
             starType = 'A-type (white)';
         } else {
             starType = 'B-type (blue-white)';
         }
-    }
-    
-    // Game appears to have a soft cap around 100 Heat at very close distances
-    if(dist < 0.15 && heat > 100){
-        heat = heat * 0.7;
     }
     
     heat = Math.round(heat * 10) / 10;
@@ -145,14 +148,14 @@ function calc(){
     document.getElementById('zone').textContent = zoneEmoji + ' ' + zone;
     document.getElementById('zone').className = 'zone ' + zoneClass;
     document.getElementById('range').textContent = rangeMin + ' - ' + rangeMax;
-    document.getElementById('model').textContent = modelUsed;
+    document.getElementById('model').textContent = modelTier;
     document.getElementById('starType').textContent = starType;
     
     const warning = document.getElementById('warning');
     if(heat >= 60){
         warning.innerHTML = heat >= 80 
-            ? '⚠️ <strong>SUPERCRITICAL!</strong> Easily reaches 150 limit after jump!'
-            : '⚠️ <strong>DANGEROUS!</strong> Jump distance limited, short jumps recommended.';
+            ? '⚠️ <strong>SUPERCRITICAL!</strong> Jump distance severely limited - easily reaches 150 Heat limit!'
+            : '⚠️ <strong>DANGEROUS!</strong> Jump distance limited, plan short jumps carefully.';
         warning.style.display = 'block';
     } else {
         warning.style.display = 'none';
