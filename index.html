@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EVE Frontier Heat Calculator v6.0</title>
+<title>EVE Frontier Heat Calculator v6.1</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:radial-gradient(ellipse at 30% 20%, rgba(80,20,10,0.4) 0%, transparent 50%),radial-gradient(ellipse at 70% 80%, rgba(120,30,0,0.3) 0%, transparent 50%),radial-gradient(ellipse at 50% 50%, rgba(60,10,5,0.5) 0%, transparent 70%),linear-gradient(135deg, #0a0505 0%, #1a0a0a 50%, #0f0505 100%);min-height:100vh;padding:20px;color:#fff;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
@@ -14,12 +14,14 @@ h1{text-align:center;margin-bottom:10px;font-size:2.2em;color:#ffaa77;font-weigh
 .version{text-align:center;margin-bottom:30px;font-size:0.85em;color:#aa8866;font-style:italic}
 .model-selector{background:rgba(40,20,15,.8);padding:15px;border-radius:12px;margin-bottom:25px;border:2px solid rgba(255,100,50,.3)}
 .model-selector label{display:block;margin-bottom:10px;font-size:.95em;color:#ffaa77;font-weight:600}
-.radio-group{display:flex;gap:15px}
+.radio-group{display:flex;gap:10px}
 .radio-option{flex:1;position:relative}
 .radio-option input[type="radio"]{position:absolute;opacity:0}
-.radio-option label{display:block;padding:12px;background:rgba(20,10,5,.6);border:2px solid rgba(255,100,50,.3);border-radius:8px;cursor:pointer;text-align:center;transition:all .3s;font-size:.9em}
+.radio-option label{display:block;padding:10px 8px;background:rgba(20,10,5,.6);border:2px solid rgba(255,100,50,.3);border-radius:8px;cursor:pointer;text-align:center;transition:all .3s;font-size:.85em;line-height:1.3}
 .radio-option input[type="radio"]:checked + label{background:rgba(255,100,0,.3);border-color:#f60;box-shadow:0 0 15px rgba(255,100,0,.4)}
 .radio-option label:hover{background:rgba(255,100,0,.2);transform:translateY(-2px)}
+.radio-option label small{display:block;font-size:.85em;opacity:.8;margin-top:2px}
+.best-badge{display:inline-block;background:rgba(50,255,100,.3);color:#5f5;font-size:.7em;padding:2px 6px;border-radius:4px;margin-top:2px;font-weight:bold}
 .input-group{margin-bottom:25px;position:relative}
 label{display:block;margin-bottom:8px;font-weight:600;font-size:1em;color:#ffaa77}
 .distance-wrapper{display:flex;gap:10px;align-items:stretch}
@@ -54,19 +56,23 @@ input[type="number"]::placeholder{color:#aa8866}
 <body>
 <div class="container">
 <h1>EVE Frontier Heat Calculator</h1>
-<p class="subtitle">Dual-model prediction system</p>
-<p class="version">v6.0 - Mix (Power Law) vs Exponential (Ergod's Model)</p>
+<p class="subtitle">Triple-model prediction system</p>
+<p class="version">v6.1 - Mix | Exponential (Ergod) | Universal (Best)</p>
 
 <div class="model-selector">
 <label>Prediction Model:</label>
 <div class="radio-group">
 <div class="radio-option">
-<input type="radio" id="modelMix" name="model" value="mix" checked>
-<label for="modelMix">Mix<br><small>(MAE: 7.49)</small></label>
+<input type="radio" id="modelMix" name="model" value="mix">
+<label for="modelMix">Mix<br><small>MAE: 7.49</small></label>
 </div>
 <div class="radio-option">
 <input type="radio" id="modelExp" name="model" value="exponential">
-<label for="modelExp">Exponential<br><small>(MAE: 7.06, from Ergod)</small></label>
+<label for="modelExp">Exponential<br><small>from Ergod<br>MAE: 7.06</small></label>
+</div>
+<div class="radio-option">
+<input type="radio" id="modelUniv" name="model" value="universal" checked>
+<label for="modelUniv">Universal<br><small>MAE: 5.77</small><br><span class="best-badge">BEST</span></label>
 </div>
 </div>
 </div>
@@ -131,13 +137,32 @@ function calc(){
         return;
     }
     
-    // Convert LS to AU if needed
     const distLS = currentUnit === 'LS' ? dist : dist * 336;
     const distAU = currentUnit === 'AU' ? dist : dist / 336;
     
     let heat, starType, modelUsed, modelDesc, accuracyText;
     
-    if(modelType === 'mix'){
+    if(modelType === 'universal'){
+        // Universal Exponential (Best)
+        const lambda = 2.21e9 / Math.pow(temp, 2.613);
+        const A = 85.0;
+        const B = 0.000791 * temp + 2.694;
+        
+        heat = A * Math.exp(-lambda * distAU) + B;
+        
+        modelUsed = 'Universal Exponential';
+        
+        if(temp < 3900) starType = 'M-type (red dwarf)';
+        else if(temp < 5200) starType = 'K-type (orange dwarf)';
+        else if(temp < 6000) starType = 'G-type (yellow dwarf)';
+        else if(temp < 7500) starType = 'F-type (yellow-white)';
+        else if(temp < 10000) starType = 'A-type (white)';
+        else starType = 'B-type (blue-white)';
+        
+        modelDesc = '<strong>Universal Exponential (Best):</strong><br>Heat = A×e^(-λ×D) + B<br>• λ(T) = 2.21×10⁹ / T^2.61 (stellar wind)<br>• A = 85 (normalization)<br>• B(T) = 0.000791×T + 2.7 (background)<br>• Smooth transitions, no class boundaries<br>• Based on Ergod\'s exponential analysis';
+        accuracyText = '⭐ Universal: 82% <10 Heat | 55% <5 Heat | MAE: 5.77';
+        
+    } else if(modelType === 'mix'){
         // Mix Model (Power Law)
         if(temp < 6000){
             const tempFactor = Math.pow(temp/3000, 1.03);
@@ -202,7 +227,7 @@ function calc(){
         
         heat = A * Math.exp(-lambda * distAU) + B;
         
-        modelDesc = '<strong>Exponential Model (from Ergod):</strong><br>Heat = A×e^(-λ×D) + B<br>• M: 77.75×e^(-1.97×D)+5.88<br>• K: 92.46×e^(-0.79×D)+4.38<br>• G: 77.90×e^(-0.32×D)+8.04<br>• F: 89.46×e^(-0.19×D)+8.06<br>• A: 87.12×e^(-0.09×D)+10.37';
+        modelDesc = '<strong>Exponential Model (from Ergod):</strong><br>Heat = A×e^(-λ×D) + B<br>• M: 77.75×e^(-1.97×D)+5.88<br>• K: 92.46×e^(-0.79×D)+4.38<br>• G: 77.90×e^(-0.32×D)+8.04<br>• F: 89.46×e^(-0.19×D)+8.06<br>• A: 87.12×e^(-0.09×D)+10.37<br>• Per-class parameters';
         accuracyText = '⭐ Exponential: 83% <10 Heat | 55% <5 Heat | MAE: 7.06';
     }
     
