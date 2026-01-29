@@ -50,6 +50,8 @@ echo ""
 
 # Add index.html
 git add index.html
+git add README.md
+git add deploy.sh
 
 # Commit
 git commit -m "Update"
