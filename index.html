@@ -201,6 +201,7 @@ async function searchSystems() {
   const resultDiv = document.getElementById('result');
   const errorDiv = document.getElementById('error');
   
+  
   // Clear previous results
   resultDiv.style.display = 'none';
   errorDiv.style.display = 'none';
@@ -212,6 +213,8 @@ async function searchSystems() {
   
   // Parse input - extract system names from various formats
   const systemNames = parseSystemInput(input);
+  
+  document.getElementById('systemInput').value = systemNames.join(', ');
   
   if (systemNames.length === 0) {
     showError('No valid system names found');
@@ -260,46 +263,49 @@ async function searchSystems() {
 
 // Parse various input formats
 function parseSystemInput(input) {
-  const systems = new Set(); // Use Set to avoid duplicates
-  
-  // Remove HTML tags: <a href="...">SYSTEM</a> → SYSTEM
-  const htmlPattern = /<a[^>]*>([^<]+)<\/a>/gi;
-  let cleanInput = input;
-  let match;
-  while ((match = htmlPattern.exec(input)) !== null) {
-    // Remove trailing asterisk(s) from system name
-    const cleanName = match[1].trim().replace(/\*+$/, '');
-    if (cleanName.length >= 3) {
-      systems.add(cleanName);
+  const systems = new Set();
+
+  let text = input;
+
+  // 1) HTML strip
+  const temp = document.createElement('div');
+  temp.innerHTML = text;
+  text = temp.textContent || temp.innerText || text;
+
+  // 2) Normalizálás
+  text = text
+    .replace(/→/g, ' ')
+    .replace(/\|/g, ' ')
+    .replace(/\*/g, ' ')
+    .replace(/Gate:|SmartGate:|Jump:/gi, ' ')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[\d]+\.[\d]+/g, ' ')
+    .replace(/\s+/g, ' ');
+
+  // 3) HARD EXTRACT regex (EZ A LÉNYEG)
+  // Frontier system name pattern: XXX-YYY, XXXX-YYYY, XX-XX stb
+  const regex = /\b[A-Z0-9]{2,4}-[A-Z0-9]{2,4}\b/gi;
+
+  const matches = text.match(regex);
+
+  if (matches) {
+    for (const m of matches) {
+      systems.add(m.toUpperCase());
     }
   }
-  
-  // If we found HTML-formatted names, use those
-  if (systems.size > 0) {
-    return Array.from(systems);
-  }
-  
-  // Otherwise, split by common delimiters
-  cleanInput = input
-    .replace(/→/g, ',')  // Arrow separator
-    .replace(/\*/g, '')  // Remove trap indicators
-    .replace(/[\d.]+/g, '') // Remove numbers (distances)
-    .replace(/Gate:|SmartGate:|Jump:/gi, '') // Remove labels
-    .replace(/\([^)]*\)/g, '') // Remove parentheses content
-    .replace(/\[[^\]]*\]/g, ''); // Remove brackets content
-  
-  // Split by comma, newline, or multiple spaces
-  const parts = cleanInput.split(/[,\n]+/);
-  
-  for (const part of parts) {
-    const cleaned = part.trim();
-    // Valid system name: 3+ chars, alphanumeric with dashes
-    if (cleaned.length >= 3 && /^[A-Z0-9-]+$/i.test(cleaned)) {
-      systems.add(cleaned);
-    }
-  }
-  
+
   return Array.from(systems);
+}
+    
+function cleanTextareaToSystemsOnly() {
+    const textarea = document.getElementById('systemInput');
+    const input = textarea.value;
+
+    const systems = parseSystemInput(input);
+
+    textarea.value = systems.join(', ');
 }
 
 // Display multiple systems in table
@@ -478,34 +484,26 @@ document.getElementById('systemInput').addEventListener('keydown', function(e) {
 document.getElementById('systemInput').addEventListener('paste', function(e) {
   e.preventDefault();
   
-  // Get clipboard data
   const clipboardData = e.clipboardData || window.clipboardData;
   const pastedHTML = clipboardData.getData('text/html');
   const pastedText = clipboardData.getData('text');
-  
-  let cleanText = pastedText;
-  
-  // If HTML is present, strip all tags using DOM
+
+  let rawText = pastedText;
+
+  // HTML strip
   if (pastedHTML && pastedHTML.trim().length > 0) {
     const temp = document.createElement('div');
     temp.innerHTML = pastedHTML;
-    cleanText = temp.textContent || temp.innerText || pastedText;
+    rawText = temp.textContent || temp.innerText || pastedText;
   }
-  
-  // Insert cleaned text
-  const textarea = this;
-  const start = textarea.selectionStart;
-  const end = textarea.selectionEnd;
-  const currentValue = textarea.value;
-  
-  textarea.value = currentValue.substring(0, start) + cleanText + currentValue.substring(end);
-  
-  // Set cursor position after inserted text
-  const newPosition = start + cleanText.length;
-  textarea.setSelectionRange(newPosition, newPosition);
+
+  // 🔥 EXTRACT SYSTEMS ONLY
+  const systems = parseSystemInput(rawText);
+
+  // 👇 AUTO CLEAN UI
+  this.value = systems.join(', ');
 });
-  textarea.selectionEnd = newPosition;
-});
+
 
 // Auto-focus input
 document.getElementById('systemInput').focus();
