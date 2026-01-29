@@ -27,11 +27,12 @@ h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
 }
 .input-group {margin-bottom:20px}
 label {display:block;margin-bottom:8px;color:#ffaa77;font-weight:600}
-input[type="text"] {
+input[type="text"],textarea {
   width:100%;padding:15px;font-size:1.1em;border:2px solid rgba(255,100,50,0.3);
-  border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;transition:all 0.3s
+  border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;transition:all 0.3s;
+  font-family:inherit;resize:vertical
 }
-input[type="text"]:focus {
+input[type="text"]:focus,textarea:focus {
   outline:none;border-color:#f60;background:rgba(20,10,5,0.8);
   box-shadow:0 0 15px rgba(255,100,0,0.3)
 }
@@ -45,6 +46,32 @@ input[type="text"]:focus {
 .result {
   background:rgba(30,15,10,0.8);border:2px solid rgba(255,100,50,0.3);
   border-radius:15px;padding:30px;display:none;animation:fadeIn 0.5s
+}
+.route-table {
+  width:100%;border-collapse:collapse;margin:20px 0
+}
+.route-table th {
+  background:rgba(255,100,50,0.2);padding:12px;text-align:left;
+  border-bottom:2px solid rgba(255,100,50,0.4);color:#ffaa77;font-weight:600
+}
+.route-table td {
+  padding:12px;border-bottom:1px solid rgba(255,255,255,0.1)
+}
+.route-table tr:hover {
+  background:rgba(255,100,50,0.1)
+}
+.heat-cell {
+  font-weight:bold;font-size:1.1em
+}
+.trap-indicator {
+  display:inline-block;padding:4px 8px;border-radius:5px;
+  font-size:0.9em;margin-left:8px
+}
+.trap-yes {
+  background:rgba(255,0,0,0.3);border:1px solid #f00;color:#ff6666
+}
+.trap-no {
+  background:rgba(50,150,50,0.3);border:1px solid #5f5;color:#aaffaa
 }
 @keyframes fadeIn {from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
 .system-name {text-align:center;font-size:1.8em;color:#6cf;margin-bottom:20px;font-weight:600}
@@ -132,16 +159,22 @@ footer a:hover {text-decoration:underline}
 
   <div class="search-section">
     <div class="input-group">
-      <label for="systemInput">System Name:</label>
-      <input 
-        type="text" 
+      <label for="systemInput">System Names (one or multiple):</label>
+      <textarea 
         id="systemInput" 
-        placeholder="e.g., O3H-1FN"
+        placeholder="Enter system name(s):
+- Single: O3H-1FN
+- Multiple: O3H-1FN, I9T-0FN, OFC-3FN
+- Route paste: Copy from EVE Frontier Map"
+        rows="4"
         autocomplete="off"
-      >
+      ></textarea>
+      <div style="margin-top:8px;font-size:0.85em;color:#aa8866">
+        💡 Tip: Paste route from <a href="https://ef-map.com/" target="_blank" style="color:#6cf;text-decoration:none">EVE Frontier Map by Lacal</a> - HTML formatting will be auto-cleaned
+      </div>
     </div>
-    <button class="btn" id="searchBtn" onclick="searchSystem()">
-      Find Coldest Point
+    <button class="btn" id="searchBtn" onclick="searchSystems()">
+      Check Heat
     </button>
   </div>
 
@@ -161,8 +194,8 @@ footer a:hover {text-decoration:underline}
 // CONFIGURATION
 const API_URL = 'https://heatsense-api.heatsense.workers.dev/api/system';
 
-// System search
-async function searchSystem() {
+// Multi-system search
+async function searchSystems() {
   const input = document.getElementById('systemInput').value.trim();
   const btn = document.getElementById('searchBtn');
   const resultDiv = document.getElementById('result');
@@ -173,33 +206,177 @@ async function searchSystem() {
   errorDiv.style.display = 'none';
   
   if (!input) {
-    showError('Please enter a system name');
+    showError('Please enter at least one system name');
+    return;
+  }
+  
+  // Parse input - extract system names from various formats
+  const systemNames = parseSystemInput(input);
+  
+  if (systemNames.length === 0) {
+    showError('No valid system names found');
     return;
   }
   
   // Show loading
   btn.disabled = true;
-  btn.textContent = 'Searching...';
-  resultDiv.innerHTML = '<div class="loading">🔍 Searching 24,023 systems...</div>';
+  btn.textContent = 'Checking...';
+  resultDiv.innerHTML = `<div class="loading">🔍 Checking ${systemNames.length} system(s)...</div>`;
   resultDiv.style.display = 'block';
   
   try {
-    const response = await fetch(`${API_URL}/${encodeURIComponent(input)}`);
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'System not found');
+    // Fetch all systems
+    const results = [];
+    for (const name of systemNames) {
+      try {
+        const response = await fetch(`${API_URL}/${encodeURIComponent(name)}`);
+        if (response.ok) {
+          const data = await response.json();
+          results.push({ name: name, system: data.system, model: data.model });
+        } else {
+          results.push({ name: name, error: 'Not found' });
+        }
+      } catch (err) {
+        results.push({ name: name, error: err.message });
+      }
     }
     
-    const data = await response.json();
-    displayResult(data.system, data.model);
+    // Display results
+    if (results.length === 1 && !results[0].error) {
+      // Single system - use detailed view
+      displayResult(results[0].system, results[0].model);
+    } else {
+      // Multiple systems - use table view
+      displayMultipleResults(results);
+    }
     
   } catch (error) {
     showError(error.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Find Coldest Point';
+    btn.textContent = 'Check Heat';
   }
+}
+
+// Parse various input formats
+function parseSystemInput(input) {
+  const systems = new Set(); // Use Set to avoid duplicates
+  
+  // Remove HTML tags: <a href="...">SYSTEM</a> → SYSTEM
+  const htmlPattern = /<a[^>]*>([^<]+)<\/a>/gi;
+  let cleanInput = input;
+  let match;
+  while ((match = htmlPattern.exec(input)) !== null) {
+    systems.add(match[1].trim());
+  }
+  
+  // If we found HTML-formatted names, use those
+  if (systems.size > 0) {
+    return Array.from(systems);
+  }
+  
+  // Otherwise, split by common delimiters
+  cleanInput = input
+    .replace(/→/g, ',')  // Arrow separator
+    .replace(/\*/g, '')  // Remove trap indicators
+    .replace(/[\d.]+/g, '') // Remove numbers (distances)
+    .replace(/Gate:|SmartGate:|Jump:/gi, '') // Remove labels
+    .replace(/\([^)]*\)/g, '') // Remove parentheses content
+    .replace(/\[[^\]]*\]/g, ''); // Remove brackets content
+  
+  // Split by comma, newline, or multiple spaces
+  const parts = cleanInput.split(/[,\n]+/);
+  
+  for (const part of parts) {
+    const cleaned = part.trim();
+    // Valid system name: 3+ chars, alphanumeric with dashes
+    if (cleaned.length >= 3 && /^[A-Z0-9-]+$/i.test(cleaned)) {
+      systems.add(cleaned);
+    }
+  }
+  
+  return Array.from(systems);
+}
+
+// Display multiple systems in table
+function displayMultipleResults(results) {
+  const resultDiv = document.getElementById('result');
+  
+  const successCount = results.filter(r => !r.error).length;
+  const trapCount = results.filter(r => !r.error && r.system.coldest_point.heat >= 70).length;
+  
+  let html = `
+    <h2>Route Heat Check</h2>
+    <p style="text-align:center;margin:15px 0;font-size:1.1em;color:#ffaa77">
+      ${successCount} / ${results.length} systems found
+      ${trapCount > 0 ? `| <span style="color:#ff6666">⚠️ ${trapCount} TRAP(s) detected!</span>` : ''}
+    </p>
+    
+    <table class="route-table">
+      <thead>
+        <tr>
+          <th>System</th>
+          <th>Star</th>
+          <th>Heat</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  
+  for (const result of results) {
+    if (result.error) {
+      html += `
+        <tr>
+          <td>${result.name}</td>
+          <td colspan="3" style="color:#ff6666">❌ ${result.error}</td>
+        </tr>
+      `;
+    } else {
+      const sys = result.system;
+      const isTrap = sys.coldest_point.heat >= 70;
+      
+      const statusConfig = {
+        'SAFE': { emoji: '✅', class: '' },
+        'MODERATE': { emoji: '⚠️', class: '' },
+        'DANGEROUS': { emoji: '🔥', class: '' },
+        'CRITICAL': { emoji: '☠️', class: '' }
+      };
+      
+      const config = statusConfig[sys.status] || statusConfig['SAFE'];
+      
+      html += `
+        <tr>
+          <td><strong>${sys.name}</strong></td>
+          <td>${sys.star.class} (${sys.star.temperature}K)</td>
+          <td class="heat-cell" style="color:${sys.coldest_point.heat >= 70 ? '#ff6666' : sys.coldest_point.heat >= 30 ? '#ffaa66' : '#aaffaa'}">
+            ${sys.coldest_point.heat.toFixed(1)}
+          </td>
+          <td>
+            ${config.emoji} ${sys.status}
+            ${isTrap ? '<span class="trap-indicator trap-yes">⚠️ TRAP!</span>' : '<span class="trap-indicator trap-no">✅ Safe</span>'}
+          </td>
+        </tr>
+      `;
+    }
+  }
+  
+  html += `
+      </tbody>
+    </table>
+    
+    <div class="info-box">
+      <strong>💡 About this check:</strong><br>
+      Heat values shown are at each system's coldest accessible point (outermost planet orbit).
+      Systems marked as "TRAP" have heat ≥70 even at their coldest point - be careful!
+      <br><br>
+      Read more: <a href="https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model" 
+        target="_blank" style="color:#6cf">Ergod's Research Paper</a>
+    </div>
+  `;
+  
+  resultDiv.innerHTML = html;
+  resultDiv.style.display = 'block';
 }
 
 function displayResult(system, model) {
@@ -285,29 +462,18 @@ function showError(message) {
   errorDiv.style.display = 'block';
 }
 
-// Enter key support
-document.getElementById('systemInput').addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') {
-    searchSystem();
+// Enter key support (Ctrl+Enter for textarea)
+document.getElementById('systemInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    searchSystems();
   }
 });
 
 // Paste handler - strip HTML from Lacal format
-// Handles: <a href="showinfo:5//30015883">I4K-005</a>
 document.getElementById('systemInput').addEventListener('paste', function(e) {
-  e.preventDefault();
-  
-  // Get pasted data
-  const pastedData = (e.clipboardData || window.clipboardData).getData('text/html') || 
-                     (e.clipboardData || window.clipboardData).getData('text');
-  
-  // Extract text from HTML if present
-  // Regex to extract text between > and <
-  const match = pastedData.match(/>([^<]+)</);
-  const cleanText = match ? match[1].trim() : pastedData.trim();
-  
-  // Insert cleaned text
-  this.value = cleanText;
+  // Let default paste happen for textarea (multi-line support)
+  // HTML will be cleaned during parsing in parseSystemInput()
 });
 
 // Auto-focus input
