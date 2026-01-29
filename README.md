@@ -1,6 +1,6 @@
-# EVE Frontier HeatSense v8.0
+# EVE Frontier HeatSense
 
-System heat calculator for safe navigation and mining operations.
+System heat calculator for safe navigation.
 
 🌐 **Live:** https://anteris90.github.io/FrontierHeatSense/
 
