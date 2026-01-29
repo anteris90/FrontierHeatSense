@@ -267,7 +267,11 @@ function parseSystemInput(input) {
   let cleanInput = input;
   let match;
   while ((match = htmlPattern.exec(input)) !== null) {
-    systems.add(match[1].trim());
+    // Remove trailing asterisk(s) from system name
+    const cleanName = match[1].trim().replace(/\*+$/, '');
+    if (cleanName.length >= 3) {
+      systems.add(cleanName);
+    }
   }
   
   // If we found HTML-formatted names, use those
@@ -470,10 +474,37 @@ document.getElementById('systemInput').addEventListener('keydown', function(e) {
   }
 });
 
-// Paste handler - strip HTML from Lacal format
+// Paste handler - clean HTML before inserting
 document.getElementById('systemInput').addEventListener('paste', function(e) {
-  // Let default paste happen for textarea (multi-line support)
-  // HTML will be cleaned during parsing in parseSystemInput()
+  e.preventDefault();
+  
+  // Get clipboard data
+  const clipboardData = e.clipboardData || window.clipboardData;
+  const pastedHTML = clipboardData.getData('text/html');
+  const pastedText = clipboardData.getData('text');
+  
+  let cleanText = pastedText;
+  
+  // If HTML is present, strip all tags using DOM
+  if (pastedHTML && pastedHTML.trim().length > 0) {
+    const temp = document.createElement('div');
+    temp.innerHTML = pastedHTML;
+    cleanText = temp.textContent || temp.innerText || pastedText;
+  }
+  
+  // Insert cleaned text
+  const textarea = this;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const currentValue = textarea.value;
+  
+  textarea.value = currentValue.substring(0, start) + cleanText + currentValue.substring(end);
+  
+  // Set cursor position after inserted text
+  const newPosition = start + cleanText.length;
+  textarea.setSelectionRange(newPosition, newPosition);
+});
+  textarea.selectionEnd = newPosition;
 });
 
 // Auto-focus input
