@@ -132,11 +132,11 @@ footer a:hover {text-decoration:underline}
 
   <div class="search-section">
     <div class="input-group">
-      <label for="systemInput">System Name or ID:</label>
+      <label for="systemInput">System Name:</label>
       <input 
         type="text" 
         id="systemInput" 
-        placeholder="e.g., O3H-1FN or 30000004"
+        placeholder="e.g., O3H-1FN"
         autocomplete="off"
       >
     </div>
@@ -173,7 +173,7 @@ async function searchSystem() {
   errorDiv.style.display = 'none';
   
   if (!input) {
-    showError('Please enter a system name or ID');
+    showError('Please enter a system name');
     return;
   }
   
@@ -249,10 +249,6 @@ function displayResult(system, model) {
     
     <div class="details">
       <div class="detail-row">
-        <span class="detail-label">System ID:</span>
-        <span class="detail-value">${system.id}</span>
-      </div>
-      <div class="detail-row">
         <span class="detail-label">Star Type:</span>
         <span class="detail-value">${system.star.class} (${system.star.temperature}K)</span>
       </div>
@@ -283,8 +279,7 @@ function showError(message) {
   errorDiv.innerHTML = `
     <strong>❌ Error:</strong> ${message}
     <p style="margin-top: 10px; font-size: 0.9em;">
-      Make sure the system name is correct. Try exact names like "O3H-1FN" 
-      or use the system ID (e.g., 30000004).
+      Make sure the system name is correct. Try exact names like "O3H-1FN".
     </p>
   `;
   errorDiv.style.display = 'block';
@@ -295,6 +290,24 @@ document.getElementById('systemInput').addEventListener('keypress', function(e) 
   if (e.key === 'Enter') {
     searchSystem();
   }
+});
+
+// Paste handler - strip HTML from Lacal format
+// Handles: <a href="showinfo:5//30015883">I4K-005</a>
+document.getElementById('systemInput').addEventListener('paste', function(e) {
+  e.preventDefault();
+  
+  // Get pasted data
+  const pastedData = (e.clipboardData || window.clipboardData).getData('text/html') || 
+                     (e.clipboardData || window.clipboardData).getData('text');
+  
+  // Extract text from HTML if present
+  // Regex to extract text between > and <
+  const match = pastedData.match(/>([^<]+)</);
+  const cleanText = match ? match[1].trim() : pastedData.trim();
+  
+  // Insert cleaned text
+  this.value = cleanText;
 });
 
 // Auto-focus input
