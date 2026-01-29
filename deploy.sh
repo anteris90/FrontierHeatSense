@@ -52,6 +52,7 @@ echo ""
 git add index.html
 git add README.md
 git add deploy.sh
+git add dangerous-systems.html
 
 # Commit
 git commit -m "Update"
