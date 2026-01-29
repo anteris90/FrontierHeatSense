@@ -95,6 +95,12 @@ input[type="text"]:focus,textarea:focus {
 .trap-yes {
   background:rgba(255,0,0,0.3);border:1px solid #f00;color:#ff6666
 }
+.trap-danger {
+  background:rgba(255,80,0,0.3);border:1px solid #f50;color:#ff9966
+}
+.trap-moderate {
+  background:rgba(255,150,0,0.3);border:1px solid #fa0;color:#ffcc88
+}
 .trap-no {
   background:rgba(50,150,50,0.3);border:1px solid #5f5;color:#aaffaa
 }
@@ -395,7 +401,10 @@ function displayMultipleResults(results) {
           </td>
           <td>
             ${config.emoji} ${sys.status}
-            ${isTrap ? '<span class="trap-indicator trap-yes">⚠️ TRAP!</span>' : '<span class="trap-indicator trap-no">✅ Safe</span>'}
+            ${isTrap ? '<span class="trap-indicator trap-yes">⚠️ TRAP!</span>' : 
+                sys.status === 'DANGEROUS' ? '<span class="trap-indicator trap-danger">🔥 DANGER</span>' :
+                sys.status === 'MODERATE' ? '<span class="trap-indicator trap-moderate">⚠️ Caution</span>' :
+                '<span class="trap-indicator trap-no">✅ Safe</span>'}
           </td>
         </tr>
       `;
