@@ -3,260 +3,104 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EVE Frontier :: HeatSense</title>
+<title>EVE Frontier :: HeatSense v8.0</title>
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+* {margin:0;padding:0;box-sizing:border-box}
 body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background: linear-gradient(135deg, #0a0505 0%, #1a0a0a 50%, #0f0505 100%);
-  min-height: 100vh;
-  color: #fff;
-  padding: 20px;
+  font-family:'Segoe UI',system-ui,sans-serif;
+  background:linear-gradient(135deg,#0a0505 0%,#1a0a0a 50%,#0f0505 100%);
+  min-height:100vh;color:#fff;padding:20px
 }
-
-.container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 40px 20px;
+.container {max-width:800px;margin:0 auto;padding:40px 20px}
+header {text-align:center;margin-bottom:40px}
+h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
+.subtitle {color:#aa8866;font-size:1.1em}
+.version {color:#666;font-size:0.9em;margin-top:5px}
+.model-badge {
+  background:rgba(100,200,255,0.15);border:2px solid rgba(100,200,255,0.4);
+  padding:10px 20px;border-radius:10px;display:inline-block;margin-top:10px;
+  font-size:0.9em;color:#6cf
 }
-
-header {
-  text-align: center;
-  margin-bottom: 40px;
-}
-
-h1 {
-  font-size: 2.5em;
-  color: #ffaa77;
-  margin-bottom: 10px;
-}
-
-.subtitle {
-  color: #aa8866;
-  font-size: 1.1em;
-}
-
-.version {
-  color: #666;
-  font-size: 0.9em;
-  margin-top: 5px;
-}
-
 .search-section {
-  background: rgba(255, 100, 50, 0.1);
-  border: 2px solid rgba(255, 100, 50, 0.3);
-  border-radius: 15px;
-  padding: 30px;
-  margin-bottom: 30px;
+  background:rgba(255,100,50,0.1);border:2px solid rgba(255,100,50,0.3);
+  border-radius:15px;padding:30px;margin-bottom:30px
 }
-
-.input-group {
-  margin-bottom: 20px;
-}
-
-label {
-  display: block;
-  margin-bottom: 8px;
-  color: #ffaa77;
-  font-weight: 600;
-}
-
+.input-group {margin-bottom:20px}
+label {display:block;margin-bottom:8px;color:#ffaa77;font-weight:600}
 input[type="text"] {
-  width: 100%;
-  padding: 15px;
-  font-size: 1.1em;
-  border: 2px solid rgba(255, 100, 50, 0.3);
-  border-radius: 10px;
-  background: rgba(10, 5, 0, 0.6);
-  color: #ffddcc;
-  transition: all 0.3s;
+  width:100%;padding:15px;font-size:1.1em;border:2px solid rgba(255,100,50,0.3);
+  border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;transition:all 0.3s
 }
-
 input[type="text"]:focus {
-  outline: none;
-  border-color: #f60;
-  background: rgba(20, 10, 5, 0.8);
-  box-shadow: 0 0 15px rgba(255, 100, 0, 0.3);
+  outline:none;border-color:#f60;background:rgba(20,10,5,0.8);
+  box-shadow:0 0 15px rgba(255,100,0,0.3)
 }
-
 .btn {
-  width: 100%;
-  padding: 15px;
-  font-size: 1.2em;
-  font-weight: bold;
-  background: linear-gradient(135deg, #f60 0%, #c30 100%);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.3s;
+  width:100%;padding:15px;font-size:1.2em;font-weight:bold;
+  background:linear-gradient(135deg,#f60 0%,#c30 100%);color:#fff;border:none;
+  border-radius:10px;cursor:pointer;transition:all 0.3s
 }
-
-.btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(255, 100, 0, 0.6);
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
+.btn:hover:not(:disabled) {transform:translateY(-2px);box-shadow:0 6px 25px rgba(255,100,0,0.6)}
+.btn:disabled {opacity:0.5;cursor:not-allowed}
 .result {
-  background: rgba(30, 15, 10, 0.8);
-  border: 2px solid rgba(255, 100, 50, 0.3);
-  border-radius: 15px;
-  padding: 30px;
-  display: none;
-  animation: fadeIn 0.5s;
+  background:rgba(30,15,10,0.8);border:2px solid rgba(255,100,50,0.3);
+  border-radius:15px;padding:30px;display:none;animation:fadeIn 0.5s
 }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.system-name {
-  text-align: center;
-  font-size: 1.8em;
-  color: #6cf;
-  margin-bottom: 20px;
-  font-weight: 600;
-}
-
-.heat-display {
-  text-align: center;
-  margin: 30px 0;
-}
-
+@keyframes fadeIn {from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.system-name {text-align:center;font-size:1.8em;color:#6cf;margin-bottom:20px;font-weight:600}
+.heat-display {text-align:center;margin:30px 0}
 .heat-value {
-  font-size: 4em;
-  font-weight: bold;
-  color: #ff8844;
-  text-shadow: 0 0 20px rgba(255, 100, 0, 0.6);
+  font-size:4em;font-weight:bold;color:#ff8844;
+  text-shadow:0 0 20px rgba(255,100,0,0.6)
 }
-
-.heat-label {
-  font-size: 0.9em;
-  color: #aaa;
-  margin-top: 5px;
-}
-
+.heat-label {font-size:0.9em;color:#aaa;margin-top:5px}
 .status-badge {
-  text-align: center;
-  font-size: 1.5em;
-  padding: 15px;
-  border-radius: 10px;
-  margin: 20px 0;
-  font-weight: bold;
+  text-align:center;font-size:1.5em;padding:15px;border-radius:10px;
+  margin:20px 0;font-weight:bold
 }
-
 .status-safe {
-  background: rgba(50, 150, 50, 0.3);
-  border: 2px solid #5f5;
-  color: #aaffaa;
+  background:rgba(50,150,50,0.3);border:2px solid #5f5;color:#aaffaa
 }
-
 .status-moderate {
-  background: rgba(200, 150, 0, 0.3);
-  border: 2px solid #fc0;
-  color: #ffffaa;
+  background:rgba(200,150,0,0.3);border:2px solid #fc0;color:#ffffaa
 }
-
 .status-dangerous {
-  background: rgba(255, 100, 0, 0.3);
-  border: 2px solid #f60;
-  color: #ffccaa;
+  background:rgba(255,100,0,0.3);border:2px solid #f60;color:#ffccaa
 }
-
 .status-critical {
-  background: rgba(255, 0, 0, 0.4);
-  border: 2px solid red;
-  color: #ffaaaa;
-  animation: pulse 2s infinite;
+  background:rgba(255,0,0,0.4);border:2px solid red;color:#ffaaaa;
+  animation:pulse 2s infinite
 }
-
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 25px rgba(255, 0, 0, 0.6); }
-  50% { box-shadow: 0 0 40px rgba(255, 0, 0, 0.9); }
+  0%,100%{box-shadow:0 0 25px rgba(255,0,0,0.6)}
+  50%{box-shadow:0 0 40px rgba(255,0,0,0.9)}
 }
-
 .details {
-  background: rgba(0, 0, 0, 0.4);
-  padding: 20px;
-  border-radius: 10px;
-  margin-top: 20px;
+  background:rgba(0,0,0,0.4);padding:20px;border-radius:10px;margin-top:20px
 }
-
 .detail-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display:flex;justify-content:space-between;padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,0.1)
 }
-
-.detail-row:last-child {
-  border-bottom: none;
-}
-
-.detail-label {
-  color: #aaa;
-  font-weight: 600;
-}
-
-.detail-value {
-  color: #fff;
-}
-
+.detail-row:last-child {border-bottom:none}
+.detail-label {color:#aaa;font-weight:600}
+.detail-value {color:#fff}
 .error {
-  background: rgba(255, 50, 50, 0.2);
-  border: 2px solid #f33;
-  padding: 20px;
-  border-radius: 10px;
-  color: #ffaaaa;
-  display: none;
+  background:rgba(255,50,50,0.2);border:2px solid #f33;padding:20px;
+  border-radius:10px;color:#ffaaaa;display:none
 }
-
-.loading {
-  text-align: center;
-  padding: 20px;
-  color: #ffaa77;
-  font-size: 1.1em;
-}
-
+.loading {text-align:center;padding:20px;color:#ffaa77;font-size:1.1em}
 .info-box {
-  background: rgba(100, 200, 255, 0.1);
-  border: 1px solid rgba(100, 200, 255, 0.3);
-  padding: 15px;
-  border-radius: 10px;
-  margin-top: 20px;
-  font-size: 0.9em;
-  color: #ccddff;
-  line-height: 1.6;
+  background:rgba(100,200,255,0.1);border:1px solid rgba(100,200,255,0.3);
+  padding:15px;border-radius:10px;margin-top:20px;font-size:0.9em;
+  color:#ccddff;line-height:1.6
 }
-
 footer {
-  text-align: center;
-  margin-top: 50px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  color: #666;
-  font-size: 0.9em;
+  text-align:center;margin-top:50px;padding-top:20px;
+  border-top:1px solid rgba(255,255,255,0.1);color:#666;font-size:0.9em
 }
-
-footer a {
-  color: #6cf;
-  text-decoration: none;
-}
-
-footer a:hover {
-  text-decoration: underline;
-}
+footer a {color:#6cf;text-decoration:none}
+footer a:hover {text-decoration:underline}
 </style>
 </head>
 <body>
@@ -265,7 +109,10 @@ footer a:hover {
   <header>
     <h1>EVE Frontier :: HeatSense</h1>
     <div class="subtitle">System Heat Calculator</div>
-    <div class="version">v7.1 Production</div>
+    <div class="version">v8.0 Production</div>
+    <div class="model-badge">
+      🔬 Ergod's Physics Model | MAE: 6.93 Heat | 28% Better
+    </div>
   </header>
 
   <div class="search-section">
@@ -289,9 +136,13 @@ footer a:hover {
 
 <footer>
   <p>
-    EVE Frontier HeatSense v7.1 | 
+    EVE Frontier HeatSense v8.0 | 
     <a href="https://github.com/anteris90/FrontierHeatSense" target="_blank">GitHub</a> |
-    Data: 24,023 systems
+    Model by <a href="https://thoughtfolio.xyz" target="_blank">Ergod</a> |
+    24,023 systems
+  </p>
+  <p style="margin-top:10px;font-size:0.85em">
+    Formula: H = 100 × exp(-λ × D) | λ = 9,000,000 / R<sup>φ</sup> × e<sup>-T/5778</sup>
   </p>
 </footer>
 
@@ -318,7 +169,7 @@ async function searchSystem() {
   // Show loading
   btn.disabled = true;
   btn.textContent = 'Searching...';
-  resultDiv.innerHTML = '<div class="loading">🔍 Searching system database...</div>';
+  resultDiv.innerHTML = '<div class="loading">🔍 Searching 24,023 systems...</div>';
   resultDiv.style.display = 'block';
   
   try {
@@ -330,7 +181,7 @@ async function searchSystem() {
     }
     
     const data = await response.json();
-    displayResult(data.system);
+    displayResult(data.system, data.model);
     
   } catch (error) {
     showError(error.message);
@@ -340,7 +191,7 @@ async function searchSystem() {
   }
 }
 
-function displayResult(system) {
+function displayResult(system, model) {
   const resultDiv = document.getElementById('result');
   
   const statusConfig = {
@@ -357,7 +208,7 @@ function displayResult(system) {
     
     <div class="heat-display">
       <div class="heat-value">${system.coldest_point.heat.toFixed(1)}</div>
-      <div class="heat-label">Heat Units</div>
+      <div class="heat-label">Heat Units at Coldest Point</div>
     </div>
     
     <div class="status-badge ${config.class}">
@@ -374,19 +225,23 @@ function displayResult(system) {
         <span class="detail-value">${system.star.class} (${system.star.temperature}K)</span>
       </div>
       <div class="detail-row">
-        <span class="detail-label">Coldest Point:</span>
-        <span class="detail-value">${system.coldest_point.distance_AU.toFixed(2)} AU</span>
+        <span class="detail-label">Star Radius:</span>
+        <span class="detail-value">${(system.star.radius_km / 1000000).toFixed(1)}M km</span>
       </div>
       <div class="detail-row">
-        <span class="detail-label">Location:</span>
-        <span class="detail-value">Outermost planet orbit</span>
+        <span class="detail-label">Coldest Point:</span>
+        <span class="detail-value">${system.coldest_point.distance_AU.toFixed(2)} AU (outermost planet)</span>
       </div>
     </div>
     
     <div class="info-box">
-      <strong>ℹ️ About this measurement:</strong><br>
-      Heat calculated at the outermost planet's orbital distance. This represents 
-      the coldest accessible point in the system for mining and operations.
+      <strong>🔬 About ${model.formula}:</strong><br>
+      Heat calculated using physics-based exponential decay model by Ergod, 
+      an EVE Frontier physicist. This model accounts for star temperature, 
+      radius, and distance with 28% better accuracy than previous models (MAE: 6.93 vs 9.64).
+      <br><br>
+      Read more: <a href="https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model" 
+        target="_blank" style="color:#6cf">Ergod's Research Paper</a>
     </div>
   `;
   
