@@ -24,19 +24,13 @@ Paste route from [EVE Frontier Map](https://ef-map.com/) → Get heat table with
 | Heat | Status | Description |
 |------|--------|-------------|
 | **<40** | ✅ **SAFE** | No heat concerns |
-| **40-80** | ⚠️ **MODERATE** | Manageable with cooling |
-| **80-90** | 🔥 **DANGEROUS** | High risk, prepare cooling |
-| **90+** | ☠️ **TRAP** | Extreme heat, escape difficult |
+| **40-80** | ⚠️ **MODERATE** | Manageable |
+| **80-90** | 🔥 **DANGEROUS** | High risk|
+| **90+** | ☠️ **TRAP** | Extreme heat, no escape |
 
 ---
 
 ## The Model
-
-**Ergod's Physics Formula:**
-```
-H = 100 × exp(-λ × D)
-λ = 9,000,000 / R^φ × e^(-T/5778)
-```
 
 - **Accuracy:** MAE 6.93 Heat (75% within ±10)
 - **Coverage:** 24,023 systems
@@ -63,23 +57,8 @@ Need measurements from:
 
 **Submit measurements:** [HeatSense Data - EH-SDM Research](https://docs.google.com/spreadsheets/d/1H9lASYdNVlgM3pH2fTpMSMG0vW-dX1t3QmDSh1L85LA/edit?usp=sharing)
 
----
-
-## Deploy
-
-```bash
-# Backend
-cd backend && wrangler deploy
-
-# Frontend
-git push origin main
-```
-
----
 
 ## License
 
 MIT
 
-**Author:** Anteris  
-**Model:** Ergod
