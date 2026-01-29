@@ -24,19 +24,28 @@ Paste route from [EVE Frontier Map](https://ef-map.com/) → Get heat table with
 | Heat | Status | Description |
 |------|--------|-------------|
 | **<40** | ✅ **SAFE** | No heat concerns |
-| **40-80** | ⚠️ **MODERATE** | Manageable |
-| **80-90** | 🔥 **DANGEROUS** | High risk|
-| **90+** | ☠️ **TRAP** | Extreme heat, no escape |
+| **40-80** | ⚠️ **MODERATE** | Manageable with cooling |
+| **80-90** | 🔥 **DANGEROUS** | High risk, prepare cooling |
+| **90+** | ☠️ **TRAP** | Extreme heat, escape difficult |
 
 ---
 
 ## The Model
 
-- **Accuracy:** MAE 6.93 Heat (75% within ±10)
+**Two-Tier Power Law Formula:**
+```
+H = 100 / (1 + λ × D)^n
+λ = scale / R^φ × e^(-T/T_ref)
+
+Hot stars (B/A/F) use different parameters than cool stars (G/K/M)
+```
+
+- **Accuracy:** MAE 4.39 Heat (91% within ±10)
+- **Improvement:** 37% better than v8.0
 - **Coverage:** 24,023 systems
 - **Based on:** 219 in-game measurements
 
-**Credit:** Model by [Ergod](https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model)
+**Credit:** Formula by [Claude Opus](https://www.anthropic.com/claude) based on [Ergod's research](https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model)
 
 ---
 
@@ -56,6 +65,8 @@ Need measurements from:
 - K-type stars (27 → 50+ needed)
 
 **Submit measurements:** [HeatSense Data - EH-SDM Research](https://docs.google.com/spreadsheets/d/1H9lASYdNVlgM3pH2fTpMSMG0vW-dX1t3QmDSh1L85LA/edit?usp=sharing)
+
+---
 
 
 ## License

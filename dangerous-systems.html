@@ -1,0 +1,2296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dangerous Systems | HeatSense</title>
+<style>
+* {margin:0;padding:0;box-sizing:border-box}
+body {
+  font-family:'Segoe UI',system-ui,sans-serif;
+  background:linear-gradient(135deg,#0a0505 0%,#1a0a0a 50%,#0f0505 100%);
+  min-height:100vh;color:#fff;padding:20px
+}
+.container {max-width:1200px;margin:0 auto;padding:40px 20px}
+header {text-align:center;margin-bottom:40px}
+h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
+.subtitle {color:#aa8866;font-size:1.1em;margin-bottom:20px}
+.back-link {
+  display:inline-block;margin-top:15px;padding:10px 20px;
+  background:rgba(255,100,50,0.2);border:2px solid rgba(255,100,50,0.4);
+  border-radius:10px;color:#ffaa77;text-decoration:none;transition:all 0.3s
+}
+.back-link:hover {
+  background:rgba(255,100,50,0.3);transform:translateY(-2px)
+}
+.section {
+  background:rgba(30,15,10,0.8);border:2px solid rgba(255,100,50,0.3);
+  border-radius:15px;padding:30px;margin-bottom:30px
+}
+.section-header {
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:20px;padding-bottom:15px;border-bottom:2px solid rgba(255,100,50,0.3)
+}
+.section-title {font-size:1.8em;color:#ff6666}
+.section-count {
+  font-size:1.2em;color:#ffaa77;padding:8px 16px;
+  background:rgba(255,0,0,0.2);border-radius:8px
+}
+.warning-box {
+  background:rgba(255,0,0,0.15);border:2px solid #f00;padding:20px;
+  border-radius:10px;margin-bottom:25px;animation:pulse 2s infinite
+}
+@keyframes pulse {
+  0%,100%{box-shadow:0 0 20px rgba(255,0,0,0.4)}
+  50%{box-shadow:0 0 30px rgba(255,0,0,0.7)}
+}
+.warning-box h3 {color:#ff6666;margin-bottom:10px;font-size:1.3em}
+.warning-box p {color:#ffaaaa;line-height:1.6}
+.systems-table {
+  width:100%;border-collapse:collapse;margin-top:20px
+}
+.systems-table th {
+  background:rgba(255,100,50,0.2);padding:12px;text-align:left;
+  border-bottom:2px solid rgba(255,100,50,0.4);color:#ffaa77;font-weight:600;
+  position:sticky;top:0;z-index:10
+}
+.systems-table td {
+  padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.1)
+}
+.systems-table tr:hover {
+  background:rgba(255,100,50,0.1)
+}
+.heat-cell {font-weight:bold;font-size:1.1em}
+.heat-trap {color:#ff6666}
+.heat-danger {color:#ff8844}
+.star-type {
+  display:inline-block;padding:3px 8px;background:rgba(100,200,255,0.2);
+  border-radius:5px;font-size:0.9em;color:#6cf
+}
+.distance-cell {color:#aaa;font-size:0.95em}
+.search-box {
+  margin-bottom:25px;padding:15px;background:rgba(255,100,50,0.1);
+  border-radius:10px
+}
+.search-box input {
+  width:100%;padding:12px;font-size:1.1em;border:2px solid rgba(255,100,50,0.3);
+  border-radius:8px;background:rgba(10,5,0,0.6);color:#ffddcc
+}
+.search-box input:focus {
+  outline:none;border-color:#f60;background:rgba(20,10,5,0.8)
+}
+footer {
+  text-align:center;margin-top:50px;padding-top:20px;
+  border-top:1px solid rgba(255,255,255,0.1);color:#666;font-size:0.9em
+}
+footer a {color:#6cf;text-decoration:none}
+footer a:hover {text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>⚠️ Dangerous Systems</h1>
+    <div class="subtitle">High-heat systems where escape may be impossible</div>
+    <a href="index.html" class="back-link">← Back to HeatSense</a>
+  </header>
+
+  <!-- TRAP SYSTEMS (90+) -->
+  <div class="section">
+    <div class="section-header">
+      <h2 class="section-title">☠️ TRAP Systems (Heat ≥ 90)</h2>
+      <div class="section-count">133 systems</div>
+    </div>
+    
+    <div class="warning-box">
+      <h3>⚠️ EXTREME DANGER</h3>
+      <p>
+        These systems have heat ≥90 even at their coldest accessible points. 
+        Entry is HIGHLY DISCOURAGED. Ships may overheat before reaching safe warp distance.
+      </p>
+      <p style="margin-top:10px;font-size:0.9em;opacity:0.8">
+        Note: Model has ~7% average error on predictions.
+      </p>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="searchTrap" placeholder="🔍 Search TRAP systems..." 
+             onkeyup="filterTable('trapTable', 'searchTrap')">
+    </div>
+
+    <table class="systems-table" id="trapTable">
+      <thead>
+        <tr>
+          <th>System</th>
+          <th>Star Type</th>
+          <th>Temperature</th>
+          <th>Distance</th>
+          <th>Heat</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>U69-NMK</strong></td>
+          <td><span class="star-type">O0</span></td>
+          <td>37785 K</td>
+          <td class="distance-cell">88.23 AU</td>
+          <td class="heat-cell heat-trap">100.0</td>
+        </tr>
+        <tr>
+          <td><strong>UR6-B6H</strong></td>
+          <td><span class="star-type">O0</span></td>
+          <td>37447 K</td>
+          <td class="distance-cell">96.54 AU</td>
+          <td class="heat-cell heat-trap">100.0</td>
+        </tr>
+        <tr>
+          <td><strong>OTG-5R2</strong></td>
+          <td><span class="star-type">K1</span></td>
+          <td>5055 K</td>
+          <td class="distance-cell">0.0033 AU (1.6 LS)</td>
+          <td class="heat-cell heat-trap">99.6</td>
+        </tr>
+        <tr>
+          <td><strong>N.0XT.B29</strong></td>
+          <td><span class="star-type">A8</span></td>
+          <td>8291 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-trap">99.1</td>
+        </tr>
+        <tr>
+          <td><strong>OCM-VRD</strong></td>
+          <td><span class="star-type">G9</span></td>
+          <td>5323 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-trap">98.1</td>
+        </tr>
+        <tr>
+          <td><strong>E09-RJ1</strong></td>
+          <td><span class="star-type">M2</span></td>
+          <td>3528 K</td>
+          <td class="distance-cell">0.0045 AU (2.2 LS)</td>
+          <td class="heat-cell heat-trap">97.6</td>
+        </tr>
+        <tr>
+          <td><strong>IJ7-6K1</strong></td>
+          <td><span class="star-type">K4</span></td>
+          <td>4683 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-trap">97.1</td>
+        </tr>
+        <tr>
+          <td><strong>OS1-DG6</strong></td>
+          <td><span class="star-type">F9</span></td>
+          <td>6216 K</td>
+          <td class="distance-cell">0.07 AU</td>
+          <td class="heat-cell heat-trap">96.9</td>
+        </tr>
+        <tr>
+          <td><strong>U52-5KJ</strong></td>
+          <td><span class="star-type">F5</span></td>
+          <td>6860 K</td>
+          <td class="distance-cell">0.11 AU</td>
+          <td class="heat-cell heat-trap">96.9</td>
+        </tr>
+        <tr>
+          <td><strong>OGQ-PS6</strong></td>
+          <td><span class="star-type">G4</span></td>
+          <td>5789 K</td>
+          <td class="distance-cell">0.08 AU</td>
+          <td class="heat-cell heat-trap">96.7</td>
+        </tr>
+        <tr>
+          <td><strong>U8B-77K</strong></td>
+          <td><span class="star-type">B0</span></td>
+          <td>32644 K</td>
+          <td class="distance-cell">56.18 AU</td>
+          <td class="heat-cell heat-trap">96.5</td>
+        </tr>
+        <tr>
+          <td><strong>O4M-HM6</strong></td>
+          <td><span class="star-type">G1</span></td>
+          <td>6033 K</td>
+          <td class="distance-cell">0.10 AU</td>
+          <td class="heat-cell heat-trap">96.3</td>
+        </tr>
+        <tr>
+          <td><strong>I47-1GB</strong></td>
+          <td><span class="star-type">K2</span></td>
+          <td>4935 K</td>
+          <td class="distance-cell">0.04 AU</td>
+          <td class="heat-cell heat-trap">96.3</td>
+        </tr>
+        <tr>
+          <td><strong>U4T-SK1</strong></td>
+          <td><span class="star-type">A8</span></td>
+          <td>8166 K</td>
+          <td class="distance-cell">0.20 AU</td>
+          <td class="heat-cell heat-trap">96.2</td>
+        </tr>
+        <tr>
+          <td><strong>E16-181</strong></td>
+          <td><span class="star-type">M2</span></td>
+          <td>3601 K</td>
+          <td class="distance-cell">0.0071 AU (3.6 LS)</td>
+          <td class="heat-cell heat-trap">96.0</td>
+        </tr>
+        <tr>
+          <td><strong>U3D-LGM</strong></td>
+          <td><span class="star-type">B9</span></td>
+          <td>11287 K</td>
+          <td class="distance-cell">0.67 AU</td>
+          <td class="heat-cell heat-trap">96.0</td>
+        </tr>
+        <tr>
+          <td><strong>I.CEF.KYS</strong></td>
+          <td><span class="star-type">F9</span></td>
+          <td>6240 K</td>
+          <td class="distance-cell">0.06 AU</td>
+          <td class="heat-cell heat-trap">95.7</td>
+        </tr>
+        <tr>
+          <td><strong>I3F-G7R</strong></td>
+          <td><span class="star-type">K2</span></td>
+          <td>5009 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-trap">95.5</td>
+        </tr>
+        <tr>
+          <td><strong>IF9-L48</strong></td>
+          <td><span class="star-type">K8</span></td>
+          <td>4185 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-trap">95.5</td>
+        </tr>
+        <tr>
+          <td><strong>UPR-DMK</strong></td>
+          <td><span class="star-type">A8</span></td>
+          <td>8398 K</td>
+          <td class="distance-cell">0.34 AU</td>
+          <td class="heat-cell heat-trap">95.4</td>
+        </tr>
+        <tr>
+          <td><strong>IM3-4D2</strong></td>
+          <td><span class="star-type">K3</span></td>
+          <td>4840 K</td>
+          <td class="distance-cell">0.04 AU</td>
+          <td class="heat-cell heat-trap">95.4</td>
+        </tr>
+        <tr>
+          <td><strong>F9K|505</strong></td>
+          <td><span class="star-type">B3</span></td>
+          <td>26601 K</td>
+          <td class="distance-cell">24.74 AU</td>
+          <td class="heat-cell heat-trap">95.3</td>
+        </tr>
+        <tr>
+          <td><strong>IVR-MBL</strong></td>
+          <td><span class="star-type">K2</span></td>
+          <td>4911 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-trap">95.2</td>
+        </tr>
+        <tr>
+          <td><strong>O9C-GP3</strong></td>
+          <td><span class="star-type">G6</span></td>
+          <td>5642 K</td>
+          <td class="distance-cell">0.09 AU</td>
+          <td class="heat-cell heat-trap">95.1</td>
+        </tr>
+        <tr>
+          <td><strong>ENB-NRM</strong></td>
+          <td><span class="star-type">M5</span></td>
+          <td>3161 K</td>
+          <td class="distance-cell">0.0065 AU (3.2 LS)</td>
+          <td class="heat-cell heat-trap">95.1</td>
+        </tr>
+        <tr>
+          <td><strong>OGT-596</strong></td>
+          <td><span class="star-type">G3</span></td>
+          <td>5900 K</td>
+          <td class="distance-cell">0.10 AU</td>
+          <td class="heat-cell heat-trap">95.0</td>
+        </tr>
+        <tr>
+          <td><strong>O71-D28</strong></td>
+          <td><span class="star-type">G6</span></td>
+          <td>5596 K</td>
+          <td class="distance-cell">0.07 AU</td>
+          <td class="heat-cell heat-trap">94.9</td>
+        </tr>
+        <tr>
+          <td><strong>OVB-0F8</strong></td>
+          <td><span class="star-type">G9</span></td>
+          <td>5318 K</td>
+          <td class="distance-cell">0.08 AU</td>
+          <td class="heat-cell heat-trap">94.9</td>
+        </tr>
+        <tr>
+          <td><strong>U1J-D51</strong></td>
+          <td><span class="star-type">B1</span></td>
+          <td>31750 K</td>
+          <td class="distance-cell">67.37 AU</td>
+          <td class="heat-cell heat-trap">94.9</td>
+        </tr>
+        <tr>
+          <td><strong>OQV-HDK</strong></td>
+          <td><span class="star-type">G8</span></td>
+          <td>5457 K</td>
+          <td class="distance-cell">0.09 AU</td>
+          <td class="heat-cell heat-trap">94.9</td>
+        </tr>
+        <tr>
+          <td><strong>U0N-6GD</strong></td>
+          <td><span class="star-type">F6</span></td>
+          <td>6768 K</td>
+          <td class="distance-cell">0.19 AU</td>
+          <td class="heat-cell heat-trap">94.8</td>
+        </tr>
+        <tr>
+          <td><strong>OM0-8MH</strong></td>
+          <td><span class="star-type">G4</span></td>
+          <td>5769 K</td>
+          <td class="distance-cell">0.09 AU</td>
+          <td class="heat-cell heat-trap">94.8</td>
+        </tr>
+        <tr>
+          <td><strong>A5B-LBD</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>2122 K</td>
+          <td class="distance-cell">0.0021 AU (1.0 LS)</td>
+          <td class="heat-cell heat-trap">94.7</td>
+        </tr>
+        <tr>
+          <td><strong>U81-CH3</strong></td>
+          <td><span class="star-type">F1</span></td>
+          <td>7535 K</td>
+          <td class="distance-cell">0.21 AU</td>
+          <td class="heat-cell heat-trap">94.6</td>
+        </tr>
+        <tr>
+          <td><strong>OTN-GQ3</strong></td>
+          <td><span class="star-type">G5</span></td>
+          <td>5662 K</td>
+          <td class="distance-cell">0.12 AU</td>
+          <td class="heat-cell heat-trap">94.6</td>
+        </tr>
+        <tr>
+          <td><strong>I8V-58B</strong></td>
+          <td><span class="star-type">K9</span></td>
+          <td>4068 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-trap">94.5</td>
+        </tr>
+        <tr>
+          <td><strong>ENS-VGR</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>3745 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-trap">94.5</td>
+        </tr>
+        <tr>
+          <td><strong>UF5-6RD</strong></td>
+          <td><span class="star-type">F4</span></td>
+          <td>7155 K</td>
+          <td class="distance-cell">0.25 AU</td>
+          <td class="heat-cell heat-trap">94.5</td>
+        </tr>
+        <tr>
+          <td><strong>U9L-D9F</strong></td>
+          <td><span class="star-type">F5</span></td>
+          <td>6865 K</td>
+          <td class="distance-cell">0.19 AU</td>
+          <td class="heat-cell heat-trap">94.4</td>
+        </tr>
+        <tr>
+          <td><strong>O66-LB4</strong></td>
+          <td><span class="star-type">G9</span></td>
+          <td>5321 K</td>
+          <td class="distance-cell">0.08 AU</td>
+          <td class="heat-cell heat-trap">94.3</td>
+        </tr>
+        <tr>
+          <td><strong>I5C-D81</strong></td>
+          <td><span class="star-type">K6</span></td>
+          <td>4487 K</td>
+          <td class="distance-cell">0.04 AU</td>
+          <td class="heat-cell heat-trap">94.3</td>
+        </tr>
+        <tr>
+          <td><strong>OKS-MN4</strong></td>
+          <td><span class="star-type">G1</span></td>
+          <td>6034 K</td>
+          <td class="distance-cell">0.13 AU</td>
+          <td class="heat-cell heat-trap">94.1</td>
+        </tr>
+        <tr>
+          <td><strong>UMC-4CD</strong></td>
+          <td><span class="star-type">F4</span></td>
+          <td>7126 K</td>
+          <td class="distance-cell">0.28 AU</td>
+          <td class="heat-cell heat-trap">94.0</td>
+        </tr>
+        <tr>
+          <td><strong>O2T-VLB</strong></td>
+          <td><span class="star-type">K0</span></td>
+          <td>5228 K</td>
+          <td class="distance-cell">0.09 AU</td>
+          <td class="heat-cell heat-trap">93.9</td>
+        </tr>
+        <tr>
+          <td><strong>E39-T4J</strong></td>
+          <td><span class="star-type">M5</span></td>
+          <td>3074 K</td>
+          <td class="distance-cell">0.0100 AU (5.0 LS)</td>
+          <td class="heat-cell heat-trap">93.8</td>
+        </tr>
+        <tr>
+          <td><strong>O.ZRJ.YT1</strong></td>
+          <td><span class="star-type">G8</span></td>
+          <td>5414 K</td>
+          <td class="distance-cell">0.10 AU</td>
+          <td class="heat-cell heat-trap">93.8</td>
+        </tr>
+        <tr>
+          <td><strong>OML-5BC</strong></td>
+          <td><span class="star-type">K1</span></td>
+          <td>5097 K</td>
+          <td class="distance-cell">0.06 AU</td>
+          <td class="heat-cell heat-trap">93.7</td>
+        </tr>
+        <tr>
+          <td><strong>INS-56N</strong></td>
+          <td><span class="star-type">K7</span></td>
+          <td>4262 K</td>
+          <td class="distance-cell">0.04 AU</td>
+          <td class="heat-cell heat-trap">93.7</td>
+        </tr>
+        <tr>
+          <td><strong>OD5-3KC</strong></td>
+          <td><span class="star-type">G7</span></td>
+          <td>5489 K</td>
+          <td class="distance-cell">0.13 AU</td>
+          <td class="heat-cell heat-trap">93.7</td>
+        </tr>
+        <tr>
+          <td><strong>ONC-DRK</strong></td>
+          <td><span class="star-type">G3</span></td>
+          <td>5868 K</td>
+          <td class="distance-cell">0.12 AU</td>
+          <td class="heat-cell heat-trap">93.6</td>
+        </tr>
+        <tr>
+          <td><strong>E46-3RH</strong></td>
+          <td><span class="star-type">M2</span></td>
+          <td>3643 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-trap">93.5</td>
+        </tr>
+        <tr>
+          <td><strong>EGJ-FC4</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2203 K</td>
+          <td class="distance-cell">0.0022 AU (1.1 LS)</td>
+          <td class="heat-cell heat-trap">93.5</td>
+        </tr>
+        <tr>
+          <td><strong>U34-4C1</strong></td>
+          <td><span class="star-type">B2</span></td>
+          <td>28932 K</td>
+          <td class="distance-cell">43.11 AU</td>
+          <td class="heat-cell heat-trap">93.4</td>
+        </tr>
+        <tr>
+          <td><strong>U0G-G39</strong></td>
+          <td><span class="star-type">F1</span></td>
+          <td>7636 K</td>
+          <td class="distance-cell">0.24 AU</td>
+          <td class="heat-cell heat-trap">93.4</td>
+        </tr>
+        <tr>
+          <td><strong>O8Q-785</strong></td>
+          <td><span class="star-type">G4</span></td>
+          <td>5806 K</td>
+          <td class="distance-cell">0.13 AU</td>
+          <td class="heat-cell heat-trap">93.4</td>
+        </tr>
+        <tr>
+          <td><strong>S.BE4.3Y8</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2237 K</td>
+          <td class="distance-cell">0.0026 AU (1.3 LS)</td>
+          <td class="heat-cell heat-trap">93.3</td>
+        </tr>
+        <tr>
+          <td><strong>IP6-FMJ</strong></td>
+          <td><span class="star-type">K8</span></td>
+          <td>4217 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-trap">93.3</td>
+        </tr>
+        <tr>
+          <td><strong>O7S-40K</strong></td>
+          <td><span class="star-type">K0</span></td>
+          <td>5197 K</td>
+          <td class="distance-cell">0.09 AU</td>
+          <td class="heat-cell heat-trap">93.3</td>
+        </tr>
+        <tr>
+          <td><strong>I29-GD3</strong></td>
+          <td><span class="star-type">K4</span></td>
+          <td>4701 K</td>
+          <td class="distance-cell">0.06 AU</td>
+          <td class="heat-cell heat-trap">93.2</td>
+        </tr>
+        <tr>
+          <td><strong>O29-HT1</strong></td>
+          <td><span class="star-type">G6</span></td>
+          <td>5656 K</td>
+          <td class="distance-cell">0.14 AU</td>
+          <td class="heat-cell heat-trap">93.2</td>
+        </tr>
+        <tr>
+          <td><strong>I6K-QHD</strong></td>
+          <td><span class="star-type">K5</span></td>
+          <td>4622 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-trap">93.2</td>
+        </tr>
+        <tr>
+          <td><strong>U04-CNV</strong></td>
+          <td><span class="star-type">B3</span></td>
+          <td>27629 K</td>
+          <td class="distance-cell">41.31 AU</td>
+          <td class="heat-cell heat-trap">93.1</td>
+        </tr>
+        <tr>
+          <td><strong>IDT-06N</strong></td>
+          <td><span class="star-type">K4</span></td>
+          <td>4738 K</td>
+          <td class="distance-cell">0.07 AU</td>
+          <td class="heat-cell heat-trap">93.1</td>
+        </tr>
+        <tr>
+          <td><strong>O3C-KJK</strong></td>
+          <td><span class="star-type">G3</span></td>
+          <td>5920 K</td>
+          <td class="distance-cell">0.19 AU</td>
+          <td class="heat-cell heat-trap">93.1</td>
+        </tr>
+        <tr>
+          <td><strong>UJ5-FM1</strong></td>
+          <td><span class="star-type">A5</span></td>
+          <td>9340 K</td>
+          <td class="distance-cell">0.61 AU</td>
+          <td class="heat-cell heat-trap">93.0</td>
+        </tr>
+        <tr>
+          <td><strong>IP3-80N</strong></td>
+          <td><span class="star-type">K5</span></td>
+          <td>4569 K</td>
+          <td class="distance-cell">0.06 AU</td>
+          <td class="heat-cell heat-trap">92.9</td>
+        </tr>
+        <tr>
+          <td><strong>ONT-MT7</strong></td>
+          <td><span class="star-type">G9</span></td>
+          <td>5384 K</td>
+          <td class="distance-cell">0.11 AU</td>
+          <td class="heat-cell heat-trap">92.9</td>
+        </tr>
+        <tr>
+          <td><strong>E61-35B</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2240 K</td>
+          <td class="distance-cell">0.0033 AU (1.7 LS)</td>
+          <td class="heat-cell heat-trap">92.9</td>
+        </tr>
+        <tr>
+          <td><strong>IH0-F92</strong></td>
+          <td><span class="star-type">K5</span></td>
+          <td>4521 K</td>
+          <td class="distance-cell">0.04 AU</td>
+          <td class="heat-cell heat-trap">92.8</td>
+        </tr>
+        <tr>
+          <td><strong>ODG-RV5</strong></td>
+          <td><span class="star-type">G8</span></td>
+          <td>5393 K</td>
+          <td class="distance-cell">0.11 AU</td>
+          <td class="heat-cell heat-trap">92.8</td>
+        </tr>
+        <tr>
+          <td><strong>I0N-SH8</strong></td>
+          <td><span class="star-type">K6</span></td>
+          <td>4512 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-trap">92.8</td>
+        </tr>
+        <tr>
+          <td><strong>I79-V82</strong></td>
+          <td><span class="star-type">K5</span></td>
+          <td>4556 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-trap">92.7</td>
+        </tr>
+        <tr>
+          <td><strong>U7L-PGK</strong></td>
+          <td><span class="star-type">B9</span></td>
+          <td>11531 K</td>
+          <td class="distance-cell">1.35 AU</td>
+          <td class="heat-cell heat-trap">92.6</td>
+        </tr>
+        <tr>
+          <td><strong>OD3-F31</strong></td>
+          <td><span class="star-type">K2</span></td>
+          <td>5028 K</td>
+          <td class="distance-cell">0.07 AU</td>
+          <td class="heat-cell heat-trap">92.5</td>
+        </tr>
+        <tr>
+          <td><strong>I0D-CP6</strong></td>
+          <td><span class="star-type">K6</span></td>
+          <td>4425 K</td>
+          <td class="distance-cell">0.04 AU</td>
+          <td class="heat-cell heat-trap">92.5</td>
+        </tr>
+        <tr>
+          <td><strong>UJ4-Q68</strong></td>
+          <td><span class="star-type">A5</span></td>
+          <td>9143 K</td>
+          <td class="distance-cell">0.51 AU</td>
+          <td class="heat-cell heat-trap">92.4</td>
+        </tr>
+        <tr>
+          <td><strong>IK3-FK6</strong></td>
+          <td><span class="star-type">K4</span></td>
+          <td>4710 K</td>
+          <td class="distance-cell">0.07 AU</td>
+          <td class="heat-cell heat-trap">92.4</td>
+        </tr>
+        <tr>
+          <td><strong>ONN-6MB</strong></td>
+          <td><span class="star-type">K1</span></td>
+          <td>5055 K</td>
+          <td class="distance-cell">0.09 AU</td>
+          <td class="heat-cell heat-trap">92.3</td>
+        </tr>
+        <tr>
+          <td><strong>OB0-4NB</strong></td>
+          <td><span class="star-type">G6</span></td>
+          <td>5592 K</td>
+          <td class="distance-cell">0.15 AU</td>
+          <td class="heat-cell heat-trap">92.3</td>
+        </tr>
+        <tr>
+          <td><strong>U.EHR.R4H</strong></td>
+          <td><span class="star-type">G4</span></td>
+          <td>5796 K</td>
+          <td class="distance-cell">0.16 AU</td>
+          <td class="heat-cell heat-trap">92.3</td>
+        </tr>
+        <tr>
+          <td><strong>A.921.M31</strong></td>
+          <td><span class="star-type">B3</span></td>
+          <td>26009 K</td>
+          <td class="distance-cell">33.07 AU</td>
+          <td class="heat-cell heat-trap">92.2</td>
+        </tr>
+        <tr>
+          <td><strong>IKG-GH7</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>3860 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-trap">92.2</td>
+        </tr>
+        <tr>
+          <td><strong>IQD-R24</strong></td>
+          <td><span class="star-type">K2</span></td>
+          <td>5014 K</td>
+          <td class="distance-cell">0.09 AU</td>
+          <td class="heat-cell heat-trap">92.2</td>
+        </tr>
+        <tr>
+          <td><strong>O.PVT.382</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2339 K</td>
+          <td class="distance-cell">0.0053 AU (2.6 LS)</td>
+          <td class="heat-cell heat-trap">92.2</td>
+        </tr>
+        <tr>
+          <td><strong>OCM-DM4</strong></td>
+          <td><span class="star-type">G9</span></td>
+          <td>5374 K</td>
+          <td class="distance-cell">0.12 AU</td>
+          <td class="heat-cell heat-trap">92.2</td>
+        </tr>
+        <tr>
+          <td><strong>E2L-B4K</strong></td>
+          <td><span class="star-type">M3</span></td>
+          <td>3365 K</td>
+          <td class="distance-cell">0.01 AU</td>
+          <td class="heat-cell heat-trap">92.2</td>
+        </tr>
+        <tr>
+          <td><strong>OMB-J82</strong></td>
+          <td><span class="star-type">G5</span></td>
+          <td>5710 K</td>
+          <td class="distance-cell">0.14 AU</td>
+          <td class="heat-cell heat-trap">92.1</td>
+        </tr>
+        <tr>
+          <td><strong>F7N|O01</strong></td>
+          <td><span class="star-type">B9</span></td>
+          <td>13297 K</td>
+          <td class="distance-cell">2.65 AU</td>
+          <td class="heat-cell heat-trap">92.0</td>
+        </tr>
+        <tr>
+          <td><strong>UC0-LRD</strong></td>
+          <td><span class="star-type">B1</span></td>
+          <td>30803 K</td>
+          <td class="distance-cell">75.63 AU</td>
+          <td class="heat-cell heat-trap">92.0</td>
+        </tr>
+        <tr>
+          <td><strong>IJG-9B9</strong></td>
+          <td><span class="star-type">K7</span></td>
+          <td>4324 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-trap">92.0</td>
+        </tr>
+        <tr>
+          <td><strong>OHP-1DB</strong></td>
+          <td><span class="star-type">G7</span></td>
+          <td>5560 K</td>
+          <td class="distance-cell">0.12 AU</td>
+          <td class="heat-cell heat-trap">92.0</td>
+        </tr>
+        <tr>
+          <td><strong>O96-J47</strong></td>
+          <td><span class="star-type">G8</span></td>
+          <td>5427 K</td>
+          <td class="distance-cell">0.13 AU</td>
+          <td class="heat-cell heat-trap">91.9</td>
+        </tr>
+        <tr>
+          <td><strong>EVK-0V8</strong></td>
+          <td><span class="star-type">M4</span></td>
+          <td>3208 K</td>
+          <td class="distance-cell">0.01 AU</td>
+          <td class="heat-cell heat-trap">91.9</td>
+        </tr>
+        <tr>
+          <td><strong>ONM-NCH</strong></td>
+          <td><span class="star-type">G5</span></td>
+          <td>5742 K</td>
+          <td class="distance-cell">0.19 AU</td>
+          <td class="heat-cell heat-trap">91.9</td>
+        </tr>
+        <tr>
+          <td><strong>I3R-DD7</strong></td>
+          <td><span class="star-type">K2</span></td>
+          <td>4945 K</td>
+          <td class="distance-cell">0.09 AU</td>
+          <td class="heat-cell heat-trap">91.9</td>
+        </tr>
+        <tr>
+          <td><strong>UCQ-34K</strong></td>
+          <td><span class="star-type">B2</span></td>
+          <td>29319 K</td>
+          <td class="distance-cell">86.72 AU</td>
+          <td class="heat-cell heat-trap">91.8</td>
+        </tr>
+        <tr>
+          <td><strong>OB5-2B7</strong></td>
+          <td><span class="star-type">F9</span></td>
+          <td>6312 K</td>
+          <td class="distance-cell">0.15 AU</td>
+          <td class="heat-cell heat-trap">91.7</td>
+        </tr>
+        <tr>
+          <td><strong>OLF-JR6</strong></td>
+          <td><span class="star-type">K0</span></td>
+          <td>5291 K</td>
+          <td class="distance-cell">0.14 AU</td>
+          <td class="heat-cell heat-trap">91.6</td>
+        </tr>
+        <tr>
+          <td><strong>U2D-CJL</strong></td>
+          <td><span class="star-type">A7</span></td>
+          <td>8589 K</td>
+          <td class="distance-cell">0.55 AU</td>
+          <td class="heat-cell heat-trap">91.6</td>
+        </tr>
+        <tr>
+          <td><strong>UMP-JN4</strong></td>
+          <td><span class="star-type">B1</span></td>
+          <td>31105 K</td>
+          <td class="distance-cell">87.16 AU</td>
+          <td class="heat-cell heat-trap">91.5</td>
+        </tr>
+        <tr>
+          <td><strong>UCS-FJ8</strong></td>
+          <td><span class="star-type">B8</span></td>
+          <td>14936 K</td>
+          <td class="distance-cell">3.63 AU</td>
+          <td class="heat-cell heat-trap">91.5</td>
+        </tr>
+        <tr>
+          <td><strong>U8V-HNL</strong></td>
+          <td><span class="star-type">F3</span></td>
+          <td>7163 K</td>
+          <td class="distance-cell">0.33 AU</td>
+          <td class="heat-cell heat-trap">91.5</td>
+        </tr>
+        <tr>
+          <td><strong>I6B-DL9</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>3963 K</td>
+          <td class="distance-cell">0.04 AU</td>
+          <td class="heat-cell heat-trap">91.4</td>
+        </tr>
+        <tr>
+          <td><strong>D.HGY.JR1</strong></td>
+          <td><span class="star-type">F0</span></td>
+          <td>7784 K</td>
+          <td class="distance-cell">0.36 AU</td>
+          <td class="heat-cell heat-trap">91.4</td>
+        </tr>
+        <tr>
+          <td><strong>IBH-RK3</strong></td>
+          <td><span class="star-type">K9</span></td>
+          <td>4023 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-trap">91.4</td>
+        </tr>
+        <tr>
+          <td><strong>IK3-B6K</strong></td>
+          <td><span class="star-type">K7</span></td>
+          <td>4268 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-trap">91.3</td>
+        </tr>
+        <tr>
+          <td><strong>O1J-P35</strong></td>
+          <td><span class="star-type">G4</span></td>
+          <td>5827 K</td>
+          <td class="distance-cell">0.20 AU</td>
+          <td class="heat-cell heat-trap">91.3</td>
+        </tr>
+        <tr>
+          <td><strong>UCP-5K4</strong></td>
+          <td><span class="star-type">B4</span></td>
+          <td>24631 K</td>
+          <td class="distance-cell">28.42 AU</td>
+          <td class="heat-cell heat-trap">91.2</td>
+        </tr>
+        <tr>
+          <td><strong>IHM-4P4</strong></td>
+          <td><span class="star-type">K5</span></td>
+          <td>4532 K</td>
+          <td class="distance-cell">0.10 AU</td>
+          <td class="heat-cell heat-trap">91.2</td>
+        </tr>
+        <tr>
+          <td><strong>O7H-QFK</strong></td>
+          <td><span class="star-type">G3</span></td>
+          <td>5917 K</td>
+          <td class="distance-cell">0.21 AU</td>
+          <td class="heat-cell heat-trap">91.2</td>
+        </tr>
+        <tr>
+          <td><strong>H.8B1.Z31</strong></td>
+          <td><span class="star-type">G8</span></td>
+          <td>5450 K</td>
+          <td class="distance-cell">0.15 AU</td>
+          <td class="heat-cell heat-trap">91.2</td>
+        </tr>
+        <tr>
+          <td><strong>UDN-CK3</strong></td>
+          <td><span class="star-type">A8</span></td>
+          <td>8292 K</td>
+          <td class="distance-cell">0.52 AU</td>
+          <td class="heat-cell heat-trap">91.2</td>
+        </tr>
+        <tr>
+          <td><strong>OPK-PPD</strong></td>
+          <td><span class="star-type">G5</span></td>
+          <td>5681 K</td>
+          <td class="distance-cell">0.22 AU</td>
+          <td class="heat-cell heat-trap">91.1</td>
+        </tr>
+        <tr>
+          <td><strong>O3C-8LF</strong></td>
+          <td><span class="star-type">K0</span></td>
+          <td>5209 K</td>
+          <td class="distance-cell">0.10 AU</td>
+          <td class="heat-cell heat-trap">91.1</td>
+        </tr>
+        <tr>
+          <td><strong>OVQ-DNF</strong></td>
+          <td><span class="star-type">G2</span></td>
+          <td>5964 K</td>
+          <td class="distance-cell">0.20 AU</td>
+          <td class="heat-cell heat-trap">91.1</td>
+        </tr>
+        <tr>
+          <td><strong>OS6-M3F</strong></td>
+          <td><span class="star-type">G9</span></td>
+          <td>5382 K</td>
+          <td class="distance-cell">0.11 AU</td>
+          <td class="heat-cell heat-trap">91.0</td>
+        </tr>
+        <tr>
+          <td><strong>EB4-4NL</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2394 K</td>
+          <td class="distance-cell">0.0039 AU (1.9 LS)</td>
+          <td class="heat-cell heat-trap">91.0</td>
+        </tr>
+        <tr>
+          <td><strong>OJL-C72</strong></td>
+          <td><span class="star-type">G9</span></td>
+          <td>5353 K</td>
+          <td class="distance-cell">0.14 AU</td>
+          <td class="heat-cell heat-trap">91.0</td>
+        </tr>
+        <tr>
+          <td><strong>UCV-0RC</strong></td>
+          <td><span class="star-type">A4</span></td>
+          <td>9457 K</td>
+          <td class="distance-cell">1.00 AU</td>
+          <td class="heat-cell heat-trap">90.9</td>
+        </tr>
+        <tr>
+          <td><strong>OJK-SGG</strong></td>
+          <td><span class="star-type">K1</span></td>
+          <td>5070 K</td>
+          <td class="distance-cell">0.11 AU</td>
+          <td class="heat-cell heat-trap">90.8</td>
+        </tr>
+        <tr>
+          <td><strong>IFB-5T1</strong></td>
+          <td><span class="star-type">K4</span></td>
+          <td>4716 K</td>
+          <td class="distance-cell">0.07 AU</td>
+          <td class="heat-cell heat-trap">90.7</td>
+        </tr>
+        <tr>
+          <td><strong>ON3-Q9J</strong></td>
+          <td><span class="star-type">G1</span></td>
+          <td>6043 K</td>
+          <td class="distance-cell">0.28 AU</td>
+          <td class="heat-cell heat-trap">90.6</td>
+        </tr>
+        <tr>
+          <td><strong>UNN-R78</strong></td>
+          <td><span class="star-type">F6</span></td>
+          <td>6722 K</td>
+          <td class="distance-cell">0.34 AU</td>
+          <td class="heat-cell heat-trap">90.5</td>
+        </tr>
+        <tr>
+          <td><strong>P52|E21</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>2153 K</td>
+          <td class="distance-cell">0.0049 AU (2.4 LS)</td>
+          <td class="heat-cell heat-trap">90.5</td>
+        </tr>
+        <tr>
+          <td><strong>OV8-S36</strong></td>
+          <td><span class="star-type">G7</span></td>
+          <td>5518 K</td>
+          <td class="distance-cell">0.18 AU</td>
+          <td class="heat-cell heat-trap">90.4</td>
+        </tr>
+        <tr>
+          <td><strong>O8D-L41</strong></td>
+          <td><span class="star-type">G4</span></td>
+          <td>5782 K</td>
+          <td class="distance-cell">0.20 AU</td>
+          <td class="heat-cell heat-trap">90.4</td>
+        </tr>
+        <tr>
+          <td><strong>UH5-73K</strong></td>
+          <td><span class="star-type">B9</span></td>
+          <td>11457 K</td>
+          <td class="distance-cell">1.60 AU</td>
+          <td class="heat-cell heat-trap">90.4</td>
+        </tr>
+        <tr>
+          <td><strong>ESP-05C</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2359 K</td>
+          <td class="distance-cell">0.0048 AU (2.4 LS)</td>
+          <td class="heat-cell heat-trap">90.4</td>
+        </tr>
+        <tr>
+          <td><strong>UKC-NM5</strong></td>
+          <td><span class="star-type">B3</span></td>
+          <td>26746 K</td>
+          <td class="distance-cell">50.66 AU</td>
+          <td class="heat-cell heat-trap">90.2</td>
+        </tr>
+        <tr>
+          <td><strong>E.6SK.JG1</strong></td>
+          <td><span class="star-type">K6</span></td>
+          <td>4454 K</td>
+          <td class="distance-cell">0.08 AU</td>
+          <td class="heat-cell heat-trap">90.2</td>
+        </tr>
+        <tr>
+          <td><strong>OGL-3S8</strong></td>
+          <td><span class="star-type">G7</span></td>
+          <td>5507 K</td>
+          <td class="distance-cell">0.16 AU</td>
+          <td class="heat-cell heat-trap">90.2</td>
+        </tr>
+        <tr>
+          <td><strong>EVM-NR8</strong></td>
+          <td><span class="star-type">M9</span></td>
+          <td>2520 K</td>
+          <td class="distance-cell">0.0058 AU (2.9 LS)</td>
+          <td class="heat-cell heat-trap">90.2</td>
+        </tr>
+        <tr>
+          <td><strong>H.JYN.P21</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>3760 K</td>
+          <td class="distance-cell">0.04 AU</td>
+          <td class="heat-cell heat-trap">90.1</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- DANGEROUS SYSTEMS (85-89) -->
+  <div class="section">
+    <div class="section-header">
+      <h2 class="section-title">🔥 Dangerous Systems (Heat 85-89)</h2>
+      <div class="section-count">166 systems</div>
+    </div>
+    
+    <div class="warning-box" style="background:rgba(255,100,0,0.15);border-color:#f60">
+      <h3 style="color:#ff8844">⚠️ HIGH RISK</h3>
+      <p style="color:#ffccaa">
+        These systems have very high heat (85-89) at coldest points. 
+        Entry requires caution and emergency warp-out capability.
+      </p>
+      <p style="margin-top:10px;font-size:0.9em;opacity:0.8;color:#ffccaa">
+        Note: Model has ~7% average error on predictions.
+      </p>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="searchDanger" placeholder="🔍 Search dangerous systems..." 
+             onkeyup="filterTable('dangerTable', 'searchDanger')">
+    </div>
+
+    <table class="systems-table" id="dangerTable">
+      <thead>
+        <tr>
+          <th>System</th>
+          <th>Star Type</th>
+          <th>Temperature</th>
+          <th>Distance</th>
+          <th>Heat</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>OB7-47K</strong></td>
+          <td><span class="star-type">G5</span></td>
+          <td>5694 K</td>
+          <td class="distance-cell">0.23 AU</td>
+          <td class="heat-cell heat-danger">89.8</td>
+        </tr>
+        <tr>
+          <td><strong>IPC-0DD</strong></td>
+          <td><span class="star-type">K4</span></td>
+          <td>4709 K</td>
+          <td class="distance-cell">0.09 AU</td>
+          <td class="heat-cell heat-danger">89.8</td>
+        </tr>
+        <tr>
+          <td><strong>U47-38M</strong></td>
+          <td><span class="star-type">F4</span></td>
+          <td>7118 K</td>
+          <td class="distance-cell">0.28 AU</td>
+          <td class="heat-cell heat-danger">89.8</td>
+        </tr>
+        <tr>
+          <td><strong>UT7-6ML</strong></td>
+          <td><span class="star-type">B3</span></td>
+          <td>27125 K</td>
+          <td class="distance-cell">51.18 AU</td>
+          <td class="heat-cell heat-danger">89.8</td>
+        </tr>
+        <tr>
+          <td><strong>O88-VMJ</strong></td>
+          <td><span class="star-type">G7</span></td>
+          <td>5512 K</td>
+          <td class="distance-cell">0.17 AU</td>
+          <td class="heat-cell heat-danger">89.8</td>
+        </tr>
+        <tr>
+          <td><strong>IDC-1NK</strong></td>
+          <td><span class="star-type">K3</span></td>
+          <td>4879 K</td>
+          <td class="distance-cell">0.09 AU</td>
+          <td class="heat-cell heat-danger">89.8</td>
+        </tr>
+        <tr>
+          <td><strong>EPL-J0D</strong></td>
+          <td><span class="star-type">M4</span></td>
+          <td>3277 K</td>
+          <td class="distance-cell">0.01 AU</td>
+          <td class="heat-cell heat-danger">89.8</td>
+        </tr>
+        <tr>
+          <td><strong>IMG-055</strong></td>
+          <td><span class="star-type">K9</span></td>
+          <td>4112 K</td>
+          <td class="distance-cell">0.06 AU</td>
+          <td class="heat-cell heat-danger">89.5</td>
+        </tr>
+        <tr>
+          <td><strong>EMH-121</strong></td>
+          <td><span class="star-type">M9</span></td>
+          <td>2473 K</td>
+          <td class="distance-cell">0.0060 AU (3.0 LS)</td>
+          <td class="heat-cell heat-danger">89.4</td>
+        </tr>
+        <tr>
+          <td><strong>O3H-3CC</strong></td>
+          <td><span class="star-type">G8</span></td>
+          <td>5478 K</td>
+          <td class="distance-cell">0.17 AU</td>
+          <td class="heat-cell heat-danger">89.4</td>
+        </tr>
+        <tr>
+          <td><strong>O92-HND</strong></td>
+          <td><span class="star-type">K0</span></td>
+          <td>5197 K</td>
+          <td class="distance-cell">0.15 AU</td>
+          <td class="heat-cell heat-danger">89.4</td>
+        </tr>
+        <tr>
+          <td><strong>E24-CJ2</strong></td>
+          <td><span class="star-type">M5</span></td>
+          <td>3096 K</td>
+          <td class="distance-cell">0.01 AU</td>
+          <td class="heat-cell heat-danger">89.4</td>
+        </tr>
+        <tr>
+          <td><strong>EPG-NPH</strong></td>
+          <td><span class="star-type">M4</span></td>
+          <td>3318 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-danger">89.3</td>
+        </tr>
+        <tr>
+          <td><strong>IGH-PC6</strong></td>
+          <td><span class="star-type">K5</span></td>
+          <td>4571 K</td>
+          <td class="distance-cell">0.08 AU</td>
+          <td class="heat-cell heat-danger">89.3</td>
+        </tr>
+        <tr>
+          <td><strong>EVP-FN2</strong></td>
+          <td><span class="star-type">M3</span></td>
+          <td>3452 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-danger">89.3</td>
+        </tr>
+        <tr>
+          <td><strong>O48-0FH</strong></td>
+          <td><span class="star-type">G5</span></td>
+          <td>5745 K</td>
+          <td class="distance-cell">0.32 AU</td>
+          <td class="heat-cell heat-danger">89.3</td>
+        </tr>
+        <tr>
+          <td><strong>UCR-L93</strong></td>
+          <td><span class="star-type">A2</span></td>
+          <td>10173 K</td>
+          <td class="distance-cell">1.05 AU</td>
+          <td class="heat-cell heat-danger">89.3</td>
+        </tr>
+        <tr>
+          <td><strong>F:E95A</strong></td>
+          <td><span class="star-type">A7</span></td>
+          <td>8571 K</td>
+          <td class="distance-cell">1.03 AU</td>
+          <td class="heat-cell heat-danger">89.2</td>
+        </tr>
+        <tr>
+          <td><strong>O44-S66</strong></td>
+          <td><span class="star-type">G3</span></td>
+          <td>5900 K</td>
+          <td class="distance-cell">0.21 AU</td>
+          <td class="heat-cell heat-danger">89.2</td>
+        </tr>
+        <tr>
+          <td><strong>OVM-BD6</strong></td>
+          <td><span class="star-type">G5</span></td>
+          <td>5700 K</td>
+          <td class="distance-cell">0.19 AU</td>
+          <td class="heat-cell heat-danger">89.1</td>
+        </tr>
+        <tr>
+          <td><strong>O28-JP8</strong></td>
+          <td><span class="star-type">G5</span></td>
+          <td>5702 K</td>
+          <td class="distance-cell">0.20 AU</td>
+          <td class="heat-cell heat-danger">89.1</td>
+        </tr>
+        <tr>
+          <td><strong>OCR-5GC</strong></td>
+          <td><span class="star-type">G7</span></td>
+          <td>5508 K</td>
+          <td class="distance-cell">0.17 AU</td>
+          <td class="heat-cell heat-danger">89.0</td>
+        </tr>
+        <tr>
+          <td><strong>OG0-B31</strong></td>
+          <td><span class="star-type">G9</span></td>
+          <td>5381 K</td>
+          <td class="distance-cell">0.20 AU</td>
+          <td class="heat-cell heat-danger">88.9</td>
+        </tr>
+        <tr>
+          <td><strong>UL4-7B7</strong></td>
+          <td><span class="star-type">B2</span></td>
+          <td>27975 K</td>
+          <td class="distance-cell">79.00 AU</td>
+          <td class="heat-cell heat-danger">88.9</td>
+        </tr>
+        <tr>
+          <td><strong>I47-P89</strong></td>
+          <td><span class="star-type">K8</span></td>
+          <td>4153 K</td>
+          <td class="distance-cell">0.07 AU</td>
+          <td class="heat-cell heat-danger">88.9</td>
+        </tr>
+        <tr>
+          <td><strong>EF3-N28</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2323 K</td>
+          <td class="distance-cell">0.0063 AU (3.2 LS)</td>
+          <td class="heat-cell heat-danger">88.9</td>
+        </tr>
+        <tr>
+          <td><strong>INB-QPB</strong></td>
+          <td><span class="star-type">K4</span></td>
+          <td>4716 K</td>
+          <td class="distance-cell">0.10 AU</td>
+          <td class="heat-cell heat-danger">88.9</td>
+        </tr>
+        <tr>
+          <td><strong>I7R-2JJ</strong></td>
+          <td><span class="star-type">K8</span></td>
+          <td>4177 K</td>
+          <td class="distance-cell">0.06 AU</td>
+          <td class="heat-cell heat-danger">88.8</td>
+        </tr>
+        <tr>
+          <td><strong>IT3-T65</strong></td>
+          <td><span class="star-type">K2</span></td>
+          <td>4929 K</td>
+          <td class="distance-cell">0.13 AU</td>
+          <td class="heat-cell heat-danger">88.8</td>
+        </tr>
+        <tr>
+          <td><strong>ER8-M6G</strong></td>
+          <td><span class="star-type">M2</span></td>
+          <td>3610 K</td>
+          <td class="distance-cell">0.04 AU</td>
+          <td class="heat-cell heat-danger">88.8</td>
+        </tr>
+        <tr>
+          <td><strong>O3B-0JJ</strong></td>
+          <td><span class="star-type">G3</span></td>
+          <td>5913 K</td>
+          <td class="distance-cell">0.24 AU</td>
+          <td class="heat-cell heat-danger">88.7</td>
+        </tr>
+        <tr>
+          <td><strong>ER4-331</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2205 K</td>
+          <td class="distance-cell">0.0052 AU (2.6 LS)</td>
+          <td class="heat-cell heat-danger">88.7</td>
+        </tr>
+        <tr>
+          <td><strong>U2V-2H3</strong></td>
+          <td><span class="star-type">B2</span></td>
+          <td>28073 K</td>
+          <td class="distance-cell">75.34 AU</td>
+          <td class="heat-cell heat-danger">88.7</td>
+        </tr>
+        <tr>
+          <td><strong>OTB-66K</strong></td>
+          <td><span class="star-type">F9</span></td>
+          <td>6322 K</td>
+          <td class="distance-cell">0.32 AU</td>
+          <td class="heat-cell heat-danger">88.6</td>
+        </tr>
+        <tr>
+          <td><strong>Arcana</strong></td>
+          <td><span class="star-type">G1</span></td>
+          <td>6099 K</td>
+          <td class="distance-cell">0.33 AU</td>
+          <td class="heat-cell heat-danger">88.6</td>
+        </tr>
+        <tr>
+          <td><strong>UKK-9R1</strong></td>
+          <td><span class="star-type">F5</span></td>
+          <td>6842 K</td>
+          <td class="distance-cell">0.41 AU</td>
+          <td class="heat-cell heat-danger">88.6</td>
+        </tr>
+        <tr>
+          <td><strong>EJT-QK3</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>3774 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-danger">88.6</td>
+        </tr>
+        <tr>
+          <td><strong>O3Q-2DM</strong></td>
+          <td><span class="star-type">G3</span></td>
+          <td>5917 K</td>
+          <td class="distance-cell">0.29 AU</td>
+          <td class="heat-cell heat-danger">88.6</td>
+        </tr>
+        <tr>
+          <td><strong>ER5-79J</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>3694 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-danger">88.6</td>
+        </tr>
+        <tr>
+          <td><strong>O69-B8H</strong></td>
+          <td><span class="star-type">G9</span></td>
+          <td>5357 K</td>
+          <td class="distance-cell">0.20 AU</td>
+          <td class="heat-cell heat-danger">88.6</td>
+        </tr>
+        <tr>
+          <td><strong>T.90V.4TP</strong></td>
+          <td><span class="star-type">K2</span></td>
+          <td>5008 K</td>
+          <td class="distance-cell">0.14 AU</td>
+          <td class="heat-cell heat-danger">88.5</td>
+        </tr>
+        <tr>
+          <td><strong>EV0-F81</strong></td>
+          <td><span class="star-type">M6</span></td>
+          <td>2998 K</td>
+          <td class="distance-cell">0.01 AU</td>
+          <td class="heat-cell heat-danger">88.5</td>
+        </tr>
+        <tr>
+          <td><strong>ETQ-V2B</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2307 K</td>
+          <td class="distance-cell">0.0046 AU (2.3 LS)</td>
+          <td class="heat-cell heat-danger">88.5</td>
+        </tr>
+        <tr>
+          <td><strong>EPP-C86</strong></td>
+          <td><span class="star-type">M9</span></td>
+          <td>2454 K</td>
+          <td class="distance-cell">0.0074 AU (3.7 LS)</td>
+          <td class="heat-cell heat-danger">88.5</td>
+        </tr>
+        <tr>
+          <td><strong>UH8-492</strong></td>
+          <td><span class="star-type">F4</span></td>
+          <td>7004 K</td>
+          <td class="distance-cell">0.29 AU</td>
+          <td class="heat-cell heat-danger">88.4</td>
+        </tr>
+        <tr>
+          <td><strong>U24-P1C</strong></td>
+          <td><span class="star-type">B4</span></td>
+          <td>25385 K</td>
+          <td class="distance-cell">46.00 AU</td>
+          <td class="heat-cell heat-danger">88.4</td>
+        </tr>
+        <tr>
+          <td><strong>UDB-6FD</strong></td>
+          <td><span class="star-type">F7</span></td>
+          <td>6564 K</td>
+          <td class="distance-cell">0.31 AU</td>
+          <td class="heat-cell heat-danger">88.3</td>
+        </tr>
+        <tr>
+          <td><strong>IB2-6JG</strong></td>
+          <td><span class="star-type">K5</span></td>
+          <td>4627 K</td>
+          <td class="distance-cell">0.09 AU</td>
+          <td class="heat-cell heat-danger">88.3</td>
+        </tr>
+        <tr>
+          <td><strong>EHS-CBC</strong></td>
+          <td><span class="star-type">M3</span></td>
+          <td>3413 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-danger">88.3</td>
+        </tr>
+        <tr>
+          <td><strong>I6P-VC2</strong></td>
+          <td><span class="star-type">K4</span></td>
+          <td>4742 K</td>
+          <td class="distance-cell">0.11 AU</td>
+          <td class="heat-cell heat-danger">88.3</td>
+        </tr>
+        <tr>
+          <td><strong>OF0-86J</strong></td>
+          <td><span class="star-type">G0</span></td>
+          <td>6116 K</td>
+          <td class="distance-cell">0.30 AU</td>
+          <td class="heat-cell heat-danger">88.2</td>
+        </tr>
+        <tr>
+          <td><strong>E81-0M8</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2279 K</td>
+          <td class="distance-cell">0.0080 AU (4.0 LS)</td>
+          <td class="heat-cell heat-danger">88.1</td>
+        </tr>
+        <tr>
+          <td><strong>UQG-FJG</strong></td>
+          <td><span class="star-type">A1</span></td>
+          <td>10667 K</td>
+          <td class="distance-cell">1.41 AU</td>
+          <td class="heat-cell heat-danger">88.1</td>
+        </tr>
+        <tr>
+          <td><strong>ITJ-Q9F</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>3780 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-danger">88.1</td>
+        </tr>
+        <tr>
+          <td><strong>UDS-FH2</strong></td>
+          <td><span class="star-type">A8</span></td>
+          <td>8209 K</td>
+          <td class="distance-cell">0.55 AU</td>
+          <td class="heat-cell heat-danger">88.1</td>
+        </tr>
+        <tr>
+          <td><strong>OM1-B3J</strong></td>
+          <td><span class="star-type">G5</span></td>
+          <td>5685 K</td>
+          <td class="distance-cell">0.22 AU</td>
+          <td class="heat-cell heat-danger">88.1</td>
+        </tr>
+        <tr>
+          <td><strong>I25-5CH</strong></td>
+          <td><span class="star-type">K3</span></td>
+          <td>4892 K</td>
+          <td class="distance-cell">0.12 AU</td>
+          <td class="heat-cell heat-danger">88.1</td>
+        </tr>
+        <tr>
+          <td><strong>OF0-GSD</strong></td>
+          <td><span class="star-type">G1</span></td>
+          <td>6038 K</td>
+          <td class="distance-cell">0.38 AU</td>
+          <td class="heat-cell heat-danger">88.1</td>
+        </tr>
+        <tr>
+          <td><strong>OSH-FV5</strong></td>
+          <td><span class="star-type">G7</span></td>
+          <td>5562 K</td>
+          <td class="distance-cell">0.20 AU</td>
+          <td class="heat-cell heat-danger">88.0</td>
+        </tr>
+        <tr>
+          <td><strong>EMJ-6PG</strong></td>
+          <td><span class="star-type">M4</span></td>
+          <td>3311 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-danger">88.0</td>
+        </tr>
+        <tr>
+          <td><strong>O7H-TNS</strong></td>
+          <td><span class="star-type">K1</span></td>
+          <td>5160 K</td>
+          <td class="distance-cell">0.16 AU</td>
+          <td class="heat-cell heat-danger">88.0</td>
+        </tr>
+        <tr>
+          <td><strong>IQF-60J</strong></td>
+          <td><span class="star-type">K5</span></td>
+          <td>4566 K</td>
+          <td class="distance-cell">0.10 AU</td>
+          <td class="heat-cell heat-danger">88.0</td>
+        </tr>
+        <tr>
+          <td><strong>IB3-7HQ</strong></td>
+          <td><span class="star-type">K2</span></td>
+          <td>4933 K</td>
+          <td class="distance-cell">0.14 AU</td>
+          <td class="heat-cell heat-danger">88.0</td>
+        </tr>
+        <tr>
+          <td><strong>OK2-MMK</strong></td>
+          <td><span class="star-type">K0</span></td>
+          <td>5299 K</td>
+          <td class="distance-cell">0.19 AU</td>
+          <td class="heat-cell heat-danger">88.0</td>
+        </tr>
+        <tr>
+          <td><strong>U2R-FT5</strong></td>
+          <td><span class="star-type">B3</span></td>
+          <td>25873 K</td>
+          <td class="distance-cell">54.41 AU</td>
+          <td class="heat-cell heat-danger">87.9</td>
+        </tr>
+        <tr>
+          <td><strong>O42-5Q4</strong></td>
+          <td><span class="star-type">G4</span></td>
+          <td>5791 K</td>
+          <td class="distance-cell">0.33 AU</td>
+          <td class="heat-cell heat-danger">87.9</td>
+        </tr>
+        <tr>
+          <td><strong>IB9-DNC</strong></td>
+          <td><span class="star-type">K2</span></td>
+          <td>4934 K</td>
+          <td class="distance-cell">0.13 AU</td>
+          <td class="heat-cell heat-danger">87.9</td>
+        </tr>
+        <tr>
+          <td><strong>OL0-96N</strong></td>
+          <td><span class="star-type">G9</span></td>
+          <td>5370 K</td>
+          <td class="distance-cell">0.24 AU</td>
+          <td class="heat-cell heat-danger">87.8</td>
+        </tr>
+        <tr>
+          <td><strong>U92-036</strong></td>
+          <td><span class="star-type">A1</span></td>
+          <td>10538 K</td>
+          <td class="distance-cell">1.74 AU</td>
+          <td class="heat-cell heat-danger">87.8</td>
+        </tr>
+        <tr>
+          <td><strong>E5D-0CC</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2379 K</td>
+          <td class="distance-cell">0.0089 AU (4.5 LS)</td>
+          <td class="heat-cell heat-danger">87.8</td>
+        </tr>
+        <tr>
+          <td><strong>O19-98C</strong></td>
+          <td><span class="star-type">G3</span></td>
+          <td>5863 K</td>
+          <td class="distance-cell">0.27 AU</td>
+          <td class="heat-cell heat-danger">87.8</td>
+        </tr>
+        <tr>
+          <td><strong>B76|NVE</strong></td>
+          <td><span class="star-type">G8</span></td>
+          <td>5447 K</td>
+          <td class="distance-cell">0.18 AU</td>
+          <td class="heat-cell heat-danger">87.8</td>
+        </tr>
+        <tr>
+          <td><strong>A70-KQ2</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>2080 K</td>
+          <td class="distance-cell">0.0030 AU (1.5 LS)</td>
+          <td class="heat-cell heat-danger">87.8</td>
+        </tr>
+        <tr>
+          <td><strong>U0C-N77</strong></td>
+          <td><span class="star-type">A1</span></td>
+          <td>10439 K</td>
+          <td class="distance-cell">2.20 AU</td>
+          <td class="heat-cell heat-danger">87.7</td>
+        </tr>
+        <tr>
+          <td><strong>U4K-MBK</strong></td>
+          <td><span class="star-type">F5</span></td>
+          <td>6898 K</td>
+          <td class="distance-cell">0.44 AU</td>
+          <td class="heat-cell heat-danger">87.7</td>
+        </tr>
+        <tr>
+          <td><strong>EK9-QH1</strong></td>
+          <td><span class="star-type">M2</span></td>
+          <td>3628 K</td>
+          <td class="distance-cell">0.04 AU</td>
+          <td class="heat-cell heat-danger">87.7</td>
+        </tr>
+        <tr>
+          <td><strong>OLR-FDJ</strong></td>
+          <td><span class="star-type">F9</span></td>
+          <td>6358 K</td>
+          <td class="distance-cell">0.40 AU</td>
+          <td class="heat-cell heat-danger">87.6</td>
+        </tr>
+        <tr>
+          <td><strong>BV0|R01</strong></td>
+          <td><span class="star-type">K1</span></td>
+          <td>5061 K</td>
+          <td class="distance-cell">0.13 AU</td>
+          <td class="heat-cell heat-danger">87.6</td>
+        </tr>
+        <tr>
+          <td><strong>ISJ-TP8</strong></td>
+          <td><span class="star-type">K4</span></td>
+          <td>4727 K</td>
+          <td class="distance-cell">0.11 AU</td>
+          <td class="heat-cell heat-danger">87.5</td>
+        </tr>
+        <tr>
+          <td><strong>EPT-801</strong></td>
+          <td><span class="star-type">M9</span></td>
+          <td>2412 K</td>
+          <td class="distance-cell">0.0086 AU (4.3 LS)</td>
+          <td class="heat-cell heat-danger">87.5</td>
+        </tr>
+        <tr>
+          <td><strong>OPM-7GC</strong></td>
+          <td><span class="star-type">G8</span></td>
+          <td>5411 K</td>
+          <td class="distance-cell">0.22 AU</td>
+          <td class="heat-cell heat-danger">87.5</td>
+        </tr>
+        <tr>
+          <td><strong>U7K-B47</strong></td>
+          <td><span class="star-type">A3</span></td>
+          <td>9775 K</td>
+          <td class="distance-cell">1.14 AU</td>
+          <td class="heat-cell heat-danger">87.4</td>
+        </tr>
+        <tr>
+          <td><strong>ING-FQ8</strong></td>
+          <td><span class="star-type">K9</span></td>
+          <td>4111 K</td>
+          <td class="distance-cell">0.07 AU</td>
+          <td class="heat-cell heat-danger">87.4</td>
+        </tr>
+        <tr>
+          <td><strong>OS0-GRC</strong></td>
+          <td><span class="star-type">G8</span></td>
+          <td>5409 K</td>
+          <td class="distance-cell">0.19 AU</td>
+          <td class="heat-cell heat-danger">87.4</td>
+        </tr>
+        <tr>
+          <td><strong>ESR-FS9</strong></td>
+          <td><span class="star-type">M5</span></td>
+          <td>3100 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-danger">87.3</td>
+        </tr>
+        <tr>
+          <td><strong>I4J-9F5</strong></td>
+          <td><span class="star-type">K9</span></td>
+          <td>4065 K</td>
+          <td class="distance-cell">0.07 AU</td>
+          <td class="heat-cell heat-danger">87.3</td>
+        </tr>
+        <tr>
+          <td><strong>ETV-PRF</strong></td>
+          <td><span class="star-type">M2</span></td>
+          <td>3594 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-danger">87.3</td>
+        </tr>
+        <tr>
+          <td><strong>E.NKT.3XC</strong></td>
+          <td><span class="star-type">M5</span></td>
+          <td>3089 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-danger">87.2</td>
+        </tr>
+        <tr>
+          <td><strong>U4N-V1C</strong></td>
+          <td><span class="star-type">B2</span></td>
+          <td>28848 K</td>
+          <td class="distance-cell">87.13 AU</td>
+          <td class="heat-cell heat-danger">87.2</td>
+        </tr>
+        <tr>
+          <td><strong>I6L-F2D</strong></td>
+          <td><span class="star-type">K5</span></td>
+          <td>4570 K</td>
+          <td class="distance-cell">0.11 AU</td>
+          <td class="heat-cell heat-danger">87.2</td>
+        </tr>
+        <tr>
+          <td><strong>Z:3390</strong></td>
+          <td><span class="star-type">M3</span></td>
+          <td>3490 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-danger">87.2</td>
+        </tr>
+        <tr>
+          <td><strong>ICR-274</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>3788 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-danger">87.2</td>
+        </tr>
+        <tr>
+          <td><strong>EQ0-6FL</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2388 K</td>
+          <td class="distance-cell">0.0063 AU (3.1 LS)</td>
+          <td class="heat-cell heat-danger">87.2</td>
+        </tr>
+        <tr>
+          <td><strong>I3R-T3K</strong></td>
+          <td><span class="star-type">K5</span></td>
+          <td>4553 K</td>
+          <td class="distance-cell">0.10 AU</td>
+          <td class="heat-cell heat-danger">87.1</td>
+        </tr>
+        <tr>
+          <td><strong>S.PYP.47N</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2306 K</td>
+          <td class="distance-cell">0.0051 AU (2.5 LS)</td>
+          <td class="heat-cell heat-danger">87.1</td>
+        </tr>
+        <tr>
+          <td><strong>UMP-9KH</strong></td>
+          <td><span class="star-type">B5</span></td>
+          <td>22204 K</td>
+          <td class="distance-cell">39.13 AU</td>
+          <td class="heat-cell heat-danger">87.1</td>
+        </tr>
+        <tr>
+          <td><strong>O1K-N3J</strong></td>
+          <td><span class="star-type">F7</span></td>
+          <td>6554 K</td>
+          <td class="distance-cell">0.51 AU</td>
+          <td class="heat-cell heat-danger">87.1</td>
+        </tr>
+        <tr>
+          <td><strong>O8D-HPK</strong></td>
+          <td><span class="star-type">K0</span></td>
+          <td>5194 K</td>
+          <td class="distance-cell">0.22 AU</td>
+          <td class="heat-cell heat-danger">87.0</td>
+        </tr>
+        <tr>
+          <td><strong>OHH-QMJ</strong></td>
+          <td><span class="star-type">G4</span></td>
+          <td>5802 K</td>
+          <td class="distance-cell">0.27 AU</td>
+          <td class="heat-cell heat-danger">87.0</td>
+        </tr>
+        <tr>
+          <td><strong>ENR-3QM</strong></td>
+          <td><span class="star-type">M2</span></td>
+          <td>3561 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-danger">87.0</td>
+        </tr>
+        <tr>
+          <td><strong>IL8-J8M</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>3820 K</td>
+          <td class="distance-cell">0.06 AU</td>
+          <td class="heat-cell heat-danger">87.0</td>
+        </tr>
+        <tr>
+          <td><strong>ELB-079</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>3723 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-danger">87.0</td>
+        </tr>
+        <tr>
+          <td><strong>EHN-80N</strong></td>
+          <td><span class="star-type">M4</span></td>
+          <td>3310 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-danger">86.9</td>
+        </tr>
+        <tr>
+          <td><strong>IM3-S77</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>3918 K</td>
+          <td class="distance-cell">0.04 AU</td>
+          <td class="heat-cell heat-danger">86.8</td>
+        </tr>
+        <tr>
+          <td><strong>O7F-QH4</strong></td>
+          <td><span class="star-type">G5</span></td>
+          <td>5692 K</td>
+          <td class="distance-cell">0.25 AU</td>
+          <td class="heat-cell heat-danger">86.8</td>
+        </tr>
+        <tr>
+          <td><strong>ESK-BKC</strong></td>
+          <td><span class="star-type">M2</span></td>
+          <td>3581 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-danger">86.8</td>
+        </tr>
+        <tr>
+          <td><strong>O6F-LR4</strong></td>
+          <td><span class="star-type">K1</span></td>
+          <td>5043 K</td>
+          <td class="distance-cell">0.16 AU</td>
+          <td class="heat-cell heat-danger">86.8</td>
+        </tr>
+        <tr>
+          <td><strong>IKB-VPJ</strong></td>
+          <td><span class="star-type">K9</span></td>
+          <td>4044 K</td>
+          <td class="distance-cell">0.07 AU</td>
+          <td class="heat-cell heat-danger">86.8</td>
+        </tr>
+        <tr>
+          <td><strong>OFD-M45</strong></td>
+          <td><span class="star-type">G6</span></td>
+          <td>5582 K</td>
+          <td class="distance-cell">0.28 AU</td>
+          <td class="heat-cell heat-danger">86.8</td>
+        </tr>
+        <tr>
+          <td><strong>USQ-7P9</strong></td>
+          <td><span class="star-type">F7</span></td>
+          <td>6658 K</td>
+          <td class="distance-cell">0.35 AU</td>
+          <td class="heat-cell heat-danger">86.7</td>
+        </tr>
+        <tr>
+          <td><strong>U22-M41</strong></td>
+          <td><span class="star-type">B8</span></td>
+          <td>14944 K</td>
+          <td class="distance-cell">6.90 AU</td>
+          <td class="heat-cell heat-danger">86.7</td>
+        </tr>
+        <tr>
+          <td><strong>E50-47C</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2288 K</td>
+          <td class="distance-cell">0.0094 AU (4.7 LS)</td>
+          <td class="heat-cell heat-danger">86.7</td>
+        </tr>
+        <tr>
+          <td><strong>ISN-LJH</strong></td>
+          <td><span class="star-type">K3</span></td>
+          <td>4791 K</td>
+          <td class="distance-cell">0.13 AU</td>
+          <td class="heat-cell heat-danger">86.7</td>
+        </tr>
+        <tr>
+          <td><strong>UGJ-M21</strong></td>
+          <td><span class="star-type">F5</span></td>
+          <td>6866 K</td>
+          <td class="distance-cell">0.39 AU</td>
+          <td class="heat-cell heat-danger">86.7</td>
+        </tr>
+        <tr>
+          <td><strong>OCP-N65</strong></td>
+          <td><span class="star-type">G4</span></td>
+          <td>5805 K</td>
+          <td class="distance-cell">0.30 AU</td>
+          <td class="heat-cell heat-danger">86.6</td>
+        </tr>
+        <tr>
+          <td><strong>IH0-Q76</strong></td>
+          <td><span class="star-type">K9</span></td>
+          <td>4014 K</td>
+          <td class="distance-cell">0.08 AU</td>
+          <td class="heat-cell heat-danger">86.6</td>
+        </tr>
+        <tr>
+          <td><strong>ISD-K5F</strong></td>
+          <td><span class="star-type">K5</span></td>
+          <td>4605 K</td>
+          <td class="distance-cell">0.10 AU</td>
+          <td class="heat-cell heat-danger">86.6</td>
+        </tr>
+        <tr>
+          <td><strong>OH1-J2M</strong></td>
+          <td><span class="star-type">G1</span></td>
+          <td>6044 K</td>
+          <td class="distance-cell">0.45 AU</td>
+          <td class="heat-cell heat-danger">86.5</td>
+        </tr>
+        <tr>
+          <td><strong>I6C-8CF</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>3795 K</td>
+          <td class="distance-cell">0.05 AU</td>
+          <td class="heat-cell heat-danger">86.5</td>
+        </tr>
+        <tr>
+          <td><strong>A9D-FPG</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>2113 K</td>
+          <td class="distance-cell">0.0038 AU (1.9 LS)</td>
+          <td class="heat-cell heat-danger">86.5</td>
+        </tr>
+        <tr>
+          <td><strong>ITL-DQK</strong></td>
+          <td><span class="star-type">K7</span></td>
+          <td>4309 K</td>
+          <td class="distance-cell">0.10 AU</td>
+          <td class="heat-cell heat-danger">86.5</td>
+        </tr>
+        <tr>
+          <td><strong>E63-FL7</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2258 K</td>
+          <td class="distance-cell">0.0077 AU (3.8 LS)</td>
+          <td class="heat-cell heat-danger">86.5</td>
+        </tr>
+        <tr>
+          <td><strong>UVK-D98</strong></td>
+          <td><span class="star-type">A5</span></td>
+          <td>9115 K</td>
+          <td class="distance-cell">1.13 AU</td>
+          <td class="heat-cell heat-danger">86.5</td>
+        </tr>
+        <tr>
+          <td><strong>OVL-2B9</strong></td>
+          <td><span class="star-type">G7</span></td>
+          <td>5546 K</td>
+          <td class="distance-cell">0.21 AU</td>
+          <td class="heat-cell heat-danger">86.4</td>
+        </tr>
+        <tr>
+          <td><strong>ID8-7R9</strong></td>
+          <td><span class="star-type">K4</span></td>
+          <td>4769 K</td>
+          <td class="distance-cell">0.13 AU</td>
+          <td class="heat-cell heat-danger">86.3</td>
+        </tr>
+        <tr>
+          <td><strong>D.H9P.9T5</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>2185 K</td>
+          <td class="distance-cell">0.0059 AU (2.9 LS)</td>
+          <td class="heat-cell heat-danger">86.2</td>
+        </tr>
+        <tr>
+          <td><strong>O00-G48</strong></td>
+          <td><span class="star-type">G3</span></td>
+          <td>5928 K</td>
+          <td class="distance-cell">0.30 AU</td>
+          <td class="heat-cell heat-danger">86.2</td>
+        </tr>
+        <tr>
+          <td><strong>D.JM5.5SS</strong></td>
+          <td><span class="star-type">F4</span></td>
+          <td>7002 K</td>
+          <td class="distance-cell">0.76 AU</td>
+          <td class="heat-cell heat-danger">86.2</td>
+        </tr>
+        <tr>
+          <td><strong>O1J-FGK</strong></td>
+          <td><span class="star-type">G5</span></td>
+          <td>5708 K</td>
+          <td class="distance-cell">0.25 AU</td>
+          <td class="heat-cell heat-danger">86.2</td>
+        </tr>
+        <tr>
+          <td><strong>OTR-DCC</strong></td>
+          <td><span class="star-type">K1</span></td>
+          <td>5148 K</td>
+          <td class="distance-cell">0.21 AU</td>
+          <td class="heat-cell heat-danger">86.1</td>
+        </tr>
+        <tr>
+          <td><strong>O2L-D12</strong></td>
+          <td><span class="star-type">F9</span></td>
+          <td>6302 K</td>
+          <td class="distance-cell">0.33 AU</td>
+          <td class="heat-cell heat-danger">86.1</td>
+        </tr>
+        <tr>
+          <td><strong>OV8-LD9</strong></td>
+          <td><span class="star-type">F9</span></td>
+          <td>6209 K</td>
+          <td class="distance-cell">0.32 AU</td>
+          <td class="heat-cell heat-danger">86.1</td>
+        </tr>
+        <tr>
+          <td><strong>OJ0-46B</strong></td>
+          <td><span class="star-type">G4</span></td>
+          <td>5793 K</td>
+          <td class="distance-cell">0.28 AU</td>
+          <td class="heat-cell heat-danger">86.1</td>
+        </tr>
+        <tr>
+          <td><strong>OM5-0K9</strong></td>
+          <td><span class="star-type">K1</span></td>
+          <td>5097 K</td>
+          <td class="distance-cell">0.20 AU</td>
+          <td class="heat-cell heat-danger">86.0</td>
+        </tr>
+        <tr>
+          <td><strong>OQ5-F51</strong></td>
+          <td><span class="star-type">G2</span></td>
+          <td>6001 K</td>
+          <td class="distance-cell">0.39 AU</td>
+          <td class="heat-cell heat-danger">86.0</td>
+        </tr>
+        <tr>
+          <td><strong>E6C-2NJ</strong></td>
+          <td><span class="star-type">M9</span></td>
+          <td>2558 K</td>
+          <td class="distance-cell">0.01 AU</td>
+          <td class="heat-cell heat-danger">86.0</td>
+        </tr>
+        <tr>
+          <td><strong>I6Q-PL7</strong></td>
+          <td><span class="star-type">K4</span></td>
+          <td>4695 K</td>
+          <td class="distance-cell">0.13 AU</td>
+          <td class="heat-cell heat-danger">86.0</td>
+        </tr>
+        <tr>
+          <td><strong>OHK-P8F</strong></td>
+          <td><span class="star-type">G3</span></td>
+          <td>5852 K</td>
+          <td class="distance-cell">0.32 AU</td>
+          <td class="heat-cell heat-danger">85.9</td>
+        </tr>
+        <tr>
+          <td><strong>OCB-T07</strong></td>
+          <td><span class="star-type">G9</span></td>
+          <td>5381 K</td>
+          <td class="distance-cell">0.26 AU</td>
+          <td class="heat-cell heat-danger">85.8</td>
+        </tr>
+        <tr>
+          <td><strong>ET9-J5J</strong></td>
+          <td><span class="star-type">M5</span></td>
+          <td>3123 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-danger">85.8</td>
+        </tr>
+        <tr>
+          <td><strong>U7S-MJK</strong></td>
+          <td><span class="star-type">F6</span></td>
+          <td>6805 K</td>
+          <td class="distance-cell">0.41 AU</td>
+          <td class="heat-cell heat-danger">85.7</td>
+        </tr>
+        <tr>
+          <td><strong>EF7-J9B</strong></td>
+          <td><span class="star-type">M5</span></td>
+          <td>3173 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-danger">85.7</td>
+        </tr>
+        <tr>
+          <td><strong>O8B-HR4</strong></td>
+          <td><span class="star-type">G1</span></td>
+          <td>6074 K</td>
+          <td class="distance-cell">0.42 AU</td>
+          <td class="heat-cell heat-danger">85.6</td>
+        </tr>
+        <tr>
+          <td><strong>IBS-G4M</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>3852 K</td>
+          <td class="distance-cell">0.06 AU</td>
+          <td class="heat-cell heat-danger">85.6</td>
+        </tr>
+        <tr>
+          <td><strong>I39-DF6</strong></td>
+          <td><span class="star-type">K9</span></td>
+          <td>4021 K</td>
+          <td class="distance-cell">0.08 AU</td>
+          <td class="heat-cell heat-danger">85.6</td>
+        </tr>
+        <tr>
+          <td><strong>UR4-LN7</strong></td>
+          <td><span class="star-type">A5</span></td>
+          <td>9168 K</td>
+          <td class="distance-cell">0.98 AU</td>
+          <td class="heat-cell heat-danger">85.6</td>
+        </tr>
+        <tr>
+          <td><strong>I4V-PR3</strong></td>
+          <td><span class="star-type">K6</span></td>
+          <td>4480 K</td>
+          <td class="distance-cell">0.12 AU</td>
+          <td class="heat-cell heat-danger">85.6</td>
+        </tr>
+        <tr>
+          <td><strong>U63-0Q9</strong></td>
+          <td><span class="star-type">F6</span></td>
+          <td>6685 K</td>
+          <td class="distance-cell">0.45 AU</td>
+          <td class="heat-cell heat-danger">85.5</td>
+        </tr>
+        <tr>
+          <td><strong>IJT-B8B</strong></td>
+          <td><span class="star-type">M0</span></td>
+          <td>3940 K</td>
+          <td class="distance-cell">0.08 AU</td>
+          <td class="heat-cell heat-danger">85.4</td>
+        </tr>
+        <tr>
+          <td><strong>URD-FGM</strong></td>
+          <td><span class="star-type">B9</span></td>
+          <td>12252 K</td>
+          <td class="distance-cell">3.42 AU</td>
+          <td class="heat-cell heat-danger">85.4</td>
+        </tr>
+        <tr>
+          <td><strong>UVV-N99</strong></td>
+          <td><span class="star-type">F3</span></td>
+          <td>7316 K</td>
+          <td class="distance-cell">0.65 AU</td>
+          <td class="heat-cell heat-danger">85.4</td>
+        </tr>
+        <tr>
+          <td><strong>UMV-CVC</strong></td>
+          <td><span class="star-type">B8</span></td>
+          <td>13945 K</td>
+          <td class="distance-cell">6.27 AU</td>
+          <td class="heat-cell heat-danger">85.3</td>
+        </tr>
+        <tr>
+          <td><strong>USG-JP9</strong></td>
+          <td><span class="star-type">F2</span></td>
+          <td>7440 K</td>
+          <td class="distance-cell">0.64 AU</td>
+          <td class="heat-cell heat-danger">85.3</td>
+        </tr>
+        <tr>
+          <td><strong>ORH-N31</strong></td>
+          <td><span class="star-type">G3</span></td>
+          <td>5869 K</td>
+          <td class="distance-cell">0.37 AU</td>
+          <td class="heat-cell heat-danger">85.3</td>
+        </tr>
+        <tr>
+          <td><strong>I33-VJK</strong></td>
+          <td><span class="star-type">K6</span></td>
+          <td>4435 K</td>
+          <td class="distance-cell">0.10 AU</td>
+          <td class="heat-cell heat-danger">85.3</td>
+        </tr>
+        <tr>
+          <td><strong>AKR-4GD</strong></td>
+          <td><span class="star-type">M1</span></td>
+          <td>2074 K</td>
+          <td class="distance-cell">0.0055 AU (2.8 LS)</td>
+          <td class="heat-cell heat-danger">85.2</td>
+        </tr>
+        <tr>
+          <td><strong>U9R-V2H</strong></td>
+          <td><span class="star-type">A9</span></td>
+          <td>7977 K</td>
+          <td class="distance-cell">0.96 AU</td>
+          <td class="heat-cell heat-danger">85.2</td>
+        </tr>
+        <tr>
+          <td><strong>EHT-393</strong></td>
+          <td><span class="star-type">M3</span></td>
+          <td>3492 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-danger">85.1</td>
+        </tr>
+        <tr>
+          <td><strong>OHN-9DD</strong></td>
+          <td><span class="star-type">G9</span></td>
+          <td>5321 K</td>
+          <td class="distance-cell">0.22 AU</td>
+          <td class="heat-cell heat-danger">85.1</td>
+        </tr>
+        <tr>
+          <td><strong>U1L-P1L</strong></td>
+          <td><span class="star-type">B9</span></td>
+          <td>12976 K</td>
+          <td class="distance-cell">5.17 AU</td>
+          <td class="heat-cell heat-danger">85.1</td>
+        </tr>
+        <tr>
+          <td><strong>I45-D9J</strong></td>
+          <td><span class="star-type">K7</span></td>
+          <td>4298 K</td>
+          <td class="distance-cell">0.10 AU</td>
+          <td class="heat-cell heat-danger">85.1</td>
+        </tr>
+        <tr>
+          <td><strong>OBH-7H4</strong></td>
+          <td><span class="star-type">G5</span></td>
+          <td>5678 K</td>
+          <td class="distance-cell">0.30 AU</td>
+          <td class="heat-cell heat-danger">85.1</td>
+        </tr>
+        <tr>
+          <td><strong>EQ0-SGG</strong></td>
+          <td><span class="star-type">M2</span></td>
+          <td>3675 K</td>
+          <td class="distance-cell">0.06 AU</td>
+          <td class="heat-cell heat-danger">85.1</td>
+        </tr>
+        <tr>
+          <td><strong>OLK-5T7</strong></td>
+          <td><span class="star-type">G1</span></td>
+          <td>6109 K</td>
+          <td class="distance-cell">0.37 AU</td>
+          <td class="heat-cell heat-danger">85.0</td>
+        </tr>
+        <tr>
+          <td><strong>E2R-1KL</strong></td>
+          <td><span class="star-type">M3</span></td>
+          <td>3405 K</td>
+          <td class="distance-cell">0.02 AU</td>
+          <td class="heat-cell heat-danger">85.0</td>
+        </tr>
+        <tr>
+          <td><strong>E25-L67</strong></td>
+          <td><span class="star-type">M3</span></td>
+          <td>3415 K</td>
+          <td class="distance-cell">0.03 AU</td>
+          <td class="heat-cell heat-danger">85.0</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<footer>
+  <p>
+    EVE Frontier HeatSense v8.2 | 
+    <a href="https://github.com/anteris90/FrontierHeatSense" target="_blank">GitHub</a> |
+    Model by <a href="https://thoughtfolio.xyz" target="_blank">Ergod</a>
+  </p>
+</footer>
+
+<script>
+function filterTable(tableId, inputId) {
+  const input = document.getElementById(inputId);
+  const filter = input.value.toUpperCase();
+  const table = document.getElementById(tableId);
+  const tr = table.getElementsByTagName('tr');
+  
+  for (let i = 1; i < tr.length; i++) {
+    const td = tr[i].getElementsByTagName('td')[0];
+    if (td) {
+      const txtValue = td.textContent || td.innerText;
+      tr[i].style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? '' : 'none';
+    }
+  }
+}
+</script>
+
+</body>
+</html>
