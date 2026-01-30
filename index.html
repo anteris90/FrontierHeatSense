@@ -22,13 +22,13 @@ h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
   font-size:0.9em;color:#6cf
 }
 .danger-link-box {
-  display:block;margin:30px auto 20px;padding:20px;max-width:600px;
+  display:block;margin:-20px auto 40px;max-width:600px;
   background:rgba(255,100,50,0.1);border:2px solid rgba(255,100,50,0.3);
   border-radius:12px;text-align:center;text-decoration:none;
+  color:#ff8844;font-size:1.15em;font-weight:600;padding:20px;
   box-shadow:0 0 20px rgba(255,100,50,0.3);
   animation:dangerPulse 3s ease-in-out infinite;
-  transition:all 0.3s;cursor:pointer;
-  color:#ff8844;font-size:1.15em;font-weight:600
+  transition:all 0.3s;cursor:pointer
 }
 .danger-link-box:hover {
   transform:translateY(-2px);
@@ -36,16 +36,15 @@ h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
   border-color:rgba(255,100,50,0.5)
 }
 @keyframes dangerPulse {
-  0%, 100% {
-    box-shadow:0 0 20px rgba(255,100,50,0.3);
-    border-color:rgba(255,100,50,0.3)
-  }
-  50% {
-    box-shadow:0 0 30px rgba(255,50,0,0.6);
-    border-color:rgba(255,50,0,0.5)
-  }
+  0%,100%{box-shadow:0 0 20px rgba(255,100,50,0.3);border-color:rgba(255,100,50,0.3)}
+  50%{box-shadow:0 0 30px rgba(255,50,0,0.6);border-color:rgba(255,50,0,0.5)}
 }
-
+.trap-danger {
+  background:rgba(255,80,0,0.3);border:1px solid #f50;color:#ff9966
+}
+.trap-moderate {
+  background:rgba(255,150,0,0.3);border:1px solid #fa0;color:#ffcc88
+}
 .search-section {
   background:rgba(255,100,50,0.1);border:2px solid rgba(255,100,50,0.3);
   border-radius:15px;padding:30px;margin-bottom:30px
@@ -56,6 +55,15 @@ input[type="text"],textarea {
   width:100%;padding:15px;font-size:1.1em;border:2px solid rgba(255,100,50,0.3);
   border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;transition:all 0.3s;
   font-family:inherit;resize:vertical
+}
+.debug-input {
+  width:100%;padding:10px;border:2px solid rgba(100,200,255,0.3);
+  border-radius:8px;background:rgba(10,5,0,0.6);color:#6cf;
+  font-size:1em;font-family:inherit;transition:all 0.3s
+}
+.debug-input:focus {
+  outline:none;border-color:#6cf;background:rgba(20,10,5,0.8);
+  box-shadow:0 0 15px rgba(100,200,255,0.3)
 }
 input[type="text"]:focus,textarea:focus {
   outline:none;border-color:#f60;background:rgba(20,10,5,0.8);
@@ -94,12 +102,6 @@ input[type="text"]:focus,textarea:focus {
 }
 .trap-yes {
   background:rgba(255,0,0,0.3);border:1px solid #f00;color:#ff6666
-}
-.trap-danger {
-  background:rgba(255,80,0,0.3);border:1px solid #f50;color:#ff9966
-}
-.trap-moderate {
-  background:rgba(255,150,0,0.3);border:1px solid #fa0;color:#ffcc88
 }
 .trap-no {
   background:rgba(50,150,50,0.3);border:1px solid #5f5;color:#aaffaa
@@ -182,15 +184,18 @@ footer a:hover {text-decoration:underline}
   <header>
     <h1>EVE Frontier :: HeatSense</h1>
     <div class="subtitle">System Heat Calculator</div>
-    
+    <div class="version">v8.2 Power Law</div>
     <div class="model-badge">
-      🔬 Power Law Model | MAE: 4.39 Heat | 37% Better than v8.0
+      🔬 Power Law Model | MAE: 4.39 Heat | 37% Better
     </div>
   </header>
 
   <div class="search-section">
     <div class="input-group">
-      <label for="systemInput">System Names (one or multiple):</label>
+      <label for="systemInput">
+        <span id="debugToggle" style="display:inline-block;font-size:1.1em;color:#999;cursor:pointer;user-select:none;transition:all 0.3s;margin-right:8px;vertical-align:middle" title="Debug Mode">🔧</span>
+        <span>System Names (one or multiple):</span>
+      </label>
       <textarea 
         id="systemInput" 
         placeholder="Enter system name(s):
@@ -204,6 +209,27 @@ footer a:hover {text-decoration:underline}
         💡 Tip: Paste route from <a href="https://ef-map.com/" target="_blank" style="color:#6cf;text-decoration:none">EVE Frontier Map by Lacal</a> - HTML formatting will be auto-cleaned
       </div>
     </div>
+        <div id="debugInputs" style="display:none;margin-bottom:20px;padding:15px;background:rgba(100,200,255,0.05);border:1px solid rgba(100,200,255,0.2);border-radius:10px">
+      <div style="font-size:0.9em;color:#6cf;margin-bottom:10px">🔧 Debug Mode - Custom Test</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center">
+        <div>
+          <label style="font-size:0.85em;color:#888">Temperature (K):</label>
+          <input type="text" id="debugTemp" placeholder="e.g., 4135" class="debug-input">
+        </div>
+        <div>
+          <label style="font-size:0.85em;color:#888">Distance:</label>
+          <input type="text" id="debugDistance" placeholder="e.g., 76" class="debug-input">
+        </div>
+        <div style="display:flex;align-items:center;padding-top:20px">
+          <div class="unit-toggle" id="unitToggle" style="display:flex;background:rgba(10,5,0,0.6);border:2px solid rgba(100,200,255,0.3);border-radius:8px;overflow:hidden;cursor:pointer;user-select:none">
+            <div class="unit-option active" data-unit="LS" style="padding:10px 20px;flex:1;text-align:center;color:#6cf;font-weight:600;background:rgba(100,200,255,0.3);transition:all 0.3s">LS</div>
+            <div class="unit-option" data-unit="AU" style="padding:10px 20px;flex:1;text-align:center;color:#888;transition:all 0.3s">AU</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:0.75em;color:#666">Auto-estimates radius & class from temperature</div>
+    </div>
+
     <button class="btn" id="searchBtn" onclick="searchSystems()">
       Check Heat
     </button>
@@ -214,14 +240,13 @@ footer a:hover {text-decoration:underline}
 </div>
 
 
-<a href="dangerous-systems.html" class="danger-link-box">
-  ⚠️ View 299 High-Heat & TRAP Systems (Heat 85+)
-</a>
+  <a href="dangerous-systems.html" class="danger-link-box">
+    ⚠️ View 299 High-Heat & TRAP Systems (Heat 85+)
+  </a>
 
 <footer>
-  <p style="margin-bottom:8px;font-size:0.85em">v8.2 Power Law</p>
   <p>
-    EVE Frontier HeatSense | 
+    EVE Frontier HeatSense v8.0 | 
     <a href="https://github.com/anteris90/FrontierHeatSense" target="_blank">GitHub</a> | © Anteris |
     Model by <a href="https://thoughtfolio.xyz" target="_blank">Ergod</a>
   </p>
@@ -233,6 +258,10 @@ const API_URL = 'https://heatsense-api.heatsense.workers.dev/api/system';
 
 // Multi-system search
 async function searchSystems() {
+  // Check debug mode FIRST
+  if(debugModeEnabled && handleDebugMode()){
+    return;
+  }
   const input = document.getElementById('systemInput').value.trim();
   const btn = document.getElementById('searchBtn');
   const resultDiv = document.getElementById('result');
@@ -547,6 +576,111 @@ document.getElementById('systemInput').addEventListener('paste', function(e) {
 
 // Auto-focus input
 document.getElementById('systemInput').focus();
+
+
+// Debug mode
+let debugModeEnabled=false;
+document.addEventListener('DOMContentLoaded',()=>{
+  const toggle=document.getElementById('debugToggle');
+  const inputs=document.getElementById('debugInputs');
+  if(toggle&&inputs){
+    toggle.addEventListener('click',()=>{
+      debugModeEnabled=!debugModeEnabled;
+      inputs.style.display=debugModeEnabled?'block':'none';
+      toggle.style.opacity=debugModeEnabled?'1':'0.5';
+    });
+  }
+});
+
+function calculateHeatV82(distance_ls,temp,radius_km,starClass){
+  const type=starClass.charAt(0).toUpperCase();
+  let scale,phi,t_ref,n;
+  if(['B','A','F'].includes(type)){scale=535637;phi=1.434;t_ref=5569;n=1.602;}
+  else{scale=37400;phi=1.044;t_ref=1572;n=1.353;}
+  const lam=scale/Math.pow(radius_km,phi)*Math.exp(-temp/t_ref);
+  return 100/Math.pow(1+lam*distance_ls,n);
+}
+
+function handleDebugMode(){
+  if(!debugModeEnabled)return false;
+  const btn=document.querySelector('.btn');
+  btn.disabled=true;
+  btn.textContent='Calculating...';
+  setTimeout(()=>{
+    try{
+  const temp=parseFloat(document.getElementById('debugTemp').value.replace(/[K,\s]/gi,'').trim());
+  let distInput=document.getElementById('debugDistance').value.replace(/\s/g,'').replace(',','.').trim();
+  const unit=selectedUnit;
+  if(!temp||!distInput){showError('Enter temperature and distance');btn.disabled=false;btn.textContent='Check Heat';return;}
+  let distance_ls;
+  if(unit==='LS'){distance_ls=parseFloat(distInput);}
+  else{distance_ls=parseFloat(distInput)*499;}
+  let starClass,radius_km;
+  if(temp>=10000){starClass='B';radius_km=1500000;}
+  else if(temp>=7500){starClass='A';radius_km=1200000;}
+  else if(temp>=6000){starClass='F';radius_km=900000;}
+  else if(temp>=5200){starClass='G';radius_km=700000;}
+  else if(temp>=3700){starClass='K';radius_km=500000;}
+  else{starClass='M';radius_km=400000;}
+  const heat=calculateHeatV82(distance_ls,temp,radius_km,starClass);
+  const resultDiv=document.getElementById('result');
+  let status='SAFE',emoji='✅',statusClass='status-safe';
+  if(heat>=90){status='CRITICAL';emoji='☠️';statusClass='status-critical';}
+  else if(heat>=80){status='DANGEROUS';emoji='🔥';statusClass='status-dangerous';}
+  else if(heat>=40){status='MODERATE';emoji='⚠️';statusClass='status-moderate';}
+  resultDiv.innerHTML=`
+    <div class="system-name">🔧 Debug: ${starClass}-type Star</div>
+    <div class="heat-display">
+      <div class="heat-value">${heat.toFixed(2)}</div>
+      <div class="heat-label">Heat</div>
+    </div>
+    <div class="status-badge ${statusClass}">${emoji} ${status}</div>
+    <div class="detail-grid">
+      <div><strong>Temperature:</strong> ${temp.toLocaleString()} K</div>
+      <div><strong>Estimated Class:</strong> ${starClass}</div>
+      <div><strong>Estimated Radius:</strong> ${radius_km.toLocaleString()} km</div>
+      <div><strong>Distance:</strong> ${(distance_ls/499).toFixed(2)} AU (${distance_ls.toFixed(0)} LS)</div>
+    </div>
+    <div style="margin-top:15px;padding:10px;background:rgba(100,200,255,0.1);border-radius:8px;font-size:0.85em;color:#6cf">
+      ℹ️ Debug calculation using v8.2 Power Law with estimated parameters
+    </div>
+  `;
+  resultDiv.style.display='block';
+    }finally{
+      btn.disabled=false;
+      btn.textContent='Check Heat';
+    }
+  },100);
+  return true;
+}
+
+
+
+// Unit toggle functionality
+let selectedUnit = 'LS';
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('unitToggle');
+  if (toggle) {
+    toggle.addEventListener('click', (e) => {
+      const option = e.target.closest('.unit-option');
+      if (option) {
+        selectedUnit = option.dataset.unit;
+        // Update UI
+        toggle.querySelectorAll('.unit-option').forEach(opt => {
+          if (opt.dataset.unit === selectedUnit) {
+            opt.style.background = 'rgba(100,200,255,0.3)';
+            opt.style.color = '#6cf';
+            opt.style.fontWeight = '600';
+          } else {
+            opt.style.background = 'transparent';
+            opt.style.color = '#888';
+            opt.style.fontWeight = 'normal';
+          }
+        });
+      }
+    });
+  }
+});
 </script>
 
 </body>
