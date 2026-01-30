@@ -8,7 +8,7 @@
 
 ## 🔗 Quick Links
 
-- **🌐 [Live HeatSense Tool](https://your-github-pages-url.github.io/heatsense/)** - Check system heat instantly
+- **🌐 [Live HeatSense Tool](https://anteris90.github.io/FrontierHeatSense/)** - Check system heat instantly
 - **⚠️ [Dangerous Systems List](dangerous-systems.html)** - 342 high-heat & TRAP systems
 
 ---
