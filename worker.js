@@ -133,6 +133,33 @@ export default {
           can_complete_route: canComplete
         }, { headers: cors });
       }
+
+      // HIGH-HEAT LIST ENDPOINT
+      if (url.pathname === '/api/highheat') {
+
+        const out = [];
+
+        for (const name in D) {
+          const e = D[name];
+          const heat = Number(e[6]);   // fontos
+
+          if (heat >= 85) {   // 🔥 DANGER+
+            out.push({
+              name,
+              star: e[1],
+              temp: e[2],
+              au: e[4],
+              ls: e[5],
+              heat,
+              status: heat >= 90 ? 'TRAP' : 'DANGER'
+            });
+          }
+        }
+        // heat DESC sort
+        out.sort((a,b)=>b.heat - a.heat);
+
+        return Response.json(out, { headers: cors });
+      }
     return new Response('Not Found', { status: 404, headers: cors });
   }
 };
