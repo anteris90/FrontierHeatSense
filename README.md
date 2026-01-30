@@ -68,18 +68,6 @@ Need measurements from:
 
 ---
 
-## Deploy
-
-```bash
-# Backend
-cd backend && wrangler deploy
-
-# Frontend
-git push origin main
-```
-
----
-
 ## License
 
 MIT
