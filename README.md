@@ -10,9 +10,6 @@
 
 - **🌐 [Live HeatSense Tool](https://your-github-pages-url.github.io/heatsense/)** - Check system heat instantly
 - **⚠️ [Dangerous Systems List](dangerous-systems.html)** - 342 high-heat & TRAP systems
-- **📖 [Full Validation Report](ERGOD_ARCTANGENT_MODEL_REPORT.md)** - Complete model analysis
-- **💾 [Download System Data (CSV)](system_heat_arctangent_v1.csv)** - All 24,023 systems
-- **🔬 [API Documentation](#-api-endpoints)** - Developer reference
 
 ---
 
