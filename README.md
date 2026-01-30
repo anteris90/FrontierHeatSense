@@ -1,6 +1,6 @@
-# EVE Frontier HeatSense
+# EVE Frontier HeatSense v8.2
 
-System heat calculator for safe navigation.
+System heat calculator for safe navigation and mining operations.
 
 🌐 **Live:** https://anteris90.github.io/FrontierHeatSense/
 
@@ -68,8 +68,21 @@ Need measurements from:
 
 ---
 
+## Deploy
+
+```bash
+# Backend
+cd backend && wrangler deploy
+
+# Frontend
+git push origin main
+```
+
+---
 
 ## License
 
 MIT
 
+**Author:** Anteris  
+**Model:** Claude Opus (based on Ergod's research)
