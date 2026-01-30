@@ -208,7 +208,7 @@ footer a:hover {text-decoration:underline}
 </footer>
 
 <script>
-const API_URL = 'https://heatsense-api.heatsense.workers.dev/api/system';
+const API_URL = 'https://systems.heatsense.workers.dev/api/system';
 
 document.getElementById('searchBtn').addEventListener('click', searchSystems);
 
@@ -245,9 +245,28 @@ async function searchSystems() {
       try {
         const url = `${API_URL}?name=${encodeURIComponent(name)}`;
         const response = await fetch(url);
+
         if (response.ok) {
           const data = await response.json();
-          results.push({ name, system: data.system, model: data.model });
+          const s = data.system;
+
+          // 🔥 NORMALIZATION LAYER (új worker → régi frontend struktúra)
+          const normalizedSystem = {
+            id: s.id,
+            name: s.name,
+            star_class: s.class,
+            temperature: s.temp,
+            radius_km: s.radius_km,
+            status: s.status,
+            coords: s.coords,
+            coldest_point: {
+              distance_au: s.coldest.au,
+              distance_ls: s.coldest.ls,
+              heat: s.coldest.heat
+            }
+          };
+
+          results.push({ name, system: normalizedSystem, model: data.model });
         } else {
           results.push({ name, error: 'Not found' });
         }
@@ -302,7 +321,7 @@ function parseSystemInput(input) {
 
 function displayResult(system, model) {
   const resultDiv = document.getElementById('result');
-  const isTrap = system.coldest_point.heat >= 70;
+  const isTrap = system.coldest_point.heat >= 85;
 
   const statusConfig = {
     'SAFE': { class: 'status-safe', emoji: '✅' },
@@ -367,7 +386,7 @@ function displayResult(system, model) {
 function displayMultipleResults(results) {
   const resultDiv = document.getElementById('result');
   const successCount = results.filter(r => !r.error).length;
-  const trapCount = results.filter(r => !r.error && r.system?.coldest_point?.heat >= 70).length;
+  const trapCount = results.filter(r => !r.error && r.system?.coldest_point?.heat >= 85).length;
 
   let html = `
     <h2>Route Heat Check</h2>
@@ -400,7 +419,7 @@ function displayMultipleResults(results) {
     }
 
     const sys = result.system;
-    const isTrap = sys.coldest_point.heat >= 70;
+    const isTrap = sys.coldest_point.heat >= 85;
 
     const statusConfig = {
       'SAFE': { emoji: '✅' },
