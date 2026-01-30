@@ -592,13 +592,15 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-function calculateHeatV82(distance_ls,temp,radius_km,starClass){
-  const type=starClass.charAt(0).toUpperCase();
-  let scale,phi,t_ref,n;
-  if(['B','A','F'].includes(type)){scale=535637;phi=1.434;t_ref=5569;n=1.602;}
-  else{scale=37400;phi=1.044;t_ref=1572;n=1.353;}
-  const lam=scale/Math.pow(radius_km,phi)*Math.exp(-temp/t_ref);
-  return 100/Math.pow(1+lam*distance_ls,n);
+function calculateHeatArctangent(distance_ls,temp,radius_km){
+  // Ergod Arctangent v1.0
+  const K=1.286578e-11;
+  const ALPHA=1.6862;
+  const BETA=1.2259;
+  const A=99.02;
+  const lambda=K*Math.pow(temp,ALPHA)*Math.pow(radius_km,BETA);
+  const heat=A*(2/Math.PI)*Math.atan((Math.PI/2)*lambda/distance_ls);
+  return heat;
 }
 
 function handleDebugMode(){
@@ -622,7 +624,7 @@ function handleDebugMode(){
   else if(temp>=5200){starClass='G';radius_km=700000;}
   else if(temp>=3700){starClass='K';radius_km=500000;}
   else{starClass='M';radius_km=400000;}
-  const heat=calculateHeatV82(distance_ls,temp,radius_km,starClass);
+  const heat=calculateHeatArctangent(distance_ls,temp,radius_km);
   const resultDiv=document.getElementById('result');
   let status='SAFE',emoji='✅',statusClass='status-safe';
   if(heat>=90){status='CRITICAL';emoji='☠️';statusClass='status-critical';}
@@ -642,7 +644,7 @@ function handleDebugMode(){
       <div><strong>Distance:</strong> ${(distance_ls/499).toFixed(2)} AU (${distance_ls.toFixed(0)} LS)</div>
     </div>
     <div style="margin-top:15px;padding:10px;background:rgba(100,200,255,0.1);border-radius:8px;font-size:0.85em;color:#6cf">
-      ℹ️ Debug calculation using v8.2 Power Law with estimated parameters
+      ℹ️ Debug calculation using Arctangent v1.0 with estimated parameters
     </div>
   `;
   resultDiv.style.display='block';
