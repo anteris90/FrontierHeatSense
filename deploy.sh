@@ -49,10 +49,7 @@ echo "🔄 Deploying..."
 echo ""
 
 # Add index.html
-git add index.html
-git add README.md
-git add deploy.sh
-git add dangerous-systems.html
+git add .
 
 # Commit
 git commit -m "Update"
