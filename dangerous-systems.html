@@ -1,158 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>High-Heat & TRAP Systems - HeatSense Arctangent v1.0</title>
-<style>
-body{background:linear-gradient(135deg,#0a0500 0%,#1a0a00 100%);color:#ffa366;font-family:'Courier New',monospace;margin:0;padding:20px;min-height:100vh}
-.container{max-width:1200px;margin:0 auto;padding-bottom:80px}
-h1{text-align:center;color:#ff6600;text-shadow:0 0 20px rgba(255,102,0,0.5);font-size:2.5em;margin-bottom:10px}
-.subtitle{text-align:center;color:#ffaa66;font-size:1.2em;margin-bottom:10px}
-.model-badge{text-align:center;color:#6cf;font-size:0.95em;margin-bottom:20px}
-.search-box{text-align:center;margin-bottom:20px}
-.search-box input{width:60%;max-width:500px;padding:12px;border-radius:8px;border:2px solid #ff6600;background:#120600;color:#ffa366;font-size:1em}
-
- table{width:100%;border-collapse:collapse;background:rgba(20,10,0,0.6);border:2px solid #ff6600;box-shadow:0 0 30px rgba(255,102,0,0.3)}
-th,td{padding:12px;text-align:left;border-bottom:1px solid rgba(255,102,0,0.3)}
-th{background:rgba(255,102,0,0.2);color:#ff6600;font-weight:bold;position:sticky;top:0}
-tr:hover{background:rgba(255,102,0,0.1)}
-.trap-yes{color:#ff0000;font-weight:bold;text-shadow:0 0 5px rgba(255,0,0,0.5)}
-
-.sticky-back{
- position:fixed;bottom:0;left:0;width:100%;text-align:center;
- background:rgba(10,5,0,0.95);border-top:2px solid rgba(102,204,255,0.3);
- padding:15px;z-index:999
-}
-.sticky-back a{color:#6cf;text-decoration:none;font-size:1.1em;padding:12px 25px;border:2px solid rgba(102,204,255,0.4);border-radius:8px;background:rgba(102,204,255,0.05);transition:.3s}
-.sticky-back a:hover{color:#8ef;border-color:rgba(102,204,255,0.7);background:rgba(102,204,255,0.1)}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Heat & TRAP Systems - HeatSense Arctangent v1.0</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0500 0%, #1a0a00 100%);
+            color: #ffa366;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-bottom: 80px;
+        }
+        h1 {
+            text-align: center;
+            color: #ff6600;
+            text-shadow: 0 0 20px rgba(255,102,0,0.5);
+            font-size: 2.5em;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #ffaa66;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        .model-badge {
+            text-align: center;
+            color: #6cf;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            background: #120700;
+            border: 1px solid #ff6600;
+            color: #ffa366;
+            font-family: 'Courier New', monospace;
+            border-radius: 6px;
+            outline: none;
+        }
+        .search-box::placeholder { color: #cc7a44; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(20,10,0,0.6);
+            border: 2px solid #ff6600;
+            box-shadow: 0 0 30px rgba(255,102,0,0.3);
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,102,0,0.3);
+        }
+        th {
+            background: rgba(255,102,0,0.2);
+            color: #ff6600;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        tr:hover { background: rgba(255,102,0,0.1); }
+        .trap-yes {
+            color: #ff0000;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(255,0,0,0.5);
+        }
+        .trap-danger {
+            color: #ff8800;
+            font-weight: bold;
+        }
+        .back-link {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999;
+            display: block;
+            text-align: center;
+            color: #6cf;
+            text-decoration: none;
+            font-size: 1.05em;
+            padding: 12px 24px;
+            border: 2px solid rgba(102,204,255,0.3);
+            border-radius: 10px;
+            background: rgba(102,204,255,0.08);
+            transition: all 0.3s;
+            backdrop-filter: blur(4px);
+        }
+        .back-link:hover {
+            color: #8ef;
+            border-color: rgba(102,204,255,0.6);
+            background: rgba(102,204,255,0.15);
+        }
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #ffaa66;
+            font-size: 1.2em;
+        }
+        .error {
+            text-align: center;
+            padding: 30px;
+            color: #ff4444;
+            font-size: 1.1em;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
-<h1>⚠️ HIGH-HEAT & TRAP SYSTEMS</h1>
-<div class="subtitle">Heat ≥ 85 - Extreme Danger Zone</div>
-<div class="model-badge">🔬 Ergod Arctangent Model v1.0 | MAE 1.45 Heat</div>
+    <h1>⚠️ HIGH-HEAT & TRAP SYSTEMS</h1>
+    <div class="subtitle">🔥 Danger ≥ 85 | ☠️ TRAP ≥ 90</div>
+    <div class="model-badge">🔬 Ergod Arctangent Model v1.0 | MAE 1.45 Heat</div>
 
-<div class="search-box">
-  <input type="text" id="searchInput" placeholder="Search system name...">
+    <input id="search" class="search-box" placeholder="Search system name..." />
+
+    <table>
+        <thead>
+            <tr>
+                <th>System Name</th>
+                <th>Star Class</th>
+                <th>Temperature (K)</th>
+                <th>Orbit</th>
+                <th>Heat</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <tr><td colspan="6" class="loading">Loading data from HeatSense API...</td></tr>
+        </tbody>
+    </table>
 </div>
 
-<table>
-<thead>
-<tr>
-<th>System</th><th>Star</th><th>Temp (K)</th><th>Orbit</th><th>Heat</th><th>Status</th>
-</tr>
-</thead>
-<tbody id="tableBody"></tbody>
-</table>
-</div>
-
-<div class="sticky-back">
-  <a href="index.html">← Back to HeatSense</a>
-</div>
+<a href="index.html" class="back-link">← Back to HeatSense</a>
 
 <script>
-const API_BASE = 'https://heatsense-api.heatsense.workers.dev';
-const API_URL = API_BASE + '/api/system';
-const API_HIGHHEAT = API_BASE + '/api/highheat';
-const DANGER_THRESHOLD = 85;
-const TRAP_THRESHOLD = 90;
+const API = 'https://systems.heatsense.workers.dev/api/highheat';
+// ha ugyanazon domainen fut:
+// const API = '/api/highheat';
 
-// auto-load workerből, nincs hardcode
-let SYSTEM_LIST = [];
+const tbody = document.getElementById('tableBody');
+const searchInput = document.getElementById('search');
 
-async function loadSystems(){
- const tbody = document.getElementById('tableBody');
- tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+let systems = [];
 
- let list = [];
- try{
-   const res = await fetch(API_HIGHHEAT);
-   list = await res.json();
- }catch(e){
-   tbody.innerHTML = '<tr><td colspan="6">API load error</td></tr>';
-   return;
- }
-
- const rows = [];
- for(const s of list){
-   if(s.heat < DANGER_THRESHOLD) continue;
-
-   const orbit = s.au > 0.001
-      ? `${s.au.toFixed(2)} AU`
-      : `${s.ls.toFixed(0)} LS`;
-
-   rows.push({
-     name:s.name,
-     star:s.star,
-     temp:s.temp,
-     orbit,
-     heat:s.heat,
-     status:s.heat >= TRAP_THRESHOLD ? 'TRAP' : 'DANGER'
-   });
- }
- render(rows);
-}(){
- const tbody = document.getElementById('tableBody');
- tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
-
- const rows = [];
- for(const name of SYSTEM_LIST){
-   try{
-     const res = await fetch(`${API_URL}?name=${encodeURIComponent(name)}`);
-     if(!res.ok) continue;
-     const data = await res.json();
-     const s = data.system;
-
-     if(s.coldest.heat < TRAP_THRESHOLD) continue;
-
-     const orbit = s.coldest.au > 0.001
-        ? `${s.coldest.au.toFixed(2)} AU`
-        : `${s.coldest.ls.toFixed(0)} LS`;
-
-     rows.push({
-       name:s.name,
-       star:s.class,
-       temp:s.temp,
-       orbit,
-       heat:s.coldest.heat,
-       status:s.status
-     });
-   }catch(e){}
- }
- render(rows);
-}
-
-function render(data){
- const tbody = document.getElementById('tableBody');
- tbody.innerHTML = '';
-
- for(const r of data){
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-   <td>${r.name}</td>
-   <td>${r.star}</td>
-   <td>${r.temp}</td>
-   <td>${r.orbit}</td>
-   <td>${r.heat.toFixed(1)}</td>
-   <td class="trap-yes">☠️ TRAP!</td>
-  `;
-  tbody.appendChild(tr);
- }
-}
-
-// search filter
- document.getElementById('searchInput').addEventListener('input',e=>{
-  const q = e.target.value.toLowerCase();
-  const rows = document.querySelectorAll('#tableBody tr');
-  rows.forEach(r=>{
-    r.style.display = r.innerText.toLowerCase().includes(q)?'':'none';
+fetch(API)
+  .then(r => {
+    if(!r.ok) throw new Error('API error ' + r.status);
+    return r.json();
+  })
+  .then(data => {
+    systems = data;
+    render(data);
+  })
+  .catch(err => {
+    console.error(err);
+    tbody.innerHTML = `<tr><td colspan="6" class="error">Failed to load data from API</td></tr>`;
   });
- });
 
-// INIT
-loadSystems();
+function render(list){
+  tbody.innerHTML = '';
+
+  if(list.length === 0){
+    tbody.innerHTML = `<tr><td colspan="6" class="loading">No systems above danger threshold</td></tr>`;
+    return;
+  }
+
+  list.forEach(s => {
+    const tr = document.createElement('tr');
+
+    const orbit = (Number(s.au) === 0 || s.au === "0.00")
+      ? `${s.ls} LS`
+      : `${s.au} AU`;
+
+    let statusHtml = '';
+    if (s.status === 'TRAP') {
+      statusHtml = `<span class="trap-yes">☠️ TRAP!</span>`;
+    } else {
+      statusHtml = `<span class="trap-danger">🔥 DANGER</span>`;
+    }
+
+    tr.innerHTML = `
+      <td>${s.name}</td>
+      <td>${s.star}</td>
+      <td>${s.temp}</td>
+      <td>${orbit}</td>
+      <td>${Number(s.heat).toFixed(2)}</td>
+      <td>${statusHtml}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+searchInput.addEventListener('input', e => {
+  const v = e.target.value.toLowerCase();
+  const filtered = systems.filter(s => s.name.toLowerCase().includes(v));
+  render(filtered);
+});
 </script>
 </body>
 </html>
+
