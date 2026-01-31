@@ -197,6 +197,29 @@ footer a:hover {text-decoration:underline}
       </div>
     </div>
 
+    <div class="input-group">
+      <label for="shipSelect">Ship (optional):</label>
+      <select id="shipSelect" style="width:100%;padding:12px;border:2px solid rgba(255,100,50,0.3);border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;font-size:1em;cursor:pointer">
+        <option value="">-- No Ship --</option>
+      </select>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px">
+      <div class="input-group">
+        <label for="hullMass">Hull Mass (kg):</label>
+        <input type="text" id="hullMass" readonly style="width:100%;padding:8px;border:2px solid rgba(255,100,50,0.2);border-radius:10px;background:rgba(10,5,0,0.4);color:#aaa;font-size:0.9em;text-align:right">
+      </div>
+      <div class="input-group">
+        <label for="baseC">Base C:</label>
+        <input type="text" id="baseC" readonly style="width:100%;padding:8px;border:2px solid rgba(255,100,50,0.2);border-radius:10px;background:rgba(10,5,0,0.4);color:#aaa;font-size:0.9em;text-align:right">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label for="skillLevel">Skill Level: <span id="skillValue">0</span> (Effective C: <span id="effectiveC">0.00</span>)</label>
+      <input type="range" id="skillLevel" min="0" max="10" value="0" style="width:100%;cursor:pointer;accent-color:#ff6432">
+    </div>
+
     <button class="btn" id="searchBtn">Check Heat</button>
   </div>
 
@@ -217,9 +240,64 @@ footer a:hover {text-decoration:underline}
 </footer>
 
 <script>
-const API_URL = 'https://systems.heatsense.workers.dev/api/system';
+const API_URL = 'https://systems-test.heatsense.workers.dev/api/system';
 
-document.getElementById('searchBtn').addEventListener('click', searchSystems);
+// Ships database
+const SHIPS = [
+  { name: 'HAF', hullmass: 81883000, c: 2.5 },
+  { name: 'LORHA', hullmass: 31369320, c: 2.5 },
+  { name: 'MAUL', hullmass: 548435920, c: 2.5 },
+  { name: 'MCF', hullmass: 52313760, c: 2.5 },
+  { name: 'TADES', hullmass: 74655480, c: 2.5 },
+  { name: 'USV', hullmass: 30266600, c: 1.8 },
+  { name: 'RECURVE', hullmass: 10400000, c: 1.0 },
+  { name: 'REFLEX', hullmass: 9750000, c: 2.0 },
+  { name: 'REIVER', hullmass: 10200000, c: 1.0 },
+  { name: 'CAROM', hullmass: 7200000, c: 8.5 },
+  { name: 'STRIDE', hullmass: 7900000, c: 8.0 },
+  { name: 'CHUMAQ', hullmass: 1739489520, c: 3.0 }
+];
+
+function initializeShips() {
+  const select = document.getElementById('shipSelect');
+  SHIPS.forEach(ship => {
+    const option = document.createElement('option');
+    option.value = ship.name;
+    option.textContent = ship.name;
+    select.appendChild(option);
+  });
+}
+
+function onShipChange() {
+  const shipName = document.getElementById('shipSelect').value;
+  if (!shipName) {
+    document.getElementById('hullMass').value = '';
+    document.getElementById('baseC').value = '';
+    return;
+  }
+  const ship = SHIPS.find(s => s.name === shipName);
+  if (ship) {
+    document.getElementById('hullMass').value = (ship.hullmass / 1000000).toFixed(2) + 'M';
+    document.getElementById('baseC').value = ship.c.toFixed(1);
+    onSkillChange();
+  }
+}
+
+function onSkillChange() {
+  const skillLevel = parseInt(document.getElementById('skillLevel').value) || 0;
+  const baseC = parseFloat(document.getElementById('baseC').value) || 0;
+  const effectiveC = baseC > 0 ? baseC * (1 + skillLevel * 0.02) : 0;
+  document.getElementById('skillValue').textContent = skillLevel;
+  document.getElementById('effectiveC').textContent = effectiveC.toFixed(3);
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  initializeShips();
+  document.getElementById('searchBtn').addEventListener('click', searchSystems);
+  document.getElementById('shipSelect').addEventListener('change', onShipChange);
+  document.getElementById('skillLevel').addEventListener('input', onSkillChange);
+});
 
 async function searchSystems() {
   const input = document.getElementById('systemInput').value.trim();
