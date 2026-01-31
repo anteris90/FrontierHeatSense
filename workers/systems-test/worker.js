@@ -174,20 +174,39 @@ export default {
         let jumpHeatGen = 0;
         let totalAfter = lowHeat;
         let canJumpThis = lowHeat <= 150;  // First system: must be able to enter at lowHeat
+        let nextDist = null;
 
         if (i > 0 && prevEntry && entry.length >= 11 && prevEntry.length >= 11) {
-          // Calculate jump distance
+          // Calculate jump distance FROM previous TO current
           const dx = entry[8] - prevEntry[8];
           const dy = entry[9] - prevEntry[9];
           const dz = entry[10] - prevEntry[10];
           const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
           const distLY = distM / METERS_PER_LY;
           totalLY += distLY;
+          nextDist = distLY;
 
           // Jump heat generation
           jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
           totalAfter = lowHeat + jumpHeatGen;
           canJumpThis = totalAfter <= 150;
+        } else if (i < names.length - 1 && entry.length >= 11) {
+          // First system: calculate distance TO next system
+          const nextName = names[i + 1].toUpperCase().trim();
+          const nextEntry = D[nextName];
+          if (nextEntry && nextEntry.length >= 11) {
+            const dx = nextEntry[8] - entry[8];
+            const dy = nextEntry[9] - entry[9];
+            const dz = nextEntry[10] - entry[10];
+            const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            const distLY = distM / METERS_PER_LY;
+            nextDist = distLY;
+            
+            // Jump heat generation for first system TO second
+            jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
+            totalAfter = lowHeat + jumpHeatGen;
+            canJumpThis = totalAfter <= 150;
+          }
         }
 
         if (!canJumpThis) canCompleteRoute = false;
