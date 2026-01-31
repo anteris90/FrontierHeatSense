@@ -206,18 +206,13 @@ footer a:hover {text-decoration:underline}
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px">
       <div class="input-group">
-        <label for="hullMass">Hull Mass (kg):</label>
-        <input type="text" id="hullMass" readonly style="width:100%;padding:8px;border:2px solid rgba(255,100,50,0.2);border-radius:10px;background:rgba(10,5,0,0.4);color:#aaa;font-size:0.9em;text-align:right">
+        <label for="skillLevel">Skill Level: <span id="skillValue">0</span></label>
+        <input type="range" id="skillLevel" min="0" max="10" value="0" style="width:100%;cursor:pointer;accent-color:#ff6432">
       </div>
       <div class="input-group">
-        <label for="baseC">Base C:</label>
-        <input type="text" id="baseC" readonly style="width:100%;padding:8px;border:2px solid rgba(255,100,50,0.2);border-radius:10px;background:rgba(10,5,0,0.4);color:#aaa;font-size:0.9em;text-align:right">
+        <label for="effectiveC">Effective C: <span id="effectiveC">0.00</span></label>
+        <input type="text" id="effectiveCDisplay" readonly style="width:100%;padding:8px;border:2px solid rgba(255,100,50,0.2);border-radius:10px;background:rgba(10,5,0,0.4);color:#aaa;font-size:0.9em;text-align:right">
       </div>
-    </div>
-
-    <div class="input-group">
-      <label for="skillLevel">Skill Level: <span id="skillValue">0</span> (Effective C: <span id="effectiveC">0.00</span>)</label>
-      <input type="range" id="skillLevel" min="0" max="10" value="0" style="width:100%;cursor:pointer;accent-color:#ff6432">
     </div>
 
     <button class="btn" id="searchBtn">Check Heat</button>
@@ -258,6 +253,8 @@ const SHIPS = [
   { name: 'CHUMAQ', hullmass: 1739489520, c: 3.0 }
 ];
 
+const TRAP_THRESHOLD = 90; // If lowHeat >= 90, it's a TRAP
+
 function initializeShips() {
   const select = document.getElementById('shipSelect');
   SHIPS.forEach(ship => {
@@ -269,26 +266,30 @@ function initializeShips() {
 }
 
 function onShipChange() {
-  const shipName = document.getElementById('shipSelect').value;
-  if (!shipName) {
-    document.getElementById('hullMass').value = '';
-    document.getElementById('baseC').value = '';
-    return;
-  }
-  const ship = SHIPS.find(s => s.name === shipName);
-  if (ship) {
-    document.getElementById('hullMass').value = (ship.hullmass / 1000000).toFixed(2) + 'M';
-    document.getElementById('baseC').value = ship.c.toFixed(1);
-    onSkillChange();
-  }
+  const skillLevel = parseInt(document.getElementById('skillLevel').value) || 0;
+  updateEffectiveC();
 }
 
 function onSkillChange() {
-  const skillLevel = parseInt(document.getElementById('skillLevel').value) || 0;
-  const baseC = parseFloat(document.getElementById('baseC').value) || 0;
-  const effectiveC = baseC > 0 ? baseC * (1 + skillLevel * 0.02) : 0;
-  document.getElementById('skillValue').textContent = skillLevel;
-  document.getElementById('effectiveC').textContent = effectiveC.toFixed(3);
+  updateEffectiveC();
+}
+
+function updateEffectiveC() {
+  const shipName = document.getElementById('shipSelect')?.value;
+  const skillLevel = parseInt(document.getElementById('skillLevel')?.value) || 0;
+  
+  if (!shipName) {
+    document.getElementById('effectiveC').textContent = '0.00';
+    document.getElementById('effectiveCDisplay').value = '0.00';
+    return;
+  }
+  
+  const ship = SHIPS.find(s => s.name === shipName);
+  if (ship) {
+    const effectiveC = ship.c * (1 + skillLevel * 0.02);
+    document.getElementById('effectiveC').textContent = effectiveC.toFixed(3);
+    document.getElementById('effectiveCDisplay').value = effectiveC.toFixed(3);
+  }
 }
 
 // Event listeners
@@ -301,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function searchSystems() {
   const input = document.getElementById('systemInput').value.trim();
-  const shipName = document.getElementById('shipSelect').value;
+  const shipName = document.getElementById('shipSelect')?.value;
   const btn = document.getElementById('searchBtn');
   const resultDiv = document.getElementById('result');
   const errorDiv = document.getElementById('error');
@@ -315,9 +316,6 @@ async function searchSystems() {
   }
 
   const systemNames = parseSystemInput(input);
-  console.log('systemNames:', systemNames);
-  console.log('systemNames.length:', systemNames ? systemNames.length : 'undefined');
-  
   document.getElementById('systemInput').value = systemNames.join(', ');
 
   if (systemNames.length === 0) {
@@ -331,14 +329,18 @@ async function searchSystems() {
   resultDiv.style.display = 'block';
 
   try {
-    // If ship is selected and 2+ systems, calculate route locally
+    // If ship is selected and 2+ systems, calculate route with TRAP logic
     if (shipName && systemNames.length >= 2) {
       const ship = SHIPS.find(s => s.name === shipName);
-      const totalMass = ship.hullmass;
-      const skillLevel = parseInt(document.getElementById('skillLevel').value) || 0;
+      if (!ship) {
+        showError('Ship not found');
+        return;
+      }
+      
+      const skillLevel = parseInt(document.getElementById('skillLevel')?.value) || 0;
       const effectiveC = ship.c * (1 + skillLevel * 0.02);
 
-      // Fetch all systems first
+      // Fetch all systems
       const systems = [];
       for (const name of systemNames) {
         try {
@@ -357,22 +359,24 @@ async function searchSystems() {
         }
       }
 
-      // Calculate route heat
+      // Calculate route with TRAP logic
       const route = [];
       let totalLY = 0;
       const METERS_PER_LY = 9.46073e15;
+      let canCompleteRoute = true;
 
       for (let i = 0; i < systems.length; i++) {
         const sys = systems[i];
         const lowHeat = sys.system.coldest_point.heat;
         const status = sys.system.status;
+        const isTrap = lowHeat >= TRAP_THRESHOLD;
 
         let jumpHeatGen = 0;
         let totalAfter = lowHeat;
-        let canJump = lowHeat <= 150;
+        let canJump = !isTrap && lowHeat <= 150; // Can't jump from TRAP
 
         // Calculate distance to next system
-        if (i < systems.length - 1) {
+        if (i < systems.length - 1 && !isTrap) {
           const currentCoords = sys.system.coords;
           const nextCoords = systems[i + 1].system.coords;
           
@@ -384,11 +388,13 @@ async function searchSystems() {
             const distLY = distM / METERS_PER_LY;
             totalLY += distLY;
 
-            jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * ship.hullmass);
+            jumpHeatGen = (3 * ship.hullmass * distLY) / (effectiveC * ship.hullmass);
             totalAfter = lowHeat + jumpHeatGen;
             canJump = totalAfter <= 150;
           }
         }
+
+        if (!canJump) canCompleteRoute = false;
 
         route.push({
           name: sys.name,
@@ -396,13 +402,14 @@ async function searchSystems() {
           status: status,
           jump_heat_gen: jumpHeatGen.toFixed(2),
           total_after_jump: totalAfter.toFixed(2),
-          can_jump: canJump
+          can_jump: canJump,
+          is_trap: isTrap
         });
       }
 
       // Display route table
       let html = `<div class="result-header">Route Analysis</div>`;
-      html += `<div style="margin:15px 0;font-size:0.95em;">Total Distance: <strong>${totalLY.toFixed(2)} LY</strong> | Effective C: <strong>${effectiveC.toFixed(3)}</strong></div>`;
+      html += `<div style="margin:15px 0;font-size:0.95em;">Total Distance: <strong>${totalLY.toFixed(2)} LY</strong> | Effective C: <strong>${effectiveC.toFixed(3)}</strong> | Route: <strong style="color:${canCompleteRoute ? '#6f6' : '#f66'}">${canCompleteRoute ? '✓ POSSIBLE' : '✗ IMPOSSIBLE'}</strong></div>`;
       html += `<table style="width:100%;border-collapse:collapse;margin:15px 0;">`;
       html += `<tr style="background:rgba(255,100,50,0.2);border-bottom:2px solid rgba(255,100,50,0.4);">`;
       html += `<th style="padding:10px;text-align:left;color:#ffaa77;">System</th>`;
@@ -413,9 +420,10 @@ async function searchSystems() {
       html += `</tr>`;
 
       for (const sys of route) {
-        const rowColor = sys.can_jump ? 'rgba(100,200,100,0.1)' : 'rgba(255,100,50,0.1)';
+        const trapLabel = sys.is_trap ? ' [TRAP]' : '';
+        const rowColor = sys.is_trap ? 'rgba(255,50,50,0.2)' : (sys.can_jump ? 'rgba(100,200,100,0.1)' : 'rgba(255,100,50,0.1)');
         html += `<tr style="background:${rowColor};border-bottom:1px solid rgba(255,100,50,0.2);">`;
-        html += `<td style="padding:10px;"><strong>${sys.name}</strong></td>`;
+        html += `<td style="padding:10px;"><strong>${sys.name}${trapLabel}</strong></td>`;
         html += `<td style="padding:10px;text-align:center;">${sys.low_heat}</td>`;
         html += `<td style="padding:10px;text-align:center;">${sys.jump_heat_gen}</td>`;
         html += `<td style="padding:10px;text-align:center;color:${sys.can_jump ? '#6f6' : '#f66'}">${sys.total_after_jump}</td>`;
@@ -444,21 +452,21 @@ async function searchSystems() {
 
           // 🔥 NORMALIZATION LAYER (új worker → régi frontend struktúra)
           const normalizedSystem = {
-            id: s.system_id,
+            id: s.id,
             name: s.name,
-            star_class: s.star_class,
-            temperature: s.temperature,
+            star_class: s.class,
+            temperature: s.temp,
             radius_km: s.radius_km,
             status: s.status,
             coords: s.coords,
             coldest_point: {
-              distance_au: s.coldest_point.distance_au,
-              distance_ls: s.coldest_point.distance_ls,
-              heat: s.coldest_point.heat
+              distance_au: s.coldest.au,
+              distance_ls: s.coldest.ls,
+              heat: s.coldest.heat
             }
           };
 
-          results.push({ name, system: normalizedSystem, model: data.model_version });
+          results.push({ name, system: normalizedSystem, model: data.model });
         } else {
           results.push({ name, error: 'Not found' });
         }
@@ -509,63 +517,6 @@ function parseSystemInput(input) {
   }
 
   return Array.from(systems);
-}
-
-function displayRoute(routeData) {
-  const resultDiv = document.getElementById('result');
-  resultDiv.style.display = 'block';
-
-  console.log('displayRoute called with:', routeData);
-
-  // Ha az API összegzett adat ad vissza (total_distance_ly, total_low_heat stb)
-  // akkor azt jelenítem meg
-  if (routeData.total_distance_ly && !routeData.route) {
-    let html = `<div class="result-header">Route Summary</div>`;
-    html += `<div style="margin:15px 0;font-size:0.95em;">`;
-    html += `<div>Total Distance: <strong>${routeData.total_distance_ly} LY</strong></div>`;
-    html += `<div>Total Low Heat: <strong>${routeData.total_low_heat}</strong></div>`;
-    html += `<div>Avg Low Heat: <strong>${routeData.avg_low_heat}</strong></div>`;
-    html += `<div>Max Low Heat: <strong>${routeData.max_low_heat}</strong></div>`;
-    html += `<div>Worst Status: <strong>${routeData.worst_status}</strong></div>`;
-    html += `</div>`;
-    resultDiv.innerHTML = html;
-    return;
-  }
-
-  if (!routeData || !routeData.route) {
-    console.error('Invalid route data:', routeData);
-    resultDiv.innerHTML = '<div class="error">Error: Invalid route data from API</div>';
-    return;
-  }
-
-  let html = `<div class="result-header">Route Analysis</div>`;
-  html += `<div style="margin:15px 0;font-size:0.95em;">Total Distance: <strong>${routeData.total_distance_ly} LY</strong> | Route Possible: <strong style="color:${routeData.can_complete_route ? '#6f6' : '#f66'}">${routeData.can_complete_route ? '✓ YES' : '✗ NO'}</strong></div>`;
-  
-  html += `<table style="width:100%;border-collapse:collapse;margin:15px 0;">`;
-  html += `<tr style="background:rgba(255,100,50,0.2);border-bottom:2px solid rgba(255,100,50,0.4);">`;
-  html += `<th style="padding:10px;text-align:left;color:#ffaa77;">System</th>`;
-  html += `<th style="padding:10px;text-align:center;">Low Heat</th>`;
-  html += `<th style="padding:10px;text-align:center;">Jump Heat Gen</th>`;
-  html += `<th style="padding:10px;text-align:center;">Total After Jump</th>`;
-  html += `<th style="padding:10px;text-align:center;">Status</th>`;
-  html += `</tr>`;
-
-  for (let i = 0; i < routeData.route.length; i++) {
-    const sys = routeData.route[i];
-    const canJump = sys.can_jump;
-    const rowColor = canJump ? 'rgba(100,200,100,0.1)' : 'rgba(255,100,50,0.1)';
-    
-    html += `<tr style="background:${rowColor};border-bottom:1px solid rgba(255,100,50,0.2);">`;
-    html += `<td style="padding:10px;"><strong>${sys.name}</strong></td>`;
-    html += `<td style="padding:10px;text-align:center;">${sys.low_heat}</td>`;
-    html += `<td style="padding:10px;text-align:center;">${sys.jump_heat_gen}</td>`;
-    html += `<td style="padding:10px;text-align:center;color:${canJump ? '#6f6' : '#f66'}">${sys.total_after_jump}</td>`;
-    html += `<td style="padding:10px;text-align:center;color:${canJump ? '#6f6' : '#f66'}">${canJump ? '✓' : '✗'}</td>`;
-    html += `</tr>`;
-  }
-
-  html += `</table>`;
-  resultDiv.innerHTML = html;
 }
 
 function displayResult(system, model) {
