@@ -1,4 +1,4 @@
-// worker.js – R2 + JSON verzió (2026-kompatibilis)
+// worker.js – R2 + JSON verzió (2026-kompatibilis) -- GIT Supported
 const V = "arctangent-v1.0";
 const M = 1.45;
 const METERS_PER_LY = 9.46073e15;
