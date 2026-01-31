@@ -331,38 +331,103 @@ async function searchSystems() {
   resultDiv.style.display = 'block';
 
   try {
-    // If ship is selected and 2+ systems, use route API
+    // If ship is selected and 2+ systems, calculate route locally
     if (shipName && systemNames.length >= 2) {
       const ship = SHIPS.find(s => s.name === shipName);
       const totalMass = ship.hullmass;
       const skillLevel = parseInt(document.getElementById('skillLevel').value) || 0;
+      const effectiveC = ship.c * (1 + skillLevel * 0.02);
 
-      console.log('Calling route API with:', { systemNames, totalMass, hullMass: ship.hullmass, baseC: ship.c, skillLevel });
-
-      const routeResponse = await fetch('https://systems-test.heatsense.workers.dev/api/route', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          names: systemNames,
-          totalMass: totalMass,
-          hullMass: ship.hullmass,
-          baseC: ship.c,
-          skillLevel: skillLevel
-        })
-      });
-
-      console.log('Route response status:', routeResponse.status);
-
-
-      if (!routeResponse.ok) {
-        const error = await routeResponse.json();
-        throw new Error(error.error || 'Route calculation failed');
+      // Fetch all systems first
+      const systems = [];
+      for (const name of systemNames) {
+        try {
+          const url = `${API_URL}?name=${encodeURIComponent(name)}`;
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            systems.push({ name, system: data.system });
+          } else {
+            showError(`System not found: ${name}`);
+            return;
+          }
+        } catch (err) {
+          showError(`Error fetching ${name}: ${err.message}`);
+          return;
+        }
       }
 
-      const routeData = await routeResponse.json();
-      console.log('Full route response:', routeData);
-      console.log('Has route property?', !!routeData.route);
-      displayRoute(routeData);
+      // Calculate route heat
+      const route = [];
+      let totalLY = 0;
+      const METERS_PER_LY = 9.46073e15;
+
+      for (let i = 0; i < systems.length; i++) {
+        const sys = systems[i];
+        const lowHeat = sys.system.coldest_point.heat;
+        const status = sys.system.status;
+
+        let jumpHeatGen = 0;
+        let totalAfter = lowHeat;
+        let canJump = lowHeat <= 150;
+
+        // Calculate distance to next system
+        if (i < systems.length - 1) {
+          const currentCoords = sys.system.coords;
+          const nextCoords = systems[i + 1].system.coords;
+          
+          if (currentCoords && nextCoords) {
+            const dx = nextCoords.x - currentCoords.x;
+            const dy = nextCoords.y - currentCoords.y;
+            const dz = nextCoords.z - currentCoords.z;
+            const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            const distLY = distM / METERS_PER_LY;
+            totalLY += distLY;
+
+            jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * ship.hullmass);
+            totalAfter = lowHeat + jumpHeatGen;
+            canJump = totalAfter <= 150;
+          }
+        }
+
+        route.push({
+          name: sys.name,
+          low_heat: lowHeat.toFixed(2),
+          status: status,
+          jump_heat_gen: jumpHeatGen.toFixed(2),
+          total_after_jump: totalAfter.toFixed(2),
+          can_jump: canJump
+        });
+      }
+
+      // Display route table
+      let html = `<div class="result-header">Route Analysis</div>`;
+      html += `<div style="margin:15px 0;font-size:0.95em;">Total Distance: <strong>${totalLY.toFixed(2)} LY</strong> | Effective C: <strong>${effectiveC.toFixed(3)}</strong></div>`;
+      html += `<table style="width:100%;border-collapse:collapse;margin:15px 0;">`;
+      html += `<tr style="background:rgba(255,100,50,0.2);border-bottom:2px solid rgba(255,100,50,0.4);">`;
+      html += `<th style="padding:10px;text-align:left;color:#ffaa77;">System</th>`;
+      html += `<th style="padding:10px;text-align:center;">Low Heat</th>`;
+      html += `<th style="padding:10px;text-align:center;">Jump Heat Gen</th>`;
+      html += `<th style="padding:10px;text-align:center;">Total After</th>`;
+      html += `<th style="padding:10px;text-align:center;">Status</th>`;
+      html += `</tr>`;
+
+      for (const sys of route) {
+        const rowColor = sys.can_jump ? 'rgba(100,200,100,0.1)' : 'rgba(255,100,50,0.1)';
+        html += `<tr style="background:${rowColor};border-bottom:1px solid rgba(255,100,50,0.2);">`;
+        html += `<td style="padding:10px;"><strong>${sys.name}</strong></td>`;
+        html += `<td style="padding:10px;text-align:center;">${sys.low_heat}</td>`;
+        html += `<td style="padding:10px;text-align:center;">${sys.jump_heat_gen}</td>`;
+        html += `<td style="padding:10px;text-align:center;color:${sys.can_jump ? '#6f6' : '#f66'}">${sys.total_after_jump}</td>`;
+        html += `<td style="padding:10px;text-align:center;">${sys.status}</td>`;
+        html += `</tr>`;
+      }
+
+      html += `</table>`;
+      resultDiv.innerHTML = html;
+      resultDiv.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Check Heat';
       return;
     }
 
