@@ -139,7 +139,7 @@ export default {
       }, { headers: corsHeaders });
     }
 
-    // Route endpoint: POST /api/route { "names": ["SYS1", "SYS2", ...] }
+    // Route endpoint: POST /api/route { "names": ["SYS1", "SYS2", ...], "totalMass": X, "hullMass": Y, "baseC": Z, "skillLevel": S }
     if (url.pathname === '/api/route' && request.method === 'POST') {
       const body = await request.json().catch(() => ({}));
       const names = body.names || [];
@@ -147,57 +147,67 @@ export default {
         return Response.json({ error: 'At least 2 systems required' }, { status: 400, headers: corsHeaders });
       }
 
-      const jumps = [];
+      // Ship parameters
+      const totalMass = body.totalMass || 79598125;
+      const hullMass = body.hullMass || 74655480;
+      const baseC = body.baseC || 2.5;
+      const skillLevel = body.skillLevel || 0;
+      const effectiveC = baseC * (1 + skillLevel * 0.02);
+
+      const route = [];
       let totalLY = 0;
-      let totalHeat = 0;
-      let maxHeat = -Infinity;
-      let worstStatus = 'S';
-      const statusOrder = { 'S': 0, 'M': 1, 'D': 2, 'C': 3 };
+      let canCompleteRoute = true;
 
       let prevEntry = null;
 
       for (let i = 0; i < names.length; i++) {
-        const name = names[i].toUpperCase().trim();
+        const rawName = names[i];
+        const name = rawName.toUpperCase().trim();
         const entry = D[name];
         if (!entry) {
-          return Response.json({ error: `System not found: ${names[i]}` }, { status: 404, headers: corsHeaders });
+          return Response.json({ error: `System not found: ${rawName}` }, { status: 404, headers: corsHeaders });
         }
 
-        let distanceLY = null;
+        const lowHeat = entry[6];
+        const st = entry[7];
+
+        let jumpHeatGen = 0;
+        let totalAfter = lowHeat;
+        let canJumpThis = lowHeat <= 150;  // First system: must be able to enter at lowHeat
+
         if (i > 0 && prevEntry && entry.length >= 11 && prevEntry.length >= 11) {
+          // Calculate jump distance
           const dx = entry[8] - prevEntry[8];
           const dy = entry[9] - prevEntry[9];
           const dz = entry[10] - prevEntry[10];
           const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
-          distanceLY = distM / METERS_PER_LY;
-          totalLY += distanceLY;
+          const distLY = distM / METERS_PER_LY;
+          totalLY += distLY;
+
+          // Jump heat generation
+          jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
+          totalAfter = lowHeat + jumpHeatGen;
+          canJumpThis = totalAfter <= 150;
         }
 
-        const heat = entry[6]; // static heat
-        const st = entry[7];
+        if (!canJumpThis) canCompleteRoute = false;
 
-        totalHeat += heat;
-        maxHeat = Math.max(maxHeat, heat);
-        worstStatus = statusOrder[st] > statusOrder[worstStatus] ? st : worstStatus;
-
-        jumps.push({
-          from: i === 0 ? null : names[i-1],
-          to: names[i],
-          distance_ly: distanceLY !== null ? Number(distanceLY.toFixed(3)) : null,
-          low_heat: Number(heat.toFixed(2)),
-          status: { 'S': 'SAFE', 'M': 'MODERATE', 'D': 'DANGEROUS', 'C': 'CRITICAL' }[st] || 'UNKNOWN'
+        route.push({
+          name: rawName,
+          low_heat: lowHeat.toFixed(2),
+          status: { 'S': 'SAFE', 'M': 'MODERATE', 'D': 'DANGEROUS', 'C': 'CRITICAL' }[st] || 'UNKNOWN',
+          jump_heat_gen: jumpHeatGen.toFixed(2),
+          total_after_jump: totalAfter.toFixed(2),
+          can_jump: canJumpThis
         });
 
         prevEntry = entry;
       }
 
       return Response.json({
-        total_distance_ly: Number(totalLY.toFixed(2)),
-        total_low_heat: Number(totalHeat.toFixed(2)),
-        avg_low_heat: Number((totalHeat / names.length).toFixed(2)),
-        max_low_heat: Number(maxHeat.toFixed(2)),
-        worst_status: { 'S': 'SAFE', 'M': 'MODERATE', 'D': 'DANGEROUS', 'C': 'CRITICAL' }[worstStatus] || 'UNKNOWN',
-        jumps
+        route,
+        total_distance_ly: totalLY.toFixed(2),
+        can_complete_route: canCompleteRoute
       }, { headers: corsHeaders });
     }
 
