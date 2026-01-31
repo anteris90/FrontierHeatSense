@@ -301,6 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function searchSystems() {
   const input = document.getElementById('systemInput').value.trim();
+  const shipName = document.getElementById('shipSelect').value;
   const btn = document.getElementById('searchBtn');
   const resultDiv = document.getElementById('result');
   const errorDiv = document.getElementById('error');
@@ -314,6 +315,9 @@ async function searchSystems() {
   }
 
   const systemNames = parseSystemInput(input);
+  console.log('systemNames:', systemNames);
+  console.log('systemNames.length:', systemNames ? systemNames.length : 'undefined');
+  
   document.getElementById('systemInput').value = systemNames.join(', ');
 
   if (systemNames.length === 0) {
@@ -327,6 +331,42 @@ async function searchSystems() {
   resultDiv.style.display = 'block';
 
   try {
+    // If ship is selected and 2+ systems, use route API
+    if (shipName && systemNames.length >= 2) {
+      const ship = SHIPS.find(s => s.name === shipName);
+      const totalMass = ship.hullmass;
+      const skillLevel = parseInt(document.getElementById('skillLevel').value) || 0;
+
+      console.log('Calling route API with:', { systemNames, totalMass, hullMass: ship.hullmass, baseC: ship.c, skillLevel });
+
+      const routeResponse = await fetch('https://systems-test.heatsense.workers.dev/api/route', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          names: systemNames,
+          totalMass: totalMass,
+          hullMass: ship.hullmass,
+          baseC: ship.c,
+          skillLevel: skillLevel
+        })
+      });
+
+      console.log('Route response status:', routeResponse.status);
+
+
+      if (!routeResponse.ok) {
+        const error = await routeResponse.json();
+        throw new Error(error.error || 'Route calculation failed');
+      }
+
+      const routeData = await routeResponse.json();
+      console.log('Full route response:', routeData);
+      console.log('Has route property?', !!routeData.route);
+      displayRoute(routeData);
+      return;
+    }
+
+    // Otherwise, check individual systems
     const results = [];
     for (const name of systemNames) {
       try {
@@ -339,21 +379,21 @@ async function searchSystems() {
 
           // 🔥 NORMALIZATION LAYER (új worker → régi frontend struktúra)
           const normalizedSystem = {
-            id: s.id,
+            id: s.system_id,
             name: s.name,
-            star_class: s.class,
-            temperature: s.temp,
+            star_class: s.star_class,
+            temperature: s.temperature,
             radius_km: s.radius_km,
             status: s.status,
             coords: s.coords,
             coldest_point: {
-              distance_au: s.coldest.au,
-              distance_ls: s.coldest.ls,
-              heat: s.coldest.heat
+              distance_au: s.coldest_point.distance_au,
+              distance_ls: s.coldest_point.distance_ls,
+              heat: s.coldest_point.heat
             }
           };
 
-          results.push({ name, system: normalizedSystem, model: data.model });
+          results.push({ name, system: normalizedSystem, model: data.model_version });
         } else {
           results.push({ name, error: 'Not found' });
         }
@@ -404,6 +444,63 @@ function parseSystemInput(input) {
   }
 
   return Array.from(systems);
+}
+
+function displayRoute(routeData) {
+  const resultDiv = document.getElementById('result');
+  resultDiv.style.display = 'block';
+
+  console.log('displayRoute called with:', routeData);
+
+  // Ha az API összegzett adat ad vissza (total_distance_ly, total_low_heat stb)
+  // akkor azt jelenítem meg
+  if (routeData.total_distance_ly && !routeData.route) {
+    let html = `<div class="result-header">Route Summary</div>`;
+    html += `<div style="margin:15px 0;font-size:0.95em;">`;
+    html += `<div>Total Distance: <strong>${routeData.total_distance_ly} LY</strong></div>`;
+    html += `<div>Total Low Heat: <strong>${routeData.total_low_heat}</strong></div>`;
+    html += `<div>Avg Low Heat: <strong>${routeData.avg_low_heat}</strong></div>`;
+    html += `<div>Max Low Heat: <strong>${routeData.max_low_heat}</strong></div>`;
+    html += `<div>Worst Status: <strong>${routeData.worst_status}</strong></div>`;
+    html += `</div>`;
+    resultDiv.innerHTML = html;
+    return;
+  }
+
+  if (!routeData || !routeData.route) {
+    console.error('Invalid route data:', routeData);
+    resultDiv.innerHTML = '<div class="error">Error: Invalid route data from API</div>';
+    return;
+  }
+
+  let html = `<div class="result-header">Route Analysis</div>`;
+  html += `<div style="margin:15px 0;font-size:0.95em;">Total Distance: <strong>${routeData.total_distance_ly} LY</strong> | Route Possible: <strong style="color:${routeData.can_complete_route ? '#6f6' : '#f66'}">${routeData.can_complete_route ? '✓ YES' : '✗ NO'}</strong></div>`;
+  
+  html += `<table style="width:100%;border-collapse:collapse;margin:15px 0;">`;
+  html += `<tr style="background:rgba(255,100,50,0.2);border-bottom:2px solid rgba(255,100,50,0.4);">`;
+  html += `<th style="padding:10px;text-align:left;color:#ffaa77;">System</th>`;
+  html += `<th style="padding:10px;text-align:center;">Low Heat</th>`;
+  html += `<th style="padding:10px;text-align:center;">Jump Heat Gen</th>`;
+  html += `<th style="padding:10px;text-align:center;">Total After Jump</th>`;
+  html += `<th style="padding:10px;text-align:center;">Status</th>`;
+  html += `</tr>`;
+
+  for (let i = 0; i < routeData.route.length; i++) {
+    const sys = routeData.route[i];
+    const canJump = sys.can_jump;
+    const rowColor = canJump ? 'rgba(100,200,100,0.1)' : 'rgba(255,100,50,0.1)';
+    
+    html += `<tr style="background:${rowColor};border-bottom:1px solid rgba(255,100,50,0.2);">`;
+    html += `<td style="padding:10px;"><strong>${sys.name}</strong></td>`;
+    html += `<td style="padding:10px;text-align:center;">${sys.low_heat}</td>`;
+    html += `<td style="padding:10px;text-align:center;">${sys.jump_heat_gen}</td>`;
+    html += `<td style="padding:10px;text-align:center;color:${canJump ? '#6f6' : '#f66'}">${sys.total_after_jump}</td>`;
+    html += `<td style="padding:10px;text-align:center;color:${canJump ? '#6f6' : '#f66'}">${canJump ? '✓' : '✗'}</td>`;
+    html += `</tr>`;
+  }
+
+  html += `</table>`;
+  resultDiv.innerHTML = html;
 }
 
 function displayResult(system, model) {
