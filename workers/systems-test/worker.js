@@ -1,15 +1,25 @@
-// worker.js – R2 + JSON verzió (2026-kompatibilis)
-const V = "arctangent-v1.0";
-const M = 1.45;
-const METERS_PER_LY = 9.46073e15;
+// HeatSense Worker - Arctangent v1.0 | MAE 1.45
+// All comments and variable names in English only
 
+const VERSION = "arctangent-v1.0";
+const MAE = 1.45;
+const METERS_PER_LY = 9.46073e15; // 1 light-year in meters
+
+// Cache for loaded data (prevents repeated R2 fetches)
 let cachedData = null;
 
+/**
+ * Loads system data from R2 (data.json) with caching
+ * @param {Object} env - Worker environment bindings
+ * @returns {Promise<Object>} Parsed D object { name: [id, class, temp, radius, au, ls, heat, status, x, y, z] }
+ */
 async function loadData(env) {
   if (cachedData) return cachedData;
 
   const object = await env.R2_BUCKET.get('data.json');
-  if (!object) throw new Error('data.json not found in R2');
+  if (!object) {
+    throw new Error('data.json not found in R2 bucket');
+  }
 
   const text = await object.text();
   cachedData = JSON.parse(text);
@@ -22,144 +32,128 @@ async function loadData(env) {
 }
 
 export default {
+  /**
+   * Main request handler for the Worker
+   * @param {Request} request - Incoming request
+   * @param {Object} env - Environment bindings (R2_BUCKET)
+   * @returns {Promise<Response>}
+   */
   async fetch(request, env) {
     const url = new URL(request.url);
-    const cors = {
+    const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type'
     };
 
-    if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
+    // Handle CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
+    }
 
-    // Health check
+    // Health check endpoint
     if (url.pathname === '/api/health') {
-      return Response.json({ status: 'ok', model: V, mae: M }, { headers: cors });
+      return Response.json({
+        status: 'ok',
+        version: VERSION,
+        mae: MAE
+      }, { headers: corsHeaders });
     }
 
     let D;
     try {
       D = await loadData(env);
     } catch (err) {
-      return Response.json({ error: 'Failed to load data: ' + err.message }, { status: 500, headers: cors });
+      return Response.json(
+        { error: `Failed to load system data: ${err.message}` },
+        { status: 500, headers: corsHeaders }
+      );
     }
 
-    // Single system
+    // Single system lookup: GET /api/system?name=SYSTEM_NAME
     if (url.pathname === '/api/system') {
       const name = url.searchParams.get('name')?.toUpperCase().trim();
-      if (!name) return Response.json({ error: 'Missing name' }, { status: 400, headers: cors });
+      if (!name) {
+        return Response.json({ error: 'Missing system name' }, { status: 400, headers: corsHeaders });
+      }
 
       const entry = D[name];
-      if (!entry) return Response.json({ error: 'Not found' }, { status: 404, headers: cors });
+      if (!entry) {
+        return Response.json({ error: 'System not found' }, { status: 404, headers: corsHeaders });
+      }
 
       const statusMap = { 'S': 'SAFE', 'M': 'MODERATE', 'D': 'DANGEROUS', 'C': 'CRITICAL' };
+
       return Response.json({
         system: {
           id: entry[0],
           name,
-          class: entry[1],
-          temp: entry[2],
+          star_class: entry[1],
+          temperature: entry[2],
           radius_km: entry[3],
-          coldest: { au: entry[4], ls: entry[5], heat: entry[6] },
+          coldest_point: {
+            distance_au: entry[4],
+            distance_ls: entry[5],
+            heat: entry[6]
+          },
           status: statusMap[entry[7]] || 'UNKNOWN',
-          coords: entry.length >= 11 ? { x: entry[8], y: entry[9], z: entry[10] } : null
+          coords: entry.length >= 11 ? {
+            x: entry[8],
+            y: entry[9],
+            z: entry[10]
+          } : null
         },
-        model: V
-      }, { headers: cors });
+        model: VERSION
+      }, { headers: corsHeaders });
     }
-      // Route endpoint – POST /api/route
-      if (url.pathname === '/api/route' && request.method === 'POST') {
-        const body = await request.json().catch(() => ({}));
-        const names = body.names || [];
-        if (names.length < 2) return Response.json({ error: 'Need at least 2 systems' }, { status: 400, headers: cors });
 
-        // Hajó paraméterek (default értékekkel)
-        const totalMass   = body.totalMass   || 79598125;
-        const hullMass    = body.hullMass    || 74655480;
-        const baseC       = body.baseC       || 2.5;
-        const skillLevel  = body.skillLevel  || 0;
-
-        const effectiveC = baseC * (1 + skillLevel * 0.02);
-
-        const routeData = [];
-        let totalLY = 0;
-        let canComplete = true;
-
-        let prevEntry = null;
-
-        for (let i = 0; i < names.length; i++) {
-          const rawName = names[i];
-          const name = rawName.toUpperCase().trim();
-          const entry = D[name];
-          if (!entry) return Response.json({ error: `Not found: ${rawName}` }, { status: 404, headers: cors });
-
-          const lowHeat = entry[6];
-          const st = entry[7];
-
-          let jumpHeatGen = 0;
-          let totalAfter = lowHeat;
-          let canJumpThis = true;
-
-          if (i > 0) {  // ugrás az előzőtől ide
-            const dx = entry[8] - prevEntry[8];
-            const dy = entry[9] - prevEntry[9];
-            const dz = entry[10] - prevEntry[10];
-            const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
-            const distLY = distM / METERS_PER_LY;
-            totalLY += distLY;
-
-            jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
-            totalAfter = lowHeat + jumpHeatGen;
-            canJumpThis = totalAfter <= 150;
-
-            if (!canJumpThis) canComplete = false;
-          }
-
-          routeData.push({
-            name: rawName,
-            low_heat: lowHeat.toFixed(2),
-            status: ['SAFE', 'MODERATE', 'DANGEROUS', 'CRITICAL'][{S:0,M:1,D:2,C:3}[st] || 0],
-            jump_heat_gen: jumpHeatGen.toFixed(2),
-            total_after_jump: totalAfter.toFixed(2),
-            can_jump: canJumpThis
-          });
-
-          prevEntry = entry;
-        }
-
-        return Response.json({
-          route: routeData,
-          total_distance_ly: totalLY.toFixed(2),
-          can_complete_route: canComplete
-        }, { headers: cors });
+    // Route calculation: POST /api/route
+    if (url.pathname === '/api/route' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const names = body.names || [];
+      if (names.length < 2) {
+        return Response.json({ error: 'At least 2 systems required' }, { status: 400, headers: corsHeaders });
       }
 
-      // HIGH-HEAT LIST ENDPOINT
-      if (url.pathname === '/api/highheat') {
+      const jumps = [];
+      let totalLY = 0;
+      let prevEntry = null;
 
-        const out = [];
-
-        for (const name in D) {
-          const e = D[name];
-          const heat = Number(e[6]);   // fontos
-
-          if (heat >= 85) {   // 🔥 DANGER+
-            out.push({
-              name,
-              star: e[1],
-              temp: e[2],
-              au: e[4],
-              ls: e[5],
-              heat,
-              status: heat >= 90 ? 'TRAP' : 'DANGER'
-            });
-          }
+      for (let i = 0; i < names.length; i++) {
+        const name = names[i].toUpperCase().trim();
+        const entry = D[name];
+        if (!entry) {
+          return Response.json({ error: `System not found: ${names[i]}` }, { status: 404, headers: corsHeaders });
         }
-        // heat DESC sort
-        out.sort((a,b)=>b.heat - a.heat);
 
-        return Response.json(out, { headers: cors });
+        let distanceLY = null;
+
+        if (i > 0 && prevEntry && entry.length >= 11 && prevEntry.length >= 11) {
+          const dx = entry[8] - prevEntry[8];
+          const dy = entry[9] - prevEntry[9];
+          const dz = entry[10] - prevEntry[10];
+          const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          distanceLY = distM / METERS_PER_LY;
+          totalLY += distanceLY;
+        }
+
+        jumps.push({
+          from: i === 0 ? null : names[i - 1],
+          to: names[i],
+          distance_ly: distanceLY !== null ? Number(distanceLY.toFixed(3)) : null,
+          low_heat: Number(entry[6].toFixed(2)),
+          status: { 'S': 'SAFE', 'M': 'MODERATE', 'D': 'DANGEROUS', 'C': 'CRITICAL' }[entry[7]] || 'UNKNOWN'
+        });
+
+        prevEntry = entry;
       }
-    return new Response('Not Found', { status: 404, headers: cors });
+
+      return Response.json({
+        total_distance_ly: Number(totalLY.toFixed(2)),
+        jumps
+      }, { headers: corsHeaders });
+    }
+
+    return new Response('Not Found', { status: 404, headers: corsHeaders });
   }
 };
