@@ -178,9 +178,7 @@ function render(list){
   list.forEach(s => {
     const tr = document.createElement('tr');
 
-    const orbit = (Number(s.au) === 0 || s.au === "0.00")
-      ? `${s.ls} LS`
-      : `${s.au} AU`;
+    const orbit = (s.ls && Number(s.ls) > 0) ? `${Number(s.ls).toFixed(2)} LS` : '—';
 
     let statusHtml = '';
     if (s.status === 'TRAP') {
