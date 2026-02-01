@@ -217,7 +217,8 @@ footer a:hover {text-decoration:underline}
 </footer>
 
 <script>
-const API_URL = 'https://systems.heatsense.workers.dev/api/system';
+const API_SINGLE = 'https://systems-test.heatsense.workers.dev/api/system';
+const API_BATCH = 'https://systems-test.heatsense.workers.dev/api/systems';
 
 document.getElementById('searchBtn').addEventListener('click', searchSystems);
 
@@ -249,38 +250,80 @@ async function searchSystems() {
   resultDiv.style.display = 'block';
 
   try {
-    const results = [];
-    for (const name of systemNames) {
-      try {
-        const url = `${API_URL}?name=${encodeURIComponent(name)}`;
-        const response = await fetch(url);
+    let results = [];
+    let model = 'arctangent-v1.0'; // Fallback
 
-        if (response.ok) {
-          const data = await response.json();
-          const s = data.system;
+    if (systemNames.length > 1) {
+      // Batch request for multiple systems
+      const response = await fetch(API_BATCH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ names: systemNames })
+      });
 
-          // 🔥 NORMALIZATION LAYER (új worker → régi frontend struktúra)
-          const normalizedSystem = {
-            id: s.id,
-            name: s.name,
-            star_class: s.class,
-            temperature: s.temp,
-            radius_km: s.radius_km,
-            status: s.status,
-            coords: s.coords,
-            coldest_point: {
-              distance_au: s.coldest.au,
-              distance_ls: s.coldest.ls,
-              heat: s.coldest.heat
-            }
-          };
+      if (!response.ok) {
+        throw new Error(`Batch error: ${response.status}`);
+      }
 
-          results.push({ name, system: normalizedSystem, model: data.model });
-        } else {
-          results.push({ name, error: 'Not found' });
+      const data = await response.json();
+      console.log('Batch response:', data); // Debug
+
+      for (const s of data.systems) {
+        if (s.error) {
+          results.push({ name: s.name, error: s.error });
+          continue;
         }
-      } catch (err) {
-        results.push({ name, error: err.message });
+
+        const normalizedSystem = {
+          id: s.id,
+          name: s.name,
+          star_class: s.class,
+          temperature: s.temp,
+          radius_km: s.radius_km,
+          status: s.status,
+          coords: s.coords,
+          coldest_point: {
+            distance_au: s.coldest.au,
+            distance_ls: s.coldest.ls,
+            heat: s.coldest.heat
+          }
+        };
+
+        results.push({ name: s.name, system: normalizedSystem, model: data.model || model });
+      }
+    } else {
+      // Single system fallback
+      const name = systemNames[0];
+      const url = `${API_SINGLE}?name=${encodeURIComponent(name)}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Single error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Single response:', data); // Debug
+
+      if (data.error) {
+        results.push({ name, error: data.error });
+      } else {
+        const s = data.system;
+        const normalizedSystem = {
+          id: s.id,
+          name: s.name,
+          star_class: s.class,
+          temperature: s.temp,
+          radius_km: s.radius_km,
+          status: s.status,
+          coords: s.coords,
+          coldest_point: {
+            distance_au: s.coldest.au,
+            distance_ls: s.coldest.ls,
+            heat: s.coldest.heat
+          }
+        };
+
+        results.push({ name, system: normalizedSystem, model: data.model || model });
       }
     }
 
@@ -290,6 +333,7 @@ async function searchSystems() {
       displayMultipleResults(results);
     }
   } catch (error) {
+    console.error('Search error:', error);
     showError(error.message);
   } finally {
     btn.disabled = false;
