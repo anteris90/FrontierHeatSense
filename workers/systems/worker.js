@@ -8,14 +8,14 @@ let cachedData = null;
 async function loadData(env) {
   if (cachedData) return cachedData;
 
-  const object = await env.R2_BUCKET.get('data.json');
-  if (!object) throw new Error('data.json not found in R2');
+  const object = await env.R2_BUCKET.get('data_latest.json');
+  if (!object) throw new Error('data_latest.json not found in R2');
 
   const text = await object.text();
   cachedData = JSON.parse(text);
 
   if (!cachedData || typeof cachedData !== 'object') {
-    throw new Error('Invalid data format in data.json');
+    throw new Error('Invalid data format in data_latest.json');
   }
 
   return cachedData;
