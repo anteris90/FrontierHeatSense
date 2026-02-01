@@ -67,99 +67,169 @@ export default {
         model: V
       }, { headers: cors });
     }
-      // Route endpoint – POST /api/route
-      if (url.pathname === '/api/route' && request.method === 'POST') {
-        const body = await request.json().catch(() => ({}));
-        const names = body.names || [];
-        if (names.length < 2) return Response.json({ error: 'Need at least 2 systems' }, { status: 400, headers: cors });
 
-        // Hajó paraméterek (default értékekkel)
-        const totalMass   = body.totalMass   || 79598125;
-        const hullMass    = body.hullMass    || 74655480;
-        const baseC       = body.baseC       || 2.5;
-        const skillLevel  = body.skillLevel  || 0;
+    // Batch systems endpoint – POST /api/systems
+    if (url.pathname === '/api/systems' && request.method === 'POST') {
+      const cache = caches.default;
 
-        const effectiveC = baseC * (1 + skillLevel * 0.02);
+      const body = await request.json().catch(() => ({}));
+      const names = Array.isArray(body.names) ? body.names : [];
 
-        const routeData = [];
-        let totalLY = 0;
-        let canComplete = true;
+      if (!names.length) {
+        return Response.json({ error: 'Missing or empty names[]' }, { status: 400, headers: cors });
+      }
 
-        let prevEntry = null;
+      // Stable cache key
+      const sorted = [...names].map(n => String(n).toUpperCase().trim()).sort();
+      const cacheKey = new Request(
+        "https://heatsense-cache/systems/" + sorted.join(","),
+        { method: "GET" }
+      );
 
-        for (let i = 0; i < names.length; i++) {
-          const rawName = names[i];
-          const name = rawName.toUpperCase().trim();
-          const entry = D[name];
-          if (!entry) return Response.json({ error: `Not found: ${rawName}` }, { status: 404, headers: cors });
+      // 1) CACHE CHECK
+      const cached = await cache.match(cacheKey);
+      if (cached) return cached;
 
-          const lowHeat = entry[6];
-          const st = entry[7];
+      const statusMap = { 'S': 'SAFE', 'M': 'MODERATE', 'D': 'DANGEROUS', 'C': 'CRITICAL' };
+      const results = [];
 
-          let jumpHeatGen = 0;
-          let totalAfter = lowHeat;
-          let canJumpThis = true;
+      for (const rawName of names) {
+        const name = rawName.toUpperCase().trim();
+        const entry = D[name];
 
-          if (i > 0) {  // ugrás az előzőtől ide
-            const dx = entry[8] - prevEntry[8];
-            const dy = entry[9] - prevEntry[9];
-            const dz = entry[10] - prevEntry[10];
-            const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
-            const distLY = distM / METERS_PER_LY;
-            totalLY += distLY;
+        if (!entry) {
+          results.push({ name: rawName, error: 'NOT_FOUND' });
+          continue;
+        }
 
-            jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
-            totalAfter = lowHeat + jumpHeatGen;
-            canJumpThis = totalAfter <= 150;
+        results.push({
+          name: rawName,
+          id: entry[0],
+          class: entry[1],
+          temp: entry[2],
+          radius_km: entry[3],
+          coldest: { au: entry[4], ls: entry[5], heat: entry[6] },
+          status: statusMap[entry[7]] || 'UNKNOWN',
+          coords: entry.length >= 11 ? { x: entry[8], y: entry[9], z: entry[10] } : null
+        });
+      }
 
-            if (!canJumpThis) canComplete = false;
+      const response = new Response(
+        JSON.stringify({ systems: results }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "public, max-age=86400",
+            ...cors
           }
+        }
+      );
 
-          routeData.push({
-            name: rawName,
-            low_heat: lowHeat.toFixed(2),
-            status: ['SAFE', 'MODERATE', 'DANGEROUS', 'CRITICAL'][{S:0,M:1,D:2,C:3}[st] || 0],
-            jump_heat_gen: jumpHeatGen.toFixed(2),
-            total_after_jump: totalAfter.toFixed(2),
-            can_jump: canJumpThis
+      // 3) CACHE WRITE
+      await cache.put(cacheKey, response.clone());
+
+      return response;
+    }
+    
+
+    // Route endpoint – POST /api/route
+    if (url.pathname === '/api/route' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const names = body.names || [];
+      if (names.length < 2) {
+        return Response.json({ error: 'Need at least 2 systems' }, { status: 400, headers: cors });
+      }
+
+      // Hajó paraméterek (default értékekkel)
+      const totalMass   = body.totalMass   || 79598125;
+      const hullMass    = body.hullMass    || 74655480;
+      const baseC       = body.baseC       || 2.5;
+      const skillLevel  = body.skillLevel  || 0;
+
+      const effectiveC = baseC * (1 + skillLevel * 0.02);
+
+      const routeData = [];
+      let totalLY = 0;
+      let canComplete = true;
+
+      let prevEntry = null;
+
+      for (let i = 0; i < names.length; i++) {
+        const rawName = names[i];
+        const name = rawName.toUpperCase().trim();
+        const entry = D[name];
+        if (!entry) {
+          return Response.json({ error: `Not found: ${rawName}` }, { status: 404, headers: cors });
+        }
+
+        const lowHeat = entry[6];
+        const st = entry[7];
+
+        let jumpHeatGen = 0;
+        let totalAfter = lowHeat;
+        let canJumpThis = true;
+
+        if (i > 0) {  // ugrás az előzőtől ide
+          const dx = entry[8] - prevEntry[8];
+          const dy = entry[9] - prevEntry[9];
+          const dz = entry[10] - prevEntry[10];
+          const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          const distLY = distM / METERS_PER_LY;
+          totalLY += distLY;
+
+          jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
+          totalAfter = lowHeat + jumpHeatGen;
+          canJumpThis = totalAfter <= 150;
+
+          if (!canJumpThis) canComplete = false;
+        }
+
+        routeData.push({
+          name: rawName,
+          low_heat: lowHeat.toFixed(2),
+          status: ['SAFE', 'MODERATE', 'DANGEROUS', 'CRITICAL'][{ S: 0, M: 1, D: 2, C: 3 }[st] || 0],
+          jump_heat_gen: jumpHeatGen.toFixed(2),
+          total_after_jump: totalAfter.toFixed(2),
+          can_jump: canJumpThis
+        });
+
+        prevEntry = entry;
+      }
+
+      return Response.json({
+        route: routeData,
+        total_distance_ly: totalLY.toFixed(2),
+        can_complete_route: canComplete
+      }, { headers: cors });
+    }
+
+    // HIGH-HEAT LIST ENDPOINT
+    if (url.pathname === '/api/highheat') {
+      const out = [];
+
+      for (const name in D) {
+        const e = D[name];
+        const heat = Number(e[6]);   // fontos
+
+        if (heat >= 85) {   // 🔥 DANGER+
+          out.push({
+            name,
+            star: e[1],
+            temp: e[2],
+            au: e[4],
+            ls: e[5],
+            heat,
+            status: heat >= 90 ? 'TRAP' : 'DANGER'
           });
-
-          prevEntry = entry;
         }
-
-        return Response.json({
-          route: routeData,
-          total_distance_ly: totalLY.toFixed(2),
-          can_complete_route: canComplete
-        }, { headers: cors });
       }
 
-      // HIGH-HEAT LIST ENDPOINT
-      if (url.pathname === '/api/highheat') {
+      // heat DESC sort
+      out.sort((a, b) => b.heat - a.heat);
 
-        const out = [];
+      return Response.json(out, { headers: cors });
+    }
 
-        for (const name in D) {
-          const e = D[name];
-          const heat = Number(e[6]);   // fontos
-
-          if (heat >= 85) {   // 🔥 DANGER+
-            out.push({
-              name,
-              star: e[1],
-              temp: e[2],
-              au: e[4],
-              ls: e[5],
-              heat,
-              status: heat >= 90 ? 'TRAP' : 'DANGER'
-            });
-          }
-        }
-        // heat DESC sort
-        out.sort((a,b)=>b.heat - a.heat);
-
-        return Response.json(out, { headers: cors });
-      }
     return new Response('Not Found', { status: 404, headers: cors });
   }
 };
