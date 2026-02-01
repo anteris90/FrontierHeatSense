@@ -1,8 +1,8 @@
 # 🔥 HeatSense - EVE Frontier Heat Prediction System
 
-**📊 Current Model:** Ergod Arctangent v1.0  
-**🎯 Performance:** MAE 1.45 Heat (46% better than v8.2)  
-**📅 Last Updated:** January 30, 2026
+**📊 Current Model:** Ergod Arctangent v2.0  
+**🎯 Performance:** MAE 0.4 Heat (Arctangent v1.0 1.45 Heat)
+**📅 Last Updated:** January 31, 2026
 
 ---
 
