@@ -175,7 +175,7 @@ footer a:hover {text-decoration:underline}
     <h1>EVE Frontier :: HeatSense</h1>
     <div class="subtitle">System Heat Calculator</div>
     <div class="model-badge">
-      🔬 Ergod Arctangent Model | MAE: 1.45 Heat
+      🔬 Ergod Arctangent Model | MAE: 0.4 Heat
     </div>
   </header>
 
@@ -197,24 +197,6 @@ footer a:hover {text-decoration:underline}
       </div>
     </div>
 
-    <div class="input-group">
-      <label for="shipSelect">Ship (optional):</label>
-      <select id="shipSelect" style="width:100%;padding:12px;border:2px solid rgba(255,100,50,0.3);border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;font-size:1em;cursor:pointer">
-        <option value="">-- No Ship --</option>
-      </select>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px">
-      <div class="input-group">
-        <label for="skillLevel">Skill Level: <span id="skillValue">0</span></label>
-        <input type="range" id="skillLevel" min="0" max="10" value="0" style="width:100%;cursor:pointer;accent-color:#ff6432">
-      </div>
-      <div class="input-group">
-        <label for="effectiveC">Effective C: <span id="effectiveC">0.00</span></label>
-        <input type="text" id="effectiveCDisplay" readonly style="width:100%;padding:8px;border:2px solid rgba(255,100,50,0.2);border-radius:10px;background:rgba(10,5,0,0.4);color:#aaa;font-size:0.9em;text-align:right">
-      </div>
-    </div>
-
     <button class="btn" id="searchBtn">Check Heat</button>
   </div>
 
@@ -228,81 +210,19 @@ footer a:hover {text-decoration:underline}
 
 <footer>
   <p>
-    EF-HeatSense Arctangent v1.0 |
+    EF-HeatSense Arctangent v2.0/MAE 0.4 |
     © Anteris |
     Model by <a href="https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model" target="_blank">Ergod</a>
   </p>
 </footer>
 
 <script>
-const API_URL = 'https://systems-test.heatsense.workers.dev/api/system';
+const API_URL = 'https://systems.heatsense.workers.dev/api/system';
 
-// Ships database
-const SHIPS = [
-  { name: 'HAF', hullmass: 81883000, c: 2.5 },
-  { name: 'LORHA', hullmass: 31369320, c: 2.5 },
-  { name: 'MAUL', hullmass: 548435920, c: 2.5 },
-  { name: 'MCF', hullmass: 52313760, c: 2.5 },
-  { name: 'TADES', hullmass: 74655480, c: 2.5 },
-  { name: 'USV', hullmass: 30266600, c: 1.8 },
-  { name: 'RECURVE', hullmass: 10400000, c: 1.0 },
-  { name: 'REFLEX', hullmass: 9750000, c: 2.0 },
-  { name: 'REIVER', hullmass: 10200000, c: 1.0 },
-  { name: 'CAROM', hullmass: 7200000, c: 8.5 },
-  { name: 'STRIDE', hullmass: 7900000, c: 8.0 },
-  { name: 'CHUMAQ', hullmass: 1739489520, c: 3.0 }
-];
-
-const TRAP_THRESHOLD = 90; // If lowHeat >= 90, it's a TRAP
-
-function initializeShips() {
-  const select = document.getElementById('shipSelect');
-  SHIPS.forEach(ship => {
-    const option = document.createElement('option');
-    option.value = ship.name;
-    option.textContent = ship.name;
-    select.appendChild(option);
-  });
-}
-
-function onShipChange() {
-  const skillLevel = parseInt(document.getElementById('skillLevel').value) || 0;
-  updateEffectiveC();
-}
-
-function onSkillChange() {
-  updateEffectiveC();
-}
-
-function updateEffectiveC() {
-  const shipName = document.getElementById('shipSelect')?.value;
-  const skillLevel = parseInt(document.getElementById('skillLevel')?.value) || 0;
-  
-  if (!shipName) {
-    document.getElementById('effectiveC').textContent = '0.00';
-    document.getElementById('effectiveCDisplay').value = '0.00';
-    return;
-  }
-  
-  const ship = SHIPS.find(s => s.name === shipName);
-  if (ship) {
-    const effectiveC = ship.c * (1 + skillLevel * 0.02);
-    document.getElementById('effectiveC').textContent = effectiveC.toFixed(3);
-    document.getElementById('effectiveCDisplay').value = effectiveC.toFixed(3);
-  }
-}
-
-// Event listeners
-document.addEventListener('DOMContentLoaded', function() {
-  initializeShips();
-  document.getElementById('searchBtn').addEventListener('click', searchSystems);
-  document.getElementById('shipSelect').addEventListener('change', onShipChange);
-  document.getElementById('skillLevel').addEventListener('input', onSkillChange);
-});
+document.getElementById('searchBtn').addEventListener('click', searchSystems);
 
 async function searchSystems() {
   const input = document.getElementById('systemInput').value.trim();
-  const shipName = document.getElementById('shipSelect')?.value;
   const btn = document.getElementById('searchBtn');
   const resultDiv = document.getElementById('result');
   const errorDiv = document.getElementById('error');
@@ -329,117 +249,6 @@ async function searchSystems() {
   resultDiv.style.display = 'block';
 
   try {
-    // If ship is selected and 2+ systems, calculate route with TRAP logic
-    if (shipName && systemNames.length >= 2) {
-      const ship = SHIPS.find(s => s.name === shipName);
-      if (!ship) {
-        showError('Ship not found');
-        return;
-      }
-      
-      const skillLevel = parseInt(document.getElementById('skillLevel')?.value) || 0;
-      const effectiveC = ship.c * (1 + skillLevel * 0.02);
-
-      // Fetch all systems
-      const systems = [];
-      for (const name of systemNames) {
-        try {
-          const url = `${API_URL}?name=${encodeURIComponent(name)}`;
-          const response = await fetch(url);
-          if (response.ok) {
-            const data = await response.json();
-            systems.push({ name, system: data.system });
-          } else {
-            showError(`System not found: ${name}`);
-            return;
-          }
-        } catch (err) {
-          showError(`Error fetching ${name}: ${err.message}`);
-          return;
-        }
-      }
-
-      // Calculate route with TRAP logic
-      const route = [];
-      let totalLY = 0;
-      const METERS_PER_LY = 9.46073e15;
-      let canCompleteRoute = true;
-
-      for (let i = 0; i < systems.length; i++) {
-        const sys = systems[i];
-        const lowHeat = sys.system.coldest_point.heat;
-        const status = sys.system.status;
-        const isTrap = lowHeat >= TRAP_THRESHOLD;
-
-        let jumpHeatGen = 0;
-        let totalAfter = lowHeat;
-        let canJump = !isTrap && lowHeat <= 150; // Can't jump from TRAP
-
-        // Calculate distance to next system
-        if (i < systems.length - 1 && !isTrap) {
-          const currentCoords = sys.system.coords;
-          const nextCoords = systems[i + 1].system.coords;
-          
-          if (currentCoords && nextCoords) {
-            const dx = nextCoords.x - currentCoords.x;
-            const dy = nextCoords.y - currentCoords.y;
-            const dz = nextCoords.z - currentCoords.z;
-            const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
-            const distLY = distM / METERS_PER_LY;
-            totalLY += distLY;
-
-            jumpHeatGen = (3 * ship.hullmass * distLY) / (effectiveC * ship.hullmass);
-            totalAfter = lowHeat + jumpHeatGen;
-            canJump = totalAfter <= 150;
-          }
-        }
-
-        if (!canJump) canCompleteRoute = false;
-
-        route.push({
-          name: sys.name,
-          low_heat: lowHeat.toFixed(2),
-          status: status,
-          jump_heat_gen: jumpHeatGen.toFixed(2),
-          total_after_jump: totalAfter.toFixed(2),
-          can_jump: canJump,
-          is_trap: isTrap
-        });
-      }
-
-      // Display route table
-      let html = `<div class="result-header">Route Analysis</div>`;
-      html += `<div style="margin:15px 0;font-size:0.95em;">Total Distance: <strong>${totalLY.toFixed(2)} LY</strong> | Effective C: <strong>${effectiveC.toFixed(3)}</strong> | Route: <strong style="color:${canCompleteRoute ? '#6f6' : '#f66'}">${canCompleteRoute ? '✓ POSSIBLE' : '✗ IMPOSSIBLE'}</strong></div>`;
-      html += `<table style="width:100%;border-collapse:collapse;margin:15px 0;">`;
-      html += `<tr style="background:rgba(255,100,50,0.2);border-bottom:2px solid rgba(255,100,50,0.4);">`;
-      html += `<th style="padding:10px;text-align:left;color:#ffaa77;">System</th>`;
-      html += `<th style="padding:10px;text-align:center;">Low Heat</th>`;
-      html += `<th style="padding:10px;text-align:center;">Jump Heat Gen</th>`;
-      html += `<th style="padding:10px;text-align:center;">Total After</th>`;
-      html += `<th style="padding:10px;text-align:center;">Status</th>`;
-      html += `</tr>`;
-
-      for (const sys of route) {
-        const trapLabel = sys.is_trap ? ' [TRAP]' : '';
-        const rowColor = sys.is_trap ? 'rgba(255,50,50,0.2)' : (sys.can_jump ? 'rgba(100,200,100,0.1)' : 'rgba(255,100,50,0.1)');
-        html += `<tr style="background:${rowColor};border-bottom:1px solid rgba(255,100,50,0.2);">`;
-        html += `<td style="padding:10px;"><strong>${sys.name}${trapLabel}</strong></td>`;
-        html += `<td style="padding:10px;text-align:center;">${sys.low_heat}</td>`;
-        html += `<td style="padding:10px;text-align:center;">${sys.jump_heat_gen}</td>`;
-        html += `<td style="padding:10px;text-align:center;color:${sys.can_jump ? '#6f6' : '#f66'}">${sys.total_after_jump}</td>`;
-        html += `<td style="padding:10px;text-align:center;">${sys.status}</td>`;
-        html += `</tr>`;
-      }
-
-      html += `</table>`;
-      resultDiv.innerHTML = html;
-      resultDiv.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Check Heat';
-      return;
-    }
-
-    // Otherwise, check individual systems
     const results = [];
     for (const name of systemNames) {
       try {
