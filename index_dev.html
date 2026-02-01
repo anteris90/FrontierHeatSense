@@ -1,172 +1,171 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  
-<script type="text/javascript">
+  <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
         t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
         y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window, document, "clarity", "script", "v9t6b8czy5");
-</script>
+  </script>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EF - HeatSense</title>
-<style>
-* {margin:0;padding:0;box-sizing:border-box}
-body {
-  font-family:'Segoe UI',system-ui,sans-serif;
-  background:linear-gradient(135deg,#0a0505 0%,#1a0a0a 50%,#0f0505 100%);
-  min-height:100vh;color:#fff;padding:20px
-}
-.container {max-width:800px;margin:0 auto;padding:40px 20px}
-header {text-align:center;margin-bottom:40px}
-h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
-.subtitle {color:#aa8866;font-size:1.1em}
-.version {color:#666;font-size:0.9em;margin-top:5px}
-.model-badge {
-  background:rgba(100,200,255,0.15);border:2px solid rgba(100,200,255,0.4);
-  padding:10px 20px;border-radius:10px;display:inline-block;margin-top:10px;
-  font-size:0.9em;color:#6cf
-}
-.danger-link-box {
-  display:block;margin:-20px auto 40px;max-width:600px;
-  background:rgba(255,100,50,0.1);border:2px solid rgba(255,100,50,0.3);
-  border-radius:12px;text-align:center;text-decoration:none;
-  color:#ff8844;font-size:1.15em;font-weight:600;padding:20px;
-  box-shadow:0 0 20px rgba(255,100,50,0.3);
-  animation:dangerPulse 3s ease-in-out infinite;
-  transition:all 0.3s;cursor:pointer
-}
-.danger-link-box:hover {
-  transform:translateY(-2px);
-  box-shadow:0 0 30px rgba(255,100,50,0.6);
-  border-color:rgba(255,100,50,0.5)
-}
-@keyframes dangerPulse {
-  0%,100%{box-shadow:0 0 20px rgba(255,100,50,0.3);border-color:rgba(255,100,50,0.3)}
-  50%{box-shadow:0 0 30px rgba(255,50,0,0.6);border-color:rgba(255,50,0,0.5)}
-}
-.search-section {
-  background:rgba(255,100,50,0.1);border:2px solid rgba(255,100,50,0.3);
-  border-radius:15px;padding:30px;margin-bottom:30px
-}
-.input-group {margin-bottom:20px}
-label {display:block;margin-bottom:8px;color:#ffaa77;font-weight:600}
-textarea {
-  width:100%;padding:15px;font-size:1.1em;border:2px solid rgba(255,100,50,0.3);
-  border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;transition:all 0.3s;
-  font-family:inherit;resize:vertical
-}
-.btn {
-  width:100%;padding:15px;font-size:1.2em;font-weight:bold;
-  background:linear-gradient(135deg,#f60 0%,#c30 100%);color:#fff;border:none;
-  border-radius:10px;cursor:pointer;transition:all 0.3s
-}
-.btn:hover:not(:disabled) {transform:translateY(-2px);box-shadow:0 6px 25px rgba(255,100,0,0.6)}
-.btn:disabled {opacity:0.5;cursor:not-allowed}
-.result {
-  background:rgba(30,15,10,0.8);border:2px solid rgba(255,100,50,0.3);
-  border-radius:15px;padding:30px;display:none;animation:fadeIn 0.5s
-}
-.route-table {
-  width:100%;border-collapse:collapse;margin:20px 0
-}
-.route-table th {
-  background:rgba(255,100,50,0.2);padding:12px;text-align:left;
-  border-bottom:2px solid rgba(255,100,50,0.4);color:#ffaa77;font-weight:600
-}
-.route-table td {
-  padding:12px;border-bottom:1px solid rgba(255,255,255,0.1)
-}
-.route-table tr:hover {
-  background:rgba(255,100,50,0.1)
-}
-.heat-cell {
-  font-weight:bold;font-size:1.1em
-}
-.trap-indicator {
-  display:inline-block;padding:4px 8px;border-radius:5px;
-  font-size:0.9em;margin-left:8px
-}
-.trap-yes {
-  background:rgba(255,0,0,0.3);border:1px solid #f00;color:#ff6666
-}
-.trap-no {
-  background:rgba(50,150,50,0.3);border:1px solid #5f5;color:#aaffaa
-}
-@keyframes fadeIn {from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
-.system-name {text-align:center;font-size:1.8em;color:#6cf;margin-bottom:20px;font-weight:600}
-.heat-display {text-align:center;margin:30px 0}
-.heat-value {
-  font-size:4em;font-weight:bold;color:#ff8844;
-  text-shadow:0 0 20px rgba(255,100,0,0.6)
-}
-.heat-label {font-size:0.9em;color:#aaa;margin-top:5px}
-.status-badge {
-  text-align:center;font-size:1.5em;padding:15px;border-radius:10px;
-  margin:20px 0;font-weight:bold
-}
-.status-safe {
-  background:rgba(50,150,50,0.3);border:2px solid #5f5;color:#aaffaa
-}
-.status-moderate {
-  background:rgba(200,150,0,0.3);border:2px solid #fc0;color:#ffffaa
-}
-.status-dangerous {
-  background:rgba(255,100,0,0.3);border:2px solid #f60;color:#ffccaa
-}
-.status-critical {
-  background:rgba(255,0,0,0.4);border:2px solid red;color:#ffaaaa;
-  animation:pulse 2s infinite
-}
-@keyframes pulse {
-  0%,100%{box-shadow:0 0 25px rgba(255,0,0,0.6)}
-  50%{box-shadow:0 0 40px rgba(255,0,0,0.9)}
-}
-.details {
-  background:rgba(0,0,0,0.4);padding:20px;border-radius:10px;margin-top:20px
-}
-.detail-row {
-  display:flex;justify-content:space-between;padding:10px 0;
-  border-bottom:1px solid rgba(255,255,255,0.1)
-}
-.detail-row:last-child {border-bottom:none}
-.detail-label {color:#aaa;font-weight:600}
-.detail-value {color:#fff}
-.error {
-  background:rgba(255,50,50,0.2);border:2px solid #f33;padding:20px;
-  border-radius:10px;color:#ffaaaa;display:none
-}
-.loading {text-align:center;padding:20px;color:#ffaa77;font-size:1.1em}
-.info-box {
-  background:rgba(100,200,255,0.1);border:1px solid rgba(100,200,255,0.3);
-  padding:15px;border-radius:10px;margin-top:20px;font-size:0.9em;
-  color:#ccddff;line-height:1.6
-}
-.trap-warning {
-  background:rgba(255,0,0,0.2);border:3px solid #f00;padding:20px;
-  border-radius:15px;margin-top:20px;text-align:center;animation:trapPulse 2s infinite
-}
-.trap-warning .trap-title {
-  font-size:2em;font-weight:bold;color:#ff6666;margin-bottom:10px;
-  text-shadow:0 0 10px rgba(255,0,0,0.8)
-}
-.trap-warning .trap-message {
-  font-size:1.1em;color:#ffaaaa;line-height:1.6
-}
-@keyframes trapPulse {
-  0%,100%{border-color:#f00;box-shadow:0 0 20px rgba(255,0,0,0.6)}
-  50%{border-color:#f66;box-shadow:0 0 40px rgba(255,0,0,0.9)}
-}
-footer {
-  text-align:center;margin-top:50px;padding-top:20px;
-  border-top:1px solid rgba(255,255,255,0.1);color:#666;font-size:0.9em
-}
-footer a {color:#6cf;text-decoration:none}
-footer a:hover {text-decoration:underline}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EF - HeatSense</title>
+  <style>
+    * {margin:0;padding:0;box-sizing:border-box}
+    body {
+      font-family:'Segoe UI',system-ui,sans-serif;
+      background:linear-gradient(135deg,#0a0505 0%,#1a0a0a 50%,#0f0505 100%);
+      min-height:100vh;color:#fff;padding:20px
+    }
+    .container {max-width:800px;margin:0 auto;padding:40px 20px}
+    header {text-align:center;margin-bottom:40px}
+    h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
+    .subtitle {color:#aa8866;font-size:1.1em}
+    .version {color:#666;font-size:0.9em;margin-top:5px}
+    .model-badge {
+      background:rgba(100,200,255,0.15);border:2px solid rgba(100,200,255,0.4);
+      padding:10px 20px;border-radius:10px;display:inline-block;margin-top:10px;
+      font-size:0.9em;color:#6cf
+    }
+    .danger-link-box {
+      display:block;margin:-20px auto 40px;max-width:600px;
+      background:rgba(255,100,50,0.1);border:2px solid rgba(255,100,50,0.3);
+      border-radius:12px;text-align:center;text-decoration:none;
+      color:#ff8844;font-size:1.15em;font-weight:600;padding:20px;
+      box-shadow:0 0 20px rgba(255,100,50,0.3);
+      animation:dangerPulse 3s ease-in-out infinite;
+      transition:all 0.3s;cursor:pointer
+    }
+    .danger-link-box:hover {
+      transform:translateY(-2px);
+      box-shadow:0 0 30px rgba(255,100,50,0.6);
+      border-color:rgba(255,100,50,0.5)
+    }
+    @keyframes dangerPulse {
+      0%,100%{box-shadow:0 0 20px rgba(255,100,50,0.3);border-color:rgba(255,100,50,0.3)}
+      50%{box-shadow:0 0 30px rgba(255,50,0,0.6);border-color:rgba(255,50,0,0.5)}
+    }
+    .search-section {
+      background:rgba(255,100,50,0.1);border:2px solid rgba(255,100,50,0.3);
+      border-radius:15px;padding:30px;margin-bottom:30px
+    }
+    .input-group {margin-bottom:20px}
+    label {display:block;margin-bottom:8px;color:#ffaa77;font-weight:600}
+    textarea {
+      width:100%;padding:15px;font-size:1.1em;border:2px solid rgba(255,100,50,0.3);
+      border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;transition:all 0.3s;
+      font-family:inherit;resize:vertical
+    }
+    .btn {
+      width:100%;padding:15px;font-size:1.2em;font-weight:bold;
+      background:linear-gradient(135deg,#f60 0%,#c30 100%);color:#fff;border:none;
+      border-radius:10px;cursor:pointer;transition:all 0.3s
+    }
+    .btn:hover:not(:disabled) {transform:translateY(-2px);box-shadow:0 6px 25px rgba(255,100,0,0.6)}
+    .btn:disabled {opacity:0.5;cursor:not-allowed}
+    .result {
+      background:rgba(30,15,10,0.8);border:2px solid rgba(255,100,50,0.3);
+      border-radius:15px;padding:30px;display:none;animation:fadeIn 0.5s
+    }
+    .route-table {
+      width:100%;border-collapse:collapse;margin:20px 0
+    }
+    .route-table th {
+      background:rgba(255,100,50,0.2);padding:12px;text-align:left;
+      border-bottom:2px solid rgba(255,100,50,0.4);color:#ffaa77;font-weight:600
+    }
+    .route-table td {
+      padding:12px;border-bottom:1px solid rgba(255,255,255,0.1)
+    }
+    .route-table tr:hover {
+      background:rgba(255,100,50,0.1)
+    }
+    .heat-cell {
+      font-weight:bold;font-size:1.1em
+    }
+    .trap-indicator {
+      display:inline-block;padding:4px 8px;border-radius:5px;
+      font-size:0.9em;margin-left:8px
+    }
+    .trap-yes {
+      background:rgba(255,0,0,0.3);border:1px solid #f00;color:#ff6666
+    }
+    .trap-no {
+      background:rgba(50,150,50,0.3);border:1px solid #5f5;color:#aaffaa
+    }
+    @keyframes fadeIn {from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+    .system-name {text-align:center;font-size:1.8em;color:#6cf;margin-bottom:20px;font-weight:600}
+    .heat-display {text-align:center;margin:30px 0}
+    .heat-value {
+      font-size:4em;font-weight:bold;color:#ff8844;
+      text-shadow:0 0 20px rgba(255,100,0,0.6)
+    }
+    .heat-label {font-size:0.9em;color:#aaa;margin-top:5px}
+    .status-badge {
+      text-align:center;font-size:1.5em;padding:15px;border-radius:10px;
+      margin:20px 0;font-weight:bold
+    }
+    .status-safe {
+      background:rgba(50,150,50,0.3);border:2px solid #5f5;color:#aaffaa
+    }
+    .status-moderate {
+      background:rgba(200,150,0,0.3);border:2px solid #fc0;color:#ffffaa
+    }
+    .status-dangerous {
+      background:rgba(255,100,0,0.3);border:2px solid #f60;color:#ffccaa
+    }
+    .status-critical {
+      background:rgba(255,0,0,0.4);border:2px solid red;color:#ffaaaa;
+      animation:pulse 2s infinite
+    }
+    @keyframes pulse {
+      0%,100%{box-shadow:0 0 25px rgba(255,0,0,0.6)}
+      50%{box-shadow:0 0 40px rgba(255,0,0,0.9)}
+    }
+    .details {
+      background:rgba(0,0,0,0.4);padding:20px;border-radius:10px;margin-top:20px
+    }
+    .detail-row {
+      display:flex;justify-content:space-between;padding:10px 0;
+      border-bottom:1px solid rgba(255,255,255,0.1)
+    }
+    .detail-row:last-child {border-bottom:none}
+    .detail-label {color:#aaa;font-weight:600}
+    .detail-value {color:#fff}
+    .error {
+      background:rgba(255,50,50,0.2);border:2px solid #f33;padding:20px;
+      border-radius:10px;color:#ffaaaa;display:none
+    }
+    .loading {text-align:center;padding:20px;color:#ffaa77;font-size:1.1em}
+    .info-box {
+      background:rgba(100,200,255,0.1);border:1px solid rgba(100,200,255,0.3);
+      padding:15px;border-radius:10px;margin-top:20px;font-size:0.9em;
+      color:#ccddff;line-height:1.6
+    }
+    .trap-warning {
+      background:rgba(255,0,0,0.2);border:3px solid #f00;padding:20px;
+      border-radius:15px;margin-top:20px;text-align:center;animation:trapPulse 2s infinite
+    }
+    .trap-warning .trap-title {
+      font-size:2em;font-weight:bold;color:#ff6666;margin-bottom:10px;
+      text-shadow:0 0 10px rgba(255,0,0,0.8)
+    }
+    .trap-warning .trap-message {
+      font-size:1.1em;color:#ffaaaa;line-height:1.6
+    }
+    @keyframes trapPulse {
+      0%,100%{border-color:#f00;box-shadow:0 0 20px rgba(255,0,0,0.6)}
+      50%{border-color:#f66;box-shadow:0 0 40px rgba(255,0,0,0.9)}
+    }
+    footer {
+      text-align:center;margin-top:50px;padding-top:20px;
+      border-top:1px solid rgba(255,255,255,0.1);color:#666;font-size:0.9em
+    }
+    footer a {color:#6cf;text-decoration:none}
+    footer a:hover {text-decoration:underline}
+  </style>
 </head>
 <body>
 
@@ -217,7 +216,9 @@ footer a:hover {text-decoration:underline}
 </footer>
 
 <script>
-const API_URL = 'https://systems.heatsense.workers.dev/api/system';
+const API_BASE = 'https://systems-test.heatsense.workers.dev/api';
+const API_SINGLE = `${API_BASE}/system`;
+const API_BATCH  = `${API_BASE}/systems`;
 
 document.getElementById('searchBtn').addEventListener('click', searchSystems);
 
@@ -249,38 +250,54 @@ async function searchSystems() {
   resultDiv.style.display = 'block';
 
   try {
-    const results = [];
-    for (const name of systemNames) {
-      try {
-        const url = `${API_URL}?name=${encodeURIComponent(name)}`;
-        const response = await fetch(url);
+    let results = [];
 
-        if (response.ok) {
-          const data = await response.json();
-          const s = data.system;
+    // Use batch endpoint when ≥ 2 systems (more efficient)
+    if (systemNames.length >= 2) {
+      const response = await fetch(API_BATCH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ names: systemNames })
+      });
 
-          // 🔥 NORMALIZATION LAYER (új worker → régi frontend struktúra)
-          const normalizedSystem = {
-            id: s.id,
-            name: s.name,
-            star_class: s.class,
-            temperature: s.temp,
-            radius_km: s.radius_km,
-            status: s.status,
-            coords: s.coords,
-            coldest_point: {
-              distance_au: s.coldest.au,
-              distance_ls: s.coldest.ls,
-              heat: s.coldest.heat
-            }
-          };
+      if (!response.ok) {
+        throw new Error(`Batch API error: ${response.status} ${response.statusText}`);
+      }
 
-          results.push({ name, system: normalizedSystem, model: data.model });
-        } else {
-          results.push({ name, error: 'Not found' });
+      const data = await response.json();
+
+      for (const item of (data.systems || [])) {
+        if (item.error) {
+          results.push({ name: item.name || 'Unknown', error: item.error });
+          continue;
         }
-      } catch (err) {
-        results.push({ name, error: err.message });
+
+        results.push({
+          name: item.name,
+          system: normalizeSystem(item),
+          model: data.model || 'arctangent-v1.0'
+        });
+      }
+    }
+    // Fallback to single lookup for 1 system (optional – could always use batch)
+    else {
+      const name = systemNames[0];
+      const url = `${API_SINGLE}?name=${encodeURIComponent(name)}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Single API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        results.push({ name, error: data.error });
+      } else if (data.system) {
+        results.push({
+          name,
+          system: normalizeSystem(data.system),
+          model: data.model || 'arctangent-v1.0'
+        });
       }
     }
 
@@ -289,18 +306,37 @@ async function searchSystems() {
     } else {
       displayMultipleResults(results);
     }
-  } catch (error) {
-    showError(error.message);
+  } catch (err) {
+    console.error('Search failed:', err);
+    showError(`Request failed: ${err.message}`);
   } finally {
     btn.disabled = false;
     btn.textContent = 'Check Heat';
   }
 }
 
+function normalizeSystem(s) {
+  return {
+    id: s.id,
+    name: s.name,
+    star_class: s.class || 'Unknown',
+    temperature: s.temp,
+    radius_km: s.radius_km,
+    status: s.status,
+    coords: s.coords,
+    coldest_point: {
+      distance_au: s.coldest?.au ?? 0,
+      distance_ls: s.coldest?.ls ?? 0,
+      heat: s.coldest?.heat ?? 0
+    }
+  };
+}
+
 function parseSystemInput(input) {
   const systems = new Set();
   let text = input;
 
+  // Strip HTML if pasted from somewhere rich
   const temp = document.createElement('div');
   temp.innerHTML = text;
   text = temp.textContent || temp.innerText || text;
@@ -333,9 +369,9 @@ function displayResult(system, model) {
   const isTrap = system.coldest_point.heat >= 85;
 
   const statusConfig = {
-    'SAFE': { class: 'status-safe', emoji: '✅' },
+    'SAFE':     { class: 'status-safe',     emoji: '✅' },
     'MODERATE': { class: 'status-moderate', emoji: '⚠️' },
-    'DANGEROUS': { class: 'status-dangerous', emoji: '🔥' },
+    'DANGEROUS':{ class: 'status-dangerous',emoji: '🔥' },
     'CRITICAL': { class: 'status-critical', emoji: '☠️' }
   };
 
@@ -431,9 +467,9 @@ function displayMultipleResults(results) {
     const isTrap = sys.coldest_point.heat >= 85;
 
     const statusConfig = {
-      'SAFE': { emoji: '✅' },
+      'SAFE':     { emoji: '✅' },
       'MODERATE': { emoji: '⚠️' },
-      'DANGEROUS': { emoji: '🔥' },
+      'DANGEROUS':{ emoji: '🔥' },
       'CRITICAL': { emoji: '☠️' }
     };
 
@@ -468,7 +504,7 @@ function showError(message) {
   errorDiv.style.display = 'block';
 }
 
-// paste handler + auto clean
+// Paste handler + auto clean
 document.getElementById('systemInput').addEventListener('paste', function(e) {
   e.preventDefault();
   const text = (e.clipboardData || window.clipboardData).getData('text');
