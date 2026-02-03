@@ -112,7 +112,7 @@ textarea {
   outline:none;box-shadow:var(--focus)
 }
 .result {
-  background:rgba(30,15,10,0.8);border:2px solid rgba(255,100,50,0.3);
+  background:rgba(30,15,10,0.8);border:none;
   border-radius:15px;padding:30px;display:none;animation:fadeIn 0.5s;
   overflow:hidden
 }
