@@ -304,8 +304,9 @@ export default {
           const npcList = (npcGates && npcGates[fromId]) ? npcGates[fromId] : [];
           const playerList = (playerGates && playerGates[fromId]) ? playerGates[fromId] : [];
 
-          const isNpcGate = Array.isArray(npcList) && npcList.indexOf(entry[0]) !== -1;
-          const isPlayerGate = Array.isArray(playerList) && playerList.indexOf(entry[0]) !== -1;
+          // normalize comparison to string IDs (npc/player maps use string keys/values)
+          const isNpcGate = Array.isArray(npcList) && npcList.indexOf(toId) !== -1;
+          const isPlayerGate = Array.isArray(playerList) && playerList.indexOf(toId) !== -1;
 
           if (isNpcGate || isPlayerGate) {
             gateType = isNpcGate ? 'npc' : 'player';
