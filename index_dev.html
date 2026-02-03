@@ -56,13 +56,13 @@ h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
   font-size:0.9em;color:#6cf
 }
 .danger-link-box {
-  display:block;margin:-20px auto 40px;max-width:600px;
+  display:block;margin:20px auto 40px;max-width:600px;
   background:rgba(255,100,50,0.1);border:2px solid rgba(255,100,50,0.3);
   border-radius:12px;text-align:center;text-decoration:none;
   color:#ff8844;font-size:1.15em;font-weight:600;padding:20px;
   box-shadow:0 0 20px rgba(255,100,50,0.3);
   animation:dangerPulse 3s ease-in-out infinite;
-  transition:all 0.3s;cursor:pointer
+  transition:all 0.3s;cursor:pointer;clear:both
 }
 .danger-link-box:hover {
   transform:translateY(-2px);
@@ -652,13 +652,13 @@ function parseSystemInput(input) {
 
 function displayResult(system, model) {
   const resultDiv = document.getElementById('result');
-  const isTrap = system.coldest_point.heat >= 85;
+  const isTrap = system.coldest_point.heat >= 85 || system.status === 'CRITICAL';
 
   const statusConfig = {
-    'SAFE': { class: 'status-safe', emoji: '✅' },
-    'MODERATE': { class: 'status-moderate', emoji: '⚠️' },
-    'DANGEROUS': { class: 'status-dangerous', emoji: '🔥' },
-    'CRITICAL': { class: 'status-critical', emoji: '☠️' }
+    'SAFE': { class: 'status-safe', emoji: '✅', label: 'Safe' },
+    'MODERATE': { class: 'status-moderate', emoji: '⚠️', label: 'Moderate' },
+    'DANGEROUS': { class: 'status-dangerous', emoji: '🔥', label: 'Dangerous' },
+    'CRITICAL': { class: 'status-critical', emoji: '☠️', label: 'Critical' }
   };
 
   const config = statusConfig[system.status] || statusConfig['SAFE'];
@@ -686,7 +686,7 @@ function displayResult(system, model) {
     </div>
     
     <div class="status-badge ${config.class}">
-      ${config.emoji} ${system.status}
+      ${config.emoji} ${config.label}
     </div>
     
     ${trapWarningHTML}
@@ -788,6 +788,13 @@ function displayMultipleResults(results) {
   // Check if ship is selected
   const hasShipData = selectedShip !== null;
 
+  const statusIcon = {
+    SAFE: '✅',
+    MODERATE: '⚠️',
+    DANGEROUS: '🔥',
+    CRITICAL: '☠️'
+  };
+
   // --- systems list (in input order) ---
   const systems = results
     .filter(r => !r.error)
@@ -812,12 +819,10 @@ const trapCount = results.filter(
 
   // --- HTML header ---
   let html = `
-    <h2>Route Heat Check</h2>
-
     ${
       !hasShipData
-        ? `<div style="margin:6px 0 10px;color:#aaa;font-size:0.9em">
-             ▸ Select ship to evaluate jump feasibility
+        ? `<div class="input-hint" style="margin:6px 0 10px">
+             💡 Tip: Select a ship to evaluate jump feasibility.
            </div>`
         : ''
     }
@@ -875,7 +880,8 @@ const trapCount = results.filter(
     // Normal system row
     const sys = result.system;
     const jump = jumpMap[sys.name];
-    const isTrap = sys.coldest_point.heat >= 85;
+    const isTrap = sys.coldest_point.heat >= 85 || sys.status === 'CRITICAL';
+    const statusEmoji = statusIcon[sys.status] || 'ℹ️';
 
     if (jump && jump.canJump !== null) {
       if (jump.canJump) {
@@ -911,7 +917,7 @@ const trapCount = results.filter(
         </td>
 
         <td data-label="Status">
-          ${sys.status}
+          ${statusEmoji} ${sys.status}
           ${isTrap ? '<span class="trap-indicator trap-yes">⚠️ TRAP!</span>' : ''}
         </td>
       </tr>
