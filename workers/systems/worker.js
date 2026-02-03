@@ -74,6 +74,43 @@ export default {
 
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
 
+    // Admin endpoints: upload or reload NPC gates in R2
+    // Secure with header 'x-admin-token' matching env.ADMIN_TOKEN
+    if (url.pathname === '/api/admin/upload-npc-gates' && request.method === 'POST') {
+      const token = request.headers.get('x-admin-token');
+      if (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) {
+        return Response.json({ error: 'Forbidden' }, { status: 403, headers: cors });
+      }
+
+      const body = await request.json().catch(() => null);
+      if (!body) return Response.json({ error: 'Missing body' }, { status: 400, headers: cors });
+
+      try {
+        await env.R2_BUCKET.put('npc_gates.json', JSON.stringify(body));
+        // clear cached copy so subsequent requests see the update
+        cachedNpcGates = null;
+        // pre-load to validate
+        await loadNpcGates(env);
+        return Response.json({ ok: true }, { headers: cors });
+      } catch (err) {
+        return Response.json({ error: 'R2 write failed: ' + err.message }, { status: 500, headers: cors });
+      }
+    }
+
+    if (url.pathname === '/api/admin/reload-gates' && request.method === 'POST') {
+      const token = request.headers.get('x-admin-token');
+      if (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) {
+        return Response.json({ error: 'Forbidden' }, { status: 403, headers: cors });
+      }
+      cachedNpcGates = null;
+      try {
+        await loadNpcGates(env);
+        return Response.json({ ok: true }, { headers: cors });
+      } catch (err) {
+        return Response.json({ error: 'Reload failed: ' + err.message }, { status: 500, headers: cors });
+      }
+    }
+
     // Health check
     if (url.pathname === '/api/health') {
       return Response.json({ status: 'ok', model: V, mae: M }, { headers: cors });
