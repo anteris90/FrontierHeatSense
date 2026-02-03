@@ -244,51 +244,67 @@ async function searchSystems() {
 }
 
 function parseSystemInput(input) {
-  let text = input;
-
+  // We'll parse the input as HTML (if any) so we can capture <a href="showinfo:..."> anchors
+  // and their IDs, while also extracting plain-text system names in order.
   const temp = document.createElement('div');
-  temp.innerHTML = text;
-  text = temp.textContent || temp.innerText || text;
+  temp.innerHTML = input || '';
 
-  // 1️⃣ Drop obvious route summary lines (e.g. "FROM → TO") so they
-  //    don't become parsed system names. Also remove common noise like
-  //    parentheses, HTML, Gate annotations and numeric measurements.
-  text = text
-    .split('\n')
-    .filter(line =>
-      !/^[A-Z0-9]{2,5}-[A-Z0-9]{2,5}\s*→\s*[A-Z0-9]{2,5}-[A-Z0-9]{2,5}$/i
-        .test(line.trim())
-    )
-    .join('\n')
-    .replace(/→/g, ' ')
-    .replace(/\|/g, ' ')
-    .replace(/\*/g, ' ')
-    .replace(/Gate:|SmartGate:|Jump:/gi, ' ')
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/\[[^\]]*\]/g, ' ')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/[\d]+\.[\d]+/g, ' ')
-    .replace(/\s+/g, ' ');
+  const nameRegex = /\b[A-Z0-9]{2,4}-[A-Z0-9]{2,4}\b/gi;
+  const results = [];
 
-  // 2️⃣ Normalize text and extract systems IN ORDER (preserve first occurrence)
-  //    This step decomposes Unicode, strips diacritics and normalizes dash
-  //    characters so the regex reliably matches EVE-style system names.
-  text = text.normalize('NFKD').replace(/\p{M}/gu, '');
-  text = text.replace(/[\u2012\u2013\u2014\u2015\u2212]/g, '-');
-
-  const regex = /\b[A-Z0-9]{2,4}-[A-Z0-9]{2,4}\b/gi;
-  const matches = text.match(regex);
-
-  const systems = [];
-
-  if (matches) {
+  function pushNameRaw(text, id = null) {
+    if (!text) return;
+    const matches = String(text).match(nameRegex);
+    if (!matches) return;
     for (const m of matches) {
-      const name = normalizeSystemName(m);
-      if (!systems.includes(name)) {
-        systems.push(name);
+      results.push({ name: normalizeSystemName(m), id: id ? String(id) : null });
+    }
+  }
+
+  // Walk child nodes in order to preserve sequence of anchors vs plain text
+  function walk(node) {
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        pushNameRaw(child.textContent, null);
+      } else if (child.nodeType === Node.ELEMENT_NODE && child.tagName === 'A') {
+        const inner = child.textContent || '';
+        const href = child.getAttribute('href') || '';
+        // try to extract numeric system id from href (e.g. showinfo:5//30004088)
+        const idMatch = href.match(/(\d{6,9})/);
+        const id = idMatch ? idMatch[1] : null;
+        // anchors may contain one or more system-like tokens; push those with the extracted id
+        const innerMatches = inner.match(nameRegex);
+        if (innerMatches) {
+          for (const m of innerMatches) results.push({ name: normalizeSystemName(m), id: id ? String(id) : null });
+        } else {
+          // fallback: attempt to parse any name-like token inside innerText
+          pushNameRaw(inner, id);
+        }
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        walk(child);
       }
     }
   }
+
+  walk(temp);
+
+  // As a final pass also look at any leftover plain text (when input wasn't HTML)
+  if (results.length === 0) {
+    pushNameRaw(input, null);
+  }
+
+  // Deduplicate while preserving order
+  const systems = [];
+  const ids = [];
+  for (const r of results) {
+    if (!systems.includes(r.name)) {
+      systems.push(r.name);
+      ids.push(r.id || null);
+    }
+  }
+
+  // Expose last parsed IDs for the caller to use when constructing player gate mappings
+  window.__lastParsedSystemIds = ids;
 
   return systems;
 }
@@ -451,6 +467,27 @@ async function displayMultipleResults(results) {
     const namesForApi = systems.map(s => normalizeSystemName(s.name));
 
     const body = { names: namesForApi };
+    // If the user pasted EF-Map anchors, `parseSystemInput` exposes numeric IDs
+    // in `window.__lastParsedSystemIds`. Use them to infer player gate pairs
+    // between consecutive systems (fromId -> [toId]) and send to server.
+    const parsedIds = window.__lastParsedSystemIds || [];
+    if (Array.isArray(parsedIds) && parsedIds.length >= 2) {
+      const inferred = Object.create(null);
+      for (let i = 0; i < Math.min(parsedIds.length, namesForApi.length) - 1; i++) {
+        const a = parsedIds[i];
+        const b = parsedIds[i + 1];
+        if (a && b) {
+          const sa = String(a);
+          const sb = String(b);
+          inferred[sa] = inferred[sa] || [];
+          if (inferred[sa].indexOf(sb) === -1) inferred[sa].push(sb);
+        }
+      }
+      if (Object.keys(inferred).length) {
+        body.playerGates = inferred;
+      }
+    }
+
     // Try to auto-resolve player gates in the frontend if a World API is provided
     // Use window.PLAYER_GATE_API (set in page or by deploy) to allow client-side resolution.
     async function resolvePlayerGatesClient(names) {
@@ -537,9 +574,10 @@ async function displayMultipleResults(results) {
       return tmp;
     }
 
-    // Attempt client-side resolution if configured; otherwise instruct backend to resolve
+    // Attempt client-side resolution if configured and we don't already have inferred playerGates;
+    // otherwise instruct backend to resolve
     let resolvedPlayerGates = null;
-    if (window.PLAYER_GATE_API) {
+    if (!body.playerGates && window.PLAYER_GATE_API) {
       try {
         srStatus.textContent = 'Resolving player gates (client)...';
         resolvedPlayerGates = await resolvePlayerGatesClient(namesForApi);
