@@ -622,12 +622,13 @@ function displayMultipleResults(results) {
 const routeJumps = calculateRouteJumps(systems);
 
 
-  const jumpMap = mapRouteJumpsBySystem(routeJumps);
 
-  // --- meta ---
-  const resultDiv = document.getElementById('result');
-  const successCount = results.filter(r => !r.error).length;
-  const trapCount = results.filter(
+const jumpMap = mapRouteJumpsBySystem(routeJumps);
+
+// --- meta ---
+const resultDiv = document.getElementById('result');
+const successCount = results.filter(r => !r.error).length;
+const trapCount = results.filter(
     r => !r.error && r.system?.coldest_point?.heat >= 85
   ).length;
 
@@ -969,6 +970,13 @@ function calculateRouteJumps(systems) {
   return results;
 }
 
+function mapRouteJumpsBySystem(routeJumps) {
+  const map = {};
+  routeJumps.forEach(j => {
+    map[j.from] = j;
+  });
+  return map;
+}
 
 
 
