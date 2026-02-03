@@ -321,6 +321,27 @@ footer a:hover {text-decoration:underline}
 /* remove default dropdown arrow on some browsers (keeps native on others) */
 .ship-selector-compact select::-ms-expand { display: none; }
 
+/* Style native option list where supported (keeps accessibility + native keyboard) */
+.ship-selector-compact option,
+.ship-selector-compact select option {
+  background-color: rgba(20,12,10,0.95);
+  color: #ffddcc;
+}
+
+.ship-selector-compact option:hover,
+.ship-selector-compact select option:hover {
+  background-color: rgba(255,136,0,0.12);
+  color: #fff;
+}
+
+/* Improve closed select appearance and ensure contrast for placeholder */
+.ship-selector-compact select {
+  color: #ffddcc;
+}
+.ship-selector-compact select option[hidden] {
+  color: #d9b7a0;
+}
+
 .ship-selector-compact input[type="range"] {
   width: 100%;
   margin-top: 8px;
