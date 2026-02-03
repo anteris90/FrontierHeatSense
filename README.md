@@ -268,6 +268,16 @@ FrontierHeatSense/
 3. Update `js/app.js` for functionality
 4. Test locally, then deploy to production
 
+**Stamping version before deploy**
+
+If you want the site to show the git short hash in the footer and use it for cache-busting, run:
+
+```powershell
+node scripts/stamp-version.js
+```
+
+Call this in your CI/deploy pipeline so `index.html` is updated with the current commit hash.
+
 **Note:** `index_dev.html` is a backup of the original inline version. All active development happens in `index.html`.
 
 ---

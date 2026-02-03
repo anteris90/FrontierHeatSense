@@ -26,6 +26,15 @@
  */
 
 let lastRouteResults = null;
+// Read app version from meta tag and expose in footer
+try {
+  const meta = document.querySelector('meta[name="app-version"]');
+  const v = (meta && meta.content) ? meta.content : 'v0.0.0';
+  const el = document.getElementById('appVersion');
+  if (el) el.textContent = v;
+} catch (e) {
+  // ignore in non-browser environments
+}
 /* ==========================================
   Configuration / Constants
   - `API_BASE` can be overridden from console for local/dev testing

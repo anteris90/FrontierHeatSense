@@ -1,0 +1,35 @@
+name: Stamp and Commit Version
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  stamp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Ensure this isn't a stamp commit
+        run: |
+          last_msg="$(git log -1 --pretty=%B)"
+          echo "Last commit message: $last_msg"
+          if echo "$last_msg" | grep -q "chore: stamp version"; then
+            echo "Last commit was a stamp commit; skipping stamp to avoid loop."
+            exit 0
+          fi
+
+      - name: Run stamp-and-commit
+        run: |
+          node scripts/stamp-and-commit.js --push
+        env:
+          CI: true

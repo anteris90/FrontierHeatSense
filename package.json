@@ -1,0 +1,9 @@
+{
+  "name": "frontier-heatsense",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "stamp": "node scripts/stamp-version.js",
+    "stamp:commit": "node scripts/stamp-and-commit.js"
+  }
+}
