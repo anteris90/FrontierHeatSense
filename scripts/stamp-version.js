@@ -21,8 +21,11 @@ function stamp() {
   const hash = getGitShortHash() || 'dev';
   let html = fs.readFileSync(indexPath, 'utf8');
 
-  // Replace meta tag content
-  html = html.replace(/<meta name="app-version" content="[^"]*">/, `<meta name="app-version" content="v0.0.0-${hash}">`);
+  // Desired app label prefix and version
+  const label = `EF-HeatSense Arctangent v2.0-${hash}`;
+
+  // Replace meta tag content with full label including version+hash
+  html = html.replace(/<meta name="app-version" content="[^"]*">/, `<meta name="app-version" content="${label}">`);
 
   // Replace script cache-bust query for js/app.js?v=
   html = html.replace(/<script src="js\/app\.js\?v=[^\"]+"><\/script>/, `<script src="js/app.js?v=${hash}"></script>`);
