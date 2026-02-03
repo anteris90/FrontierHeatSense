@@ -601,17 +601,43 @@ function renderRouteJumps(routeJumps) {
 }
 
 function displayMultipleResults(results) {
+  const systems = results
+    .filter(r => !r.error)
+    .map(r => r.system);
+
+  const routeJumps = calculateRouteJumps(systems);
+  const jumpMap = mapRouteJumpsBySystem(routeJumps);
+
   const resultDiv = document.getElementById('result');
   const successCount = results.filter(r => !r.error).length;
-  const trapCount = results.filter(r => !r.error && r.system?.coldest_point?.heat >= 85).length;
+  const trapCount = results.filter(
+    r => !r.error && r.system?.coldest_point?.heat >= 85
+  ).length;
+
+  const hullMass = Number(hullMassBase.value);
+  const totalHullMass = Number(totalHullMass.value);
+  const C = Number(baseCInput.value);
+
+  const hasShipData = hullMass > 0 && totalHullMass > 0 && C > 0;
 
   let html = `
     <h2>Route Heat Check</h2>
+
+    ${
+      !hasShipData
+        ? `<div style="margin:6px 0 10px;color:#aaa;font-size:0.9em">
+             ▸ Select ship to evaluate jump feasibility
+           </div>`
+        : ''
+    }
+
     <p style="text-align:center;margin:15px 0;font-size:1.1em;color:#ffaa77">
       ${successCount} / ${results.length} systems found
-      ${trapCount > 0 ? `| <span style="color:#ff6666">⚠️ ${trapCount} TRAP(s) detected!</span>` : ''}
+      ${trapCount > 0
+        ? `| <span style="color:#ff6666">⚠️ ${trapCount} TRAP(s) detected!</span>`
+        : ''}
     </p>
-    
+
     <table class="route-table">
       <thead>
         <tr>
@@ -619,6 +645,9 @@ function displayMultipleResults(results) {
           <th>Star</th>
           <th>Heat</th>
           <th>Status</th>
+          <th>Jump Heat</th>
+          <th>Total After</th>
+          <th>Jump</th>
         </tr>
       </thead>
       <tbody>
@@ -626,37 +655,62 @@ function displayMultipleResults(results) {
 
   for (const result of results) {
     if (result.error) {
+      const jump = jumpMap[result.name];
+
       html += `
         <tr>
           <td>${result.name}</td>
           <td colspan="3" style="color:#ff6666">❌ ${result.error}</td>
+          <td>${jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A'}</td>
+          <td>${jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'}</td>
+          <td style="color:#888">N/A</td>
         </tr>
       `;
       continue;
     }
 
     const sys = result.system;
+    const jump = jumpMap[sys.name];
     const isTrap = sys.coldest_point.heat >= 85;
 
-    const statusConfig = {
-      'SAFE': { emoji: '✅' },
-      'MODERATE': { emoji: '⚠️' },
-      'DANGEROUS': { emoji: '🔥' },
-      'CRITICAL': { emoji: '☠️' }
-    };
+    let jumpStatus = 'N/A';
+    let jumpColor = '#888';
 
-    const config = statusConfig[sys.status] || statusConfig['SAFE'];
+    if (jump && jump.canJump !== null) {
+      if (jump.canJump) {
+        jumpStatus = 'OK';
+        jumpColor = '#7CFF7C';
+      } else {
+        jumpStatus = 'FAIL';
+        jumpColor = '#FF6B6B';
+      }
+    }
 
     html += `
       <tr>
         <td><strong>${sys.name}</strong></td>
         <td>${sys.star_class} (${sys.temperature}K)</td>
-        <td class="heat-cell" style="color:${sys.coldest_point.heat >= 70 ? '#ff6666' : sys.coldest_point.heat >= 30 ? '#ffaa66' : '#aaffaa'}">
+
+        <td class="heat-cell" style="color:${
+          sys.coldest_point.heat >= 70
+            ? '#ff6666'
+            : sys.coldest_point.heat >= 30
+              ? '#ffaa66'
+              : '#aaffaa'
+        }">
           ${sys.coldest_point.heat.toFixed(1)}
         </td>
+
         <td>
-          ${config.emoji} ${sys.status}
+          ${sys.status}
           ${isTrap ? '<span class="trap-indicator trap-yes">⚠️ TRAP!</span>' : ''}
+        </td>
+
+        <td>${jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A'}</td>
+        <td>${jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'}</td>
+
+        <td style="font-weight:bold;color:${jumpColor}">
+          ${jumpStatus}
         </td>
       </tr>
     `;
@@ -667,6 +721,7 @@ function displayMultipleResults(results) {
   resultDiv.innerHTML = html;
   resultDiv.style.display = 'block';
 }
+
 
 function showError(message) {
   const errorDiv = document.getElementById('error');
@@ -873,7 +928,14 @@ let jump = {
   return results;
 }
 
-console.log('render fn:', typeof renderRouteJumps);
+function mapRouteJumpsBySystem(routeJumps) {
+  const map = {};
+  routeJumps.forEach(j => {
+    map[j.from] = j;
+  });
+  return map;
+}
+
 
 
 
