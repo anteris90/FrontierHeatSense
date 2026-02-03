@@ -426,6 +426,10 @@ async function searchSystems() {
       displayResult(results[0].system, results[0].model);
     } else {
       displayMultipleResults(results);
+      const shipHullMass = Number(hullMassBase.value);
+      const shipTotalHullMass = Number(totalHullMass.value);
+      const shipC = Number(baseCInput.value);
+
     }
   } catch (error) {
     console.error('Search error:', error);
@@ -601,29 +605,38 @@ function renderRouteJumps(routeJumps) {
 }
 
 function displayMultipleResults(results) {
+  // --- ship numeric values (ELSŐNEK!) ---
+  const shipHullMass = Number(hullMassBase.value);
+  const shipTotalHullMass = Number(totalHullMass.value);
+  const shipC = Number(baseCInput.value);
+
+  const hasShipData =
+    shipHullMass > 0 &&
+    shipTotalHullMass > 0 &&
+    shipC > 0;
+
+  // --- systems list ---
   const systems = results
     .filter(r => !r.error)
     .map(r => r.system);
 
+  // --- route jump calculation ---
   const routeJumps = calculateRouteJumps(systems, {
-    hullMass: Number(hullMassBase.value),
-    totalHullMass: Number(totalHullMass.value),
-    C: Number(baseCInput.value)
+    hullMass: shipHullMass,
+    totalHullMass: shipTotalHullMass,
+    C: shipC
   });
+
   const jumpMap = mapRouteJumpsBySystem(routeJumps);
 
+  // --- meta ---
   const resultDiv = document.getElementById('result');
   const successCount = results.filter(r => !r.error).length;
   const trapCount = results.filter(
     r => !r.error && r.system?.coldest_point?.heat >= 85
   ).length;
 
-  const hullMass = Number(hullMassBase.value);
-  const totalHullMass = Number(totalHullMass.value);
-  const C = Number(baseCInput.value);
-
-  const hasShipData = hullMass > 0 && totalHullMass > 0 && C > 0;
-
+  // --- HTML header ---
   let html = `
     <h2>Route Heat Check</h2>
 
@@ -638,7 +651,7 @@ function displayMultipleResults(results) {
     <p style="text-align:center;margin:15px 0;font-size:1.1em;color:#ffaa77">
       ${successCount} / ${results.length} systems found
       ${trapCount > 0
-        ? `| <span style="color:#ff6666">⚠️ ${trapCount} TRAP(s) detected!</span>`
+        ? ` | <span style="color:#ff6666">⚠️ ${trapCount} TRAP(s) detected!</span>`
         : ''}
     </p>
 
@@ -657,6 +670,7 @@ function displayMultipleResults(results) {
       <tbody>
   `;
 
+  // --- rows ---
   for (const result of results) {
     if (result.error) {
       const jump = jumpMap[result.name];
@@ -725,6 +739,7 @@ function displayMultipleResults(results) {
   resultDiv.innerHTML = html;
   resultDiv.style.display = 'block';
 }
+
 
 
 function showError(message) {
