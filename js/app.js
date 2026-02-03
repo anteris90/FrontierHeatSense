@@ -470,7 +470,14 @@ async function displayMultipleResults(results) {
     // If the user pasted EF-Map anchors, `parseSystemInput` exposes numeric IDs
     // in `window.__lastParsedSystemIds`. Use them to infer player gate pairs
     // between consecutive systems (fromId -> [toId]) and send to server.
-    const parsedIds = window.__lastParsedSystemIds || [];
+    let parsedIds = Array.isArray(window.__lastParsedSystemIds) ? window.__lastParsedSystemIds.slice() : [];
+    // If no showinfo IDs were parsed from pasted HTML, fall back to the
+    // resolved system IDs we already have in `systems` (from the API batch response).
+    if ((!parsedIds || parsedIds.length < 2) && Array.isArray(systems) && systems.length >= 2) {
+      const sysIds = systems.map(s => s.id).filter(Boolean).map(String);
+      if (sysIds.length >= 2) parsedIds = sysIds;
+    }
+
     if (Array.isArray(parsedIds) && parsedIds.length >= 2) {
       const inferred = Object.create(null);
       for (let i = 0; i < Math.min(parsedIds.length, namesForApi.length) - 1; i++) {
