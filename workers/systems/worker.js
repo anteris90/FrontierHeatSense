@@ -4,6 +4,48 @@ const M = 1.45;
 const METERS_PER_LY = 9.46073e15;
 
 let cachedData = null;
+let cachedNpcGates = null;
+
+async function loadNpcGates(env) {
+  if (cachedNpcGates) return cachedNpcGates;
+
+  try {
+    const obj = await env.R2_BUCKET.get('npc_gates.json');
+    if (!obj) {
+      cachedNpcGates = {};
+      return cachedNpcGates;
+    }
+    const txt = await obj.text();
+    const raw = JSON.parse(txt);
+
+    const map = Object.create(null);
+
+    if (Array.isArray(raw)) {
+      for (const item of raw) {
+        let a, b;
+        if (Array.isArray(item) && item.length >= 2) { a = item[0]; b = item[1]; }
+        else if (item && typeof item === 'object' && 'from' in item && 'to' in item) { a = item.from; b = item.to; }
+        if (a == null || b == null) continue;
+        map[a] = map[a] || new Set(); map[a].add(b);
+        map[b] = map[b] || new Set(); map[b].add(a);
+      }
+    } else if (raw && typeof raw === 'object') {
+      for (const k of Object.keys(raw)) {
+        const arr = Array.isArray(raw[k]) ? raw[k] : [];
+        map[k] = map[k] || new Set();
+        for (const v of arr) map[k].add(v);
+      }
+    }
+
+    const out = Object.create(null);
+    for (const k of Object.keys(map)) out[k] = Array.from(map[k]);
+    cachedNpcGates = out;
+    return cachedNpcGates;
+  } catch (err) {
+    cachedNpcGates = {};
+    return cachedNpcGates;
+  }
+}
 
 async function loadData(env) {
   if (cachedData) return cachedData;
@@ -140,6 +182,54 @@ export default {
         return Response.json({ error: 'Need at least 2 systems' }, { status: 400, headers: cors });
       }
 
+      // Load NPC gates map (optional). Format supported: array of pairs or mapping id -> [ids]
+      const npcGates = await loadNpcGates(env).catch(() => ({}));
+
+      // Player gates: prefer request-provided `playerGates` (array of pairs or mapping).
+      // If not provided and env.PLAYER_GATE_API exists, attempt to fetch.
+      let playerGates = {};
+      if (body.playerGates) {
+        const raw = body.playerGates;
+        if (Array.isArray(raw)) {
+          const tmp = Object.create(null);
+          for (const it of raw) {
+            let a, b;
+            if (Array.isArray(it) && it.length >= 2) { a = it[0]; b = it[1]; }
+            else if (it && typeof it === 'object' && 'from' in it && 'to' in it) { a = it.from; b = it.to; }
+            if (a == null || b == null) continue;
+            tmp[a] = tmp[a] || [];
+            tmp[a].push(b);
+            tmp[b] = tmp[b] || [];
+            tmp[b].push(a);
+          }
+          playerGates = tmp;
+        } else if (raw && typeof raw === 'object') playerGates = raw;
+      } else if (env.PLAYER_GATE_API) {
+        try {
+          const ids = names.map(n => (D[n.toUpperCase().trim()] ? D[n.toUpperCase().trim()][0] : null)).filter(Boolean);
+          const resp = await fetch(env.PLAYER_GATE_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+          if (resp.ok) {
+            const pg = await resp.json().catch(() => ({}));
+            if (Array.isArray(pg)) {
+              const tmp = Object.create(null);
+              for (const it of pg) {
+                let a, b;
+                if (Array.isArray(it) && it.length >= 2) { a = it[0]; b = it[1]; }
+                else if (it && typeof it === 'object' && 'from' in it && 'to' in it) { a = it.from; b = it.to; }
+                if (a == null || b == null) continue;
+                tmp[a] = tmp[a] || [];
+                tmp[a].push(b);
+                tmp[b] = tmp[b] || [];
+                tmp[b].push(a);
+              }
+              playerGates = tmp;
+            } else if (pg && typeof pg === 'object') playerGates = pg;
+          }
+        } catch (err) {
+          playerGates = {};
+        }
+      }
+
       // Hajó paraméterek (default értékekkel)
       const totalMass   = body.totalMass   || 79598125;
       const hullMass    = body.hullMass    || 74655480;
@@ -169,19 +259,37 @@ export default {
         let totalAfter = lowHeat;
         let canJumpThis = true;
 
+        let gateType = null;
         if (i > 0) {  // ugrás az előzőtől ide
-          const dx = entry[8] - prevEntry[8];
-          const dy = entry[9] - prevEntry[9];
-          const dz = entry[10] - prevEntry[10];
-          const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
-          const distLY = distM / METERS_PER_LY;
-          totalLY += distLY;
+          const fromId = String(prevEntry[0]);
+          const toId = String(entry[0]);
 
-          jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
-          totalAfter = lowHeat + jumpHeatGen;
-          canJumpThis = totalAfter <= 150;
+          const npcList = (npcGates && npcGates[fromId]) ? npcGates[fromId] : [];
+          const playerList = (playerGates && playerGates[fromId]) ? playerGates[fromId] : [];
 
-          if (!canJumpThis) canComplete = false;
+          const isNpcGate = Array.isArray(npcList) && npcList.indexOf(entry[0]) !== -1;
+          const isPlayerGate = Array.isArray(playerList) && playerList.indexOf(entry[0]) !== -1;
+
+          if (isNpcGate || isPlayerGate) {
+            gateType = isNpcGate ? 'npc' : 'player';
+            jumpHeatGen = 0;
+            totalAfter = lowHeat;
+            canJumpThis = true;
+            // do not add to totalLY for gate jumps
+          } else {
+            const dx = entry[8] - prevEntry[8];
+            const dy = entry[9] - prevEntry[9];
+            const dz = entry[10] - prevEntry[10];
+            const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            const distLY = distM / METERS_PER_LY;
+            totalLY += distLY;
+
+            jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
+            totalAfter = lowHeat + jumpHeatGen;
+            canJumpThis = totalAfter <= 150;
+
+            if (!canJumpThis) canComplete = false;
+          }
         }
 
         routeData.push({
@@ -190,7 +298,8 @@ export default {
           status: ['SAFE', 'MODERATE', 'DANGEROUS', 'CRITICAL'][{ S: 0, M: 1, D: 2, C: 3 }[st] || 0],
           jump_heat_gen: jumpHeatGen.toFixed(2),
           total_after_jump: totalAfter.toFixed(2),
-          can_jump: canJumpThis
+          can_jump: canJumpThis,
+          gate: gateType
         });
 
         prevEntry = entry;
