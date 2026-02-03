@@ -347,6 +347,53 @@ footer a:hover {text-decoration:underline}
   margin-top: 8px;
 }
 
+/* Themed range slider for the skill control */
+#skillSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  background: linear-gradient(90deg, rgba(255,136,68,0.12), rgba(255,80,80,0.06));
+  border-radius: 8px;
+  outline: none;
+  transition: box-shadow 0.15s ease;
+  margin-top: 8px;
+}
+#skillSlider:focus { box-shadow: var(--focus); }
+
+/* WebKit track/thumb */
+#skillSlider::-webkit-slider-runnable-track {
+  height: 10px;
+  background: linear-gradient(90deg,#3b241b,#23120f);
+  border-radius: 8px;
+}
+#skillSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid rgba(30,15,10,0.6);
+  box-shadow: 0 2px 8px rgba(255,136,68,0.25);
+}
+
+/* Firefox */
+#skillSlider::-moz-range-track {
+  height: 10px;
+  background: linear-gradient(90deg,#3b241b,#23120f);
+  border-radius: 8px;
+}
+#skillSlider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid rgba(30,15,10,0.6);
+  box-shadow: 0 2px 8px rgba(255,136,68,0.25);
+}
+
 .ship-details-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
