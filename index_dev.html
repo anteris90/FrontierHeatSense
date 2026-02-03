@@ -14,15 +14,38 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Frontier HeatSense: check system heat, trap status, and jump feasibility with a fast, accessible UI.">
+<meta name="theme-color" content="#120808">
+<meta name="color-scheme" content="dark">
 <title>EF - HeatSense</title>
 <style>
 * {margin:0;padding:0;box-sizing:border-box}
+:root {
+  color-scheme: dark;
+  --bg: #120808;
+  --bg-2: #1a0a0a;
+  --panel: rgba(25,12,10,0.85);
+  --accent: #ff8844;
+  --accent-2: #ffaa77;
+  --info: #6cf;
+  --text: #fff;
+  --muted: #aa8866;
+  --border: rgba(255,100,50,0.35);
+  --shadow: 0 10px 30px rgba(0,0,0,0.35);
+  --radius: 14px;
+  --focus: 0 0 0 3px rgba(255,120,60,0.4);
+}
 body {
   font-family:'Segoe UI',system-ui,sans-serif;
-  background:linear-gradient(135deg,#0a0505 0%,#1a0a0a 50%,#0f0505 100%);
-  min-height:100vh;color:#fff;padding:20px
+  background:linear-gradient(135deg,var(--bg) 0%,var(--bg-2) 50%,#0f0505 100%);
+  min-height:100vh;color:var(--text);padding:20px
 }
-.container {max-width:800px;margin:0 auto;padding:40px 20px}
+.skip-link {
+  position:absolute;left:-999px;top:10px;background:#000;color:#fff;
+  padding:10px 14px;border-radius:8px;z-index:1000
+}
+.skip-link:focus {left:10px;box-shadow:var(--focus)}
+.container {max-width:900px;margin:0 auto;padding:40px 20px}
 header {text-align:center;margin-bottom:40px}
 h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
 .subtitle {color:#aa8866;font-size:1.1em}
@@ -51,15 +74,30 @@ h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
   50%{box-shadow:0 0 30px rgba(255,50,0,0.6);border-color:rgba(255,50,0,0.5)}
 }
 .search-section {
-  background:rgba(255,100,50,0.1);border:2px solid rgba(255,100,50,0.3);
-  border-radius:15px;padding:30px;margin-bottom:30px
+  background:var(--panel);border:2px solid var(--border);
+  border-radius:var(--radius);padding:30px;margin-bottom:30px;
+  box-shadow:var(--shadow)
 }
 .input-group {margin-bottom:20px}
 label {display:block;margin-bottom:8px;color:#ffaa77;font-weight:600}
 textarea {
-  width:100%;padding:15px;font-size:1.1em;border:2px solid rgba(255,100,50,0.3);
-  border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;transition:all 0.3s;
+  width:100%;padding:15px;font-size:1.05em;border:2px solid rgba(255,100,50,0.3);
+  border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;transition:all 0.2s;
   font-family:inherit;resize:vertical
+}
+.input-hint {margin-top:8px;font-size:0.85em;color:var(--muted)}
+.input-hint a {color:var(--info);text-decoration:none}
+.input-hint a:hover {text-decoration:underline}
+.field-row {display:flex;gap:16px;flex-wrap:wrap}
+.field-row > * {flex:1 1 260px}
+.card {
+  background:rgba(15,8,6,0.6);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:12px;padding:16px
+}
+.sr-only {
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);border:0
 }
 .btn {
   width:100%;padding:15px;font-size:1.2em;font-weight:bold;
@@ -68,6 +106,9 @@ textarea {
 }
 .btn:hover:not(:disabled) {transform:translateY(-2px);box-shadow:0 6px 25px rgba(255,100,0,0.6)}
 .btn:disabled {opacity:0.5;cursor:not-allowed}
+.btn:focus-visible, textarea:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible {
+  outline:none;box-shadow:var(--focus)
+}
 .result {
   background:rgba(30,15,10,0.8);border:2px solid rgba(255,100,50,0.3);
   border-radius:15px;padding:30px;display:none;animation:fadeIn 0.5s;
@@ -290,7 +331,9 @@ footer a:hover {text-decoration:underline}
 </head>
 <body>
 
-<div class="container">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<main id="main" class="container" role="main">
   <header>
     <h1>Frontier :: HeatSense</h1>
     <div class="subtitle">System Heat Calculator</div>
@@ -299,7 +342,8 @@ footer a:hover {text-decoration:underline}
     </div>
   </header>
 
-  <div class="search-section">
+  <section class="search-section" aria-labelledby="search-title">
+    <div class="sr-only" id="search-title">HeatSense search</div>
     <div class="input-group">
       <label for="systemInput">System Names (one or multiple):</label>
       <textarea
@@ -311,15 +355,16 @@ footer a:hover {text-decoration:underline}
     - Route paste: Copy from EF-Map or evedataco.re"
         rows="6"
         autocomplete="off"
+        aria-describedby="systemInputHint"
       ></textarea>
-      <div style="margin-top:8px;font-size:0.85em;color:#aa8866">
-        💡 Tip: Paste route from <a href="https://ef-map.com/" target="_blank" style="color:#6cf;text-decoration:none">EF-Map by Lacal</a> - HTML formatting will be auto-cleaned
+      <div id="systemInputHint" class="input-hint">
+        💡 Tip: Paste route from <a href="https://ef-map.com/" target="_blank" rel="noreferrer">EF-Map by Lacal</a> — HTML formatting will be auto-cleaned.
       </div>
     </div>
 
     <!-- Compact Ship Selector -->
     <div class="ship-selector-compact">
-      <label for="shipSelect">🚀 Ship (optional - for jump calculations):</label>
+      <label for="shipSelect">🚀 Ship (optional — for jump calculations):</label>
       <select id="shipSelect">
         <option value="">— No ship selected —</option>
       </select>
@@ -351,13 +396,12 @@ footer a:hover {text-decoration:underline}
       </div>
     </div>
 
-    <button class="btn" id="searchBtn">Check Heat</button>
-  </div>
+    <button class="btn" id="searchBtn" type="button">Check Heat</button>
+  </section>
 
-
-  <div id="result" class="result"></div>
-  <div id="error" class="error"></div>
-</div>
+  <div id="srStatus" class="sr-only" role="status" aria-live="polite"></div>
+  <div id="result" class="result" role="region" aria-live="polite" aria-label="HeatSense results" tabindex="-1"></div>
+  <div id="error" class="error" role="alert" aria-live="assertive" tabindex="-1"></div>
 
 <a href="dangerous-systems.html" class="danger-link-box">
   ⚠️ View High-Heat (85+) & TRAP Systems (90+) ⚠️
@@ -367,9 +411,11 @@ footer a:hover {text-decoration:underline}
   <p>
     EF-HeatSense Arctangent v2.0 |
     © Anteris |
-    Model by <a href="https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model" target="_blank">Ergod</a>
+    Model by <a href="https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model" target="_blank" rel="noreferrer">Ergod</a>
   </p>
 </footer>
+
+</main>
 
 <script>
 let lastRouteResults = null;
@@ -418,9 +464,11 @@ async function searchSystems() {
   const btn = document.getElementById('searchBtn');
   const resultDiv = document.getElementById('result');
   const errorDiv = document.getElementById('error');
+  const srStatus = document.getElementById('srStatus');
 
   resultDiv.style.display = 'none';
   errorDiv.style.display = 'none';
+  srStatus.textContent = '';
 
   if (!input) {
     showError('Please enter at least one system name');
@@ -439,6 +487,7 @@ async function searchSystems() {
   btn.textContent = 'Checking...';
   resultDiv.innerHTML = `<div class="loading">🔍 Checking ${systemNames.length} system(s)...</div>`;
   resultDiv.style.display = 'block';
+  srStatus.textContent = `Checking ${systemNames.length} system(s).`;
 
   // Main try/catch wraps network + rendering logic so UI state is restored
   try {
@@ -539,10 +588,12 @@ async function searchSystems() {
       lastRouteResults = results;
       displayMultipleResults(results);
     }
+    srStatus.textContent = `Results ready for ${results.length} system(s).`;
   } catch (error) {
     // Keep console message for serious failures only
     console.error('Search error:', error);
     showError(error.message);
+    srStatus.textContent = `Error: ${error.message}`;
   } finally {
     btn.disabled = false;
     btn.textContent = 'Check Heat';
@@ -656,11 +707,12 @@ function displayResult(system, model) {
     </div>
     
     <div class="info-box">
-      Read more: <a href="https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model" target="_blank" style="color:#6cf">Ergod's Research Paper</a>
+      Read more: <a href="https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model" target="_blank" rel="noreferrer" style="color:#6cf">Ergod's Research Paper</a>
     </div>
   `;
   
   resultDiv.style.display = 'block';
+  resultDiv.focus();
 }
 
 /**
@@ -710,9 +762,9 @@ function renderRouteJumps(routeJumps) {
         <td><strong>${j.from}</strong> → ${j.to}</td>
         <td>${j.distanceLY.toFixed(2)}</td>
         <td>${j.lowHeat.toFixed(1)}</td>
-        <td>${j.totalAfterJump === null ? 'N/A' : j.totalAfterJump.toFixed(2)}
+        <td>${j.jumpHeat == null ? 'N/A' : j.jumpHeat.toFixed(2)}</td>
         <td style="color:${color};font-weight:bold">
-          ${j.totalAfterJump.toFixed(2)}
+          ${j.totalAfterJump == null ? 'N/A' : j.totalAfterJump.toFixed(2)}
         </td>
         <td style="color:${color};font-weight:bold">
           ${status}
@@ -870,6 +922,7 @@ const trapCount = results.filter(
 
   resultDiv.innerHTML = html;
   resultDiv.style.display = 'block';
+  resultDiv.focus();
 }
 
 
@@ -880,6 +933,7 @@ function showError(message) {
   resultDiv.style.display = 'none';
   errorDiv.innerHTML = `<strong>❌ Error:</strong> ${message}<br><small>Make sure the system name is correct. Try exact names like "O3H-1FN".</small>`;
   errorDiv.style.display = 'block';
+  errorDiv.focus();
 }
 
 // paste handler + auto clean
