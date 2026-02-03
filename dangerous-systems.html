@@ -11,87 +11,122 @@
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="High-Heat and TRAP systems list for HeatSense. Filter and review dangerous systems quickly.">
+    <meta name="theme-color" content="#120808">
+    <meta name="color-scheme" content="dark">
     <title>High-Heat & TRAP Systems - HeatSense Arctangent v2.0</title>
     <style>
+        * {margin:0;padding:0;box-sizing:border-box}
+        :root {
+            color-scheme: dark;
+            --bg: #120808;
+            --bg-2: #1a0a0a;
+            --panel: rgba(25,12,10,0.85);
+            --accent: #ff8844;
+            --accent-2: #ffaa77;
+            --info: #6cf;
+            --text: #fff;
+            --muted: #aa8866;
+            --border: rgba(255,100,50,0.35);
+            --shadow: 0 10px 30px rgba(0,0,0,0.35);
+            --radius: 14px;
+            --focus: 0 0 0 3px rgba(255,120,60,0.4);
+        }
         body {
-            background: linear-gradient(135deg, #0a0500 0%, #1a0a00 100%);
-            color: #ffa366;
-            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg,var(--bg) 0%,var(--bg-2) 50%,#0f0505 100%);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
             margin: 0;
             padding: 20px;
             min-height: 100vh;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding-bottom: 80px;
+        .skip-link {
+            position: absolute;
+            left: -999px;
+            top: 10px;
+            background: #000;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            z-index: 1000;
         }
+        .skip-link:focus {left:10px;box-shadow:var(--focus)}
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px 100px;
+        }
+        header {text-align:center;margin-bottom:24px}
         h1 {
-            text-align: center;
-            color: #ff6600;
-            text-shadow: 0 0 20px rgba(255,102,0,0.5);
-            font-size: 2.5em;
-            margin-bottom: 5px;
+            color: var(--accent-2);
+            font-size: 2.3em;
+            margin-bottom: 6px;
         }
         .subtitle {
-            text-align: center;
-            color: #ffaa66;
-            font-size: 1.1em;
-            margin-bottom: 10px;
+            color: var(--muted);
+            font-size: 1.05em;
+            margin-bottom: 8px;
         }
         .model-badge {
-            text-align: center;
-            color: #6cf;
+            color: var(--info);
             font-size: 0.9em;
             margin-bottom: 20px;
         }
+        .search-wrap {margin-bottom:16px}
         .search-box {
-            display: flex;          
-            align-items: center;
-            justify-content: flex-start;
-            height: 60px;
+            display: block;
             width: 100%;
-            padding: 0 20px;
+            padding: 14px 16px;
             box-sizing: border-box;
-            margin-bottom: 20px;
-            background: #120700;
-            border: 1px solid #ff6600;
-            border-radius: 6px;
-            font-size: 20px;
-            color: #ffa366;
-            font-family: 'Courier New', monospace;
+            background: rgba(10,5,0,0.6);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 1.05em;
+            color: #ffddcc;
+            font-family: inherit;
+            transition: all 0.2s;
         }
         .search-box::placeholder { color: #cc7a44; }
+        .search-box:focus-visible {outline:none;box-shadow:var(--focus);border-color:rgba(255,120,60,0.6)}
+        .search-hint {margin-top:8px;font-size:0.85em;color:var(--muted)}
         table {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
             background: rgba(20,10,0,0.6);
-            border: 2px solid #ff6600;
-            box-shadow: 0 0 30px rgba(255,102,0,0.3);
+            border: 2px solid var(--border);
+            box-shadow: var(--shadow);
+            border-radius: 12px;
+            overflow: hidden;
         }
         th, td {
             padding: 12px;
             text-align: left;
-            border-bottom: 1px solid rgba(255,102,0,0.3);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         th {
-            background: rgba(255,102,0,0.2);
-            color: #ff6600;
-            font-weight: bold;
+            background: rgba(255,100,50,0.2);
+            color: var(--accent-2);
+            font-weight: 600;
             position: sticky;
             top: 0;
             z-index: 10;
         }
-        tr:hover { background: rgba(255,102,0,0.1); }
-        .trap-yes {
-            color: #ff0000;
-            font-weight: bold;
-            text-shadow: 0 0 5px rgba(255,0,0,0.5);
+        tr:hover { background: rgba(255,100,50,0.08); }
+        .trap-yes, .trap-danger {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 700;
         }
-        .trap-danger {
-            color: #ff8800;
-            font-weight: bold;
-        }
+        .trap-yes {color:#ffb3b3;background:rgba(255,0,0,0.2);border:1px solid rgba(255,0,0,0.6)}
+        .trap-danger {color:#ffd3aa;background:rgba(255,136,0,0.2);border:1px solid rgba(255,136,0,0.6)}
         .back-link {
             position: fixed;
             bottom: 15px;
@@ -100,7 +135,7 @@
             z-index: 999;
             display: block;
             text-align: center;
-            color: #6cf;
+            color: var(--info);
             text-decoration: none;
             font-size: 1.05em;
             padding: 12px 24px;
@@ -110,34 +145,29 @@
             transition: all 0.3s;
             backdrop-filter: blur(4px);
         }
-        .back-link:hover {
-            color: #8ef;
-            border-color: rgba(102,204,255,0.6);
-            background: rgba(102,204,255,0.15);
-        }
-        .loading {
-            text-align: center;
-            padding: 30px;
-            color: #ffaa66;
-            font-size: 1.2em;
-        }
-        .error {
-            text-align: center;
-            padding: 30px;
-            color: #ff4444;
-            font-size: 1.1em;
-        }
+        .back-link:hover {color:#8ef;border-color:rgba(102,204,255,0.6);background:rgba(102,204,255,0.15)}
+        .loading {text-align:center;padding:30px;color:var(--accent-2);font-size:1.1em}
+        .error {text-align:center;padding:30px;color:#ff6666;font-size:1.05em}
+        .sr-only {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+        @media (max-width:900px){th,td{padding:10px;font-size:0.9em}.container{padding:30px 16px 100px}}
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>⚠️ HIGH-HEAT & TRAP SYSTEMS ⚠️</h1>
+<a class="skip-link" href="#main">Skip to content</a>
+<main id="main" class="container" role="main">
+  <header>
+    <h1>⚠️ High-Heat & TRAP Systems</h1>
     <div class="subtitle">🔥 Danger ≥ 85 | ☠️ TRAP ≥ 90</div>
     <div class="model-badge">🔬 Ergod Arctangent Model v2.0 | MAE 0.4 Heat</div>
+  </header>
 
-    <input id="search" class="search-box" placeholder="Search system ..." />
+  <div class="search-wrap">
+    <label class="sr-only" for="search">Search systems</label>
+    <input id="search" class="search-box" placeholder="Search system (e.g., O3H-1FN)" />
+    <div class="search-hint">💡 Tip: Type a system name to filter results instantly.</div>
+  </div>
 
-    <table>
+  <table>
         <thead>
             <tr>
                 <th>System Name</th>
@@ -152,7 +182,7 @@
             <tr><td colspan="6" class="loading">Loading data from HeatSense API...</td></tr>
         </tbody>
     </table>
-</div>
+  </main>
 
 <a href="index.html" class="back-link">← Back to HeatSense</a>
 
