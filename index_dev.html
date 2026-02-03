@@ -364,55 +364,51 @@ async function searchSystems() {
       const data = await response.json();
       console.log('Batch response:', data); // Debug
 
-      const systemMap = new Map();
+// data.systems → map, mert az API sorrendje nem számít
+const systemMap = new Map();
 
-      for (const s of data.systems) {
-        systemMap.set(s.name.toUpperCase(), s);
-      }
+for (const s of data.systems) {
+  systemMap.set(s.name.toUpperCase(), s);
+}
 
-      // input sorrend a parse-ból
-      for (const name of systemNames) {
-        const s = systemMap.get(name);
-        if (!s) {
-          results.push({ name, error: 'System not found' });
-          continue;
-        }
+const results = [];
 
-        const normalizedSystem = {
-          id: s.id,
-          name: s.name,
-          star_class: s.class,
-          temperature: s.temp,
-          radius_km: s.radius_km,
-          status: s.status,
-          coords: s.coords,
-          coldest_point: {
-            distance_au: s.coldest.au,
-            distance_ls: s.coldest.ls,
-            heat: s.coldest.heat
-          }
-        };
+// 🔑 A FELDOLGOZÁS AZ INPUT SORRENDJE SZERINT TÖRTÉNIK
+for (const name of systemNames) {
+  const s = systemMap.get(name);
 
-        results.push({ name: s.name, system: normalizedSystem });
-      }
+  if (!s) {
+    results.push({
+      name,
+      error: 'System not found'
+    });
+    continue;
+  }
 
-        const normalizedSystem = {
-          id: s.id,
-          name: s.name,
-          star_class: s.class,
-          temperature: s.temp,
-          radius_km: s.radius_km,
-          status: s.status,
-          coords: s.coords,
-          coldest_point: {
-            distance_au: s.coldest.au,
-            distance_ls: s.coldest.ls,
-            heat: s.coldest.heat
-          }
-        };
+  const normalizedSystem = {
+    id: s.id,
+    name: s.name,
+    star_class: s.class,
+    temperature: s.temp,
+    radius_km: s.radius_km,
+    status: s.status,
+    coords: s.coords,
+    coldest_point: {
+      distance_au: s.coldest.au,
+      distance_ls: s.coldest.ls,
+      heat: s.coldest.heat
+    }
+  };
 
-        results.push({ name: s.name, system: normalizedSystem, model: data.model || model });
-      }
+  results.push({
+    name: s.name,
+    system: normalizedSystem,
+    model: data.model || model
+  });
+}
+
+// ⬅️ CSAK EZUTÁN:
+// displayMultipleResults(results);
     } else {
       // Single system fallback
       const name = systemNames[0];
