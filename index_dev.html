@@ -116,7 +116,7 @@ textarea {
 }
 .route-table {
   width:100%;border-collapse:collapse;margin:20px 0;
-  table-layout:auto;
+  table-layout:fixed;
   font-size:clamp(0.7rem, 1.5vw, 0.95em)
 }
 .route-table th {
@@ -182,8 +182,9 @@ textarea {
   font-weight:bold;font-size:1.1em
 }
 .trap-indicator {
-  display:inline-block;padding:4px 8px;border-radius:5px;
-  font-size:0.9em;margin-left:8px
+  display:block;padding:6px 10px;border-radius:6px;
+  font-size:0.95em;margin-top:0;margin-left:0;white-space:nowrap;
+  width:fit-content;font-weight:600
 }
 .trap-yes {
   background:rgba(255,0,0,0.3);border:1px solid #f00;color:#ff6666
@@ -915,8 +916,7 @@ const trapCount = results.filter(
         </td>
 
         <td data-label="Status">
-          ${statusEmoji} ${sys.status}
-          ${isTrap ? '<span class="trap-indicator trap-yes">⚠️ TRAP!</span>' : ''}
+          ${isTrap ? '<span class="trap-indicator trap-yes">⚠️ TRAP!</span>' : `${statusEmoji} ${sys.status}`}
         </td>
       </tr>
     `;
