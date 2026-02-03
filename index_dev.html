@@ -923,12 +923,9 @@ function calculateDistanceLY(a, b) {
   const dy = a.coords.y - b.coords.y;
   const dz = a.coords.z - b.coords.z;
 
-  const distanceUnits = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  const distanceMeters = Math.sqrt(dx*dx + dy*dy + dz*dz);
 
-  // EF coords → LY konverzió (EZ KELL)
-  const LY_SCALE = 1; // ← IDE jön majd a valós skála
-
-  return distanceUnits * LY_SCALE;
+  return distanceMeters / 9.4607e15;
 }
 
 /**
