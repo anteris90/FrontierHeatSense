@@ -462,6 +462,11 @@ async function displayMultipleResults(results) {
           });
         }
       }
+    } else {
+      const err = await resp.json().catch(() => null);
+      showError(err && err.error ? err.error : `Route request failed: ${resp.status}`);
+      routeJumps = [];
+    }
     }
   } catch (err) {
     // fallback to local calculation if server request fails
