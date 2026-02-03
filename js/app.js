@@ -391,7 +391,7 @@ function renderRouteJumps(routeJumps) {
   return html;
 }
 
-function displayMultipleResults(results) {
+async function displayMultipleResults(results) {
   // Check if ship is selected
   const hasShipData = selectedShip !== null;
 
@@ -409,13 +409,66 @@ function displayMultipleResults(results) {
 
   // --- route jump calculation (only when ship data is explicitly provided) ---
   let routeJumps = [];
-  if (hasShipData) {
-    routeJumps = calculateRouteJumps(systems);
+
+  // Request authoritative route data from the worker (includes gate detection)
+  try {
+    const namesForApi = systems.map(s => normalizeSystemName(s.name));
+
+    const body = { names: namesForApi };
+    if (hasShipData) {
+      body.totalMass = Number(totalHullMassInput.value) || selectedShip.hullMass;
+      body.hullMass = selectedShip.hullMass;
+      body.baseC = selectedShip.baseC;
+      body.skillLevel = Number(skillSlider.value) || 0;
+    }
+
+    // include player gates if provided globally (window.PLAYER_GATES) as JSON-friendly structure
+    if (window.PLAYER_GATES) body.playerGates = window.PLAYER_GATES;
+
+    const resp = await fetch(`${API_BASE}/api/route`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (resp.ok) {
+      const data = await resp.json().catch(() => ({}));
+      if (Array.isArray(data.route)) {
+        // Map server route entries by normalized name (entry.name → jump info for that system)
+        const serverMap = new Map();
+        for (const e of data.route) {
+          serverMap.set(normalizeSystemName(String(e.name)), e);
+        }
+
+        // Build routeJumps entries between consecutive systems
+        for (let i = 0; i < systems.length - 1; i++) {
+          const from = systems[i];
+          const to = systems[i + 1];
+          const normTo = normalizeSystemName(to.name);
+          const serverEntry = serverMap.get(normTo) || {};
+
+          const distanceLY = calculateDistanceLY(from, to);
+
+          routeJumps.push({
+            from: from.name,
+            to: to.name,
+            distanceLY,
+            lowHeat: from.coldest_point.heat,
+            jumpHeat: serverEntry.jump_heat_gen != null ? Number(serverEntry.jump_heat_gen) : (hasShipData ? null : null),
+            totalAfterJump: serverEntry.total_after_jump != null ? Number(serverEntry.total_after_jump) : null,
+            warning: from.coldest_point.heat > 90,
+            canJump: serverEntry.can_jump != null ? Boolean(serverEntry.can_jump) : null,
+            gate: serverEntry.gate || null
+          });
+        }
+      }
+    }
+  } catch (err) {
+    // fallback to local calculation if server request fails
+    if (hasShipData) routeJumps = calculateRouteJumps(systems);
   }
 
-
-
-const jumpMap = mapRouteJumpsBySystem(routeJumps);
+  const jumpMap = mapRouteJumpsBySystem(routeJumps);
 
 // --- meta ---
 const resultDiv = document.getElementById('result');
