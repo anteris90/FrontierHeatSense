@@ -761,13 +761,7 @@ document.getElementById('systemInput').addEventListener('paste', function(e) {
   }
   // move cursor to end
   this.selectionStart = this.selectionEnd = this.value.length;
-  // Auto-run the search after paste so user workflow is: paste -> check
-  try {
-    // small delay so textarea value updates propagate
-    setTimeout(() => { if (typeof searchSystems === 'function') searchSystems(); }, 60);
-  } catch (e) {
-    // ignore if searchSystems not available in context
-  }
+});
 });
 
 // Ctrl+Enter support
