@@ -74,16 +74,33 @@ function normalizeSystemName(name) {
 /* ---------- UI: Event bindings ---------- */
 // Primary action: run lookup / route analysis
 // Ensure textarea is normalized/formatted before running the search
-document.getElementById('searchBtn').addEventListener('click', async function (e) {
-  try {
-    const ta = document.getElementById('systemInput');
-    const parsed = parseSystemInput(ta.value || '');
-    if (parsed && parsed.length) ta.value = parsed.join(', ');
-  } catch (err) {
-    // ignore parsing errors and proceed
-  }
-  await searchSystems();
-});
+function bindSearchButton() {
+  const btnEl = document.getElementById('searchBtn');
+  if (!btnEl) return false;
+  btnEl.removeEventListener('click', searchSystems);
+  btnEl.addEventListener('click', async function (e) {
+    try {
+      const ta = document.getElementById('systemInput');
+      if (ta) {
+        const parsed = parseSystemInput(ta.value || '');
+        if (parsed && parsed.length) ta.value = parsed.join(', ');
+      }
+    } catch (err) {
+      console.warn('Input parse failed:', err && err.message);
+    }
+    try {
+      await searchSystems();
+    } catch (err) {
+      console.error('searchSystems failed:', err);
+      showError('Unexpected error running search');
+    }
+  });
+  return true;
+}
+
+if (!bindSearchButton()) {
+  window.addEventListener('DOMContentLoaded', () => bindSearchButton());
+}
 
 async function searchSystems() {
   const input = document.getElementById('systemInput').value.trim();
