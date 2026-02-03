@@ -712,6 +712,87 @@ shipSelect.addEventListener('change', () => {
   if (ship) applyShip(ship);
 });
 
+/**
+ * Calculates jump heat and jump feasibility between two systems
+ *
+ * @param {number} lowHeat        - coldest heat of the starting system
+ * @param {number} distanceLY     - distance in light-years
+ * @param {number} totalHullMass  - effective ship mass (with cargo etc.)
+ * @param {number} hullMass       - base hull mass of the ship
+ * @param {number} C              - ship C value (after skill bonus)
+ *
+ * @returns {object}
+ */
+function calculateJumpHeat({
+  lowHeat,
+  distanceLY,
+  totalHullMass,
+  hullMass,
+  C
+}) {
+  const jumpHeat =
+    (3 * totalHullMass * distanceLY) /
+    (C * hullMass);
+
+  const totalAfterJump = lowHeat + jumpHeat;
+
+  const warning = lowHeat > 90;
+  const canJump = totalAfterJump < 149;
+
+  return {
+    jumpHeat,
+    totalAfterJump,
+    warning,
+    canJump
+  };
+}
+
+/**
+ * Calculates jump-by-jump heat data for a route
+ * @param {Array} systems - array of system objects in route order
+ * @returns {Array}
+ */
+function calculateRouteJumps(systems) {
+  const results = [];
+
+  // ship data comes from the UI
+  const hullMass = Number(hullMassBase.value);
+  const totalHullMass = Number(totalHullMass.value);
+  const C = Number(baseCInput.value);
+
+  for (let i = 0; i < systems.length - 1; i++) {
+    const from = systems[i];
+    const to = systems[i + 1];
+
+    const distanceLY = calculateDistanceLY(from, to);
+
+    const jump = calculateJumpHeat({
+      lowHeat: from.coldest_point.heat,
+      distanceLY,
+      totalHullMass,
+      hullMass,
+      C
+    });
+
+    results.push({
+      from: from.name,
+      to: to.name,
+      distanceLY,
+      lowHeat: from.coldest_point.heat,
+      ...jump
+    });
+
+    // HARD STOP on failed jump
+    if (!jump.canJump) break;
+  }
+
+  return results;
+}
+
+console.log('route fn exists:', typeof calculateRouteJumps);
+
+
+
 </script>
 
 </body>
