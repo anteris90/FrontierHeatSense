@@ -525,8 +525,8 @@ const trapCount = results.filter(
           <td data-label="Star" style="color:#ff6666">❌ ${result.error}</td>
           <td data-label="Heat">—</td>
           <td data-label="Distance (LY)">${jump?.distanceLY != null ? jump.distanceLY.toFixed(2) : '—'}</td>
-          <td data-label="Jump Heat">${hasShipData ? jump?.jumpHeat?.toFixed(2) ?? '—' : '—'}</td>
-          <td data-label="Total After">${hasShipData ? jump?.totalAfterJump?.toFixed(2) ?? '—' : '—'}</td>
+          <td data-label="Jump Heat">${hasShipData ? (jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : '—') : 'N/A'}</td>
+          <td data-label="Total After">${hasShipData ? (jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : '—') : 'N/A'}</td>
           <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
             ${hasShipData ? jumpStatus : 'N/A'}
           </td>
@@ -582,8 +582,8 @@ const trapCount = results.filter(
         }">
           ${sys.coldest_point.heat.toFixed(1)}
         </td>
-        <td data-label="Jump Heat">${isGateJump ? 'N/A' : (jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A')}</td>
-        <td data-label="Total After">${isGateJump ? (jump?.lowHeat != null ? jump.lowHeat.toFixed(2) : 'N/A') : (jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A')}</td>
+        <td data-label="Jump Heat">${!hasShipData ? 'N/A' : (isGateJump ? 'N/A' : (jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A'))}</td>
+        <td data-label="Total After">${!hasShipData ? 'N/A' : (isGateJump ? (jump?.lowHeat != null ? jump.lowHeat.toFixed(2) : 'N/A') : (jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'))}</td>
 
         <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
           ${jumpStatus}
