@@ -454,10 +454,10 @@ async function displayMultipleResults(results) {
             to: to.name,
             distanceLY,
             lowHeat: from.coldest_point.heat,
-            jumpHeat: serverEntry.jump_heat_gen != null ? Number(serverEntry.jump_heat_gen) : (hasShipData ? null : null),
-            totalAfterJump: serverEntry.total_after_jump != null ? Number(serverEntry.total_after_jump) : null,
+            jumpHeat: hasShipData && serverEntry.jump_heat_gen != null ? Number(serverEntry.jump_heat_gen) : null,
+            totalAfterJump: hasShipData && serverEntry.total_after_jump != null ? Number(serverEntry.total_after_jump) : null,
             warning: from.coldest_point.heat > 90,
-            canJump: serverEntry.can_jump != null ? Boolean(serverEntry.can_jump) : null,
+            canJump: hasShipData && serverEntry.can_jump != null ? Boolean(serverEntry.can_jump) : null,
             gate: serverEntry.gate || null
           });
         }
