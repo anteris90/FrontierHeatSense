@@ -580,6 +580,12 @@ const trapCount = results.filter(
       jumpColor = '#66CCFF';
     }
 
+    // Show a warning for player gates (may be offline / owner-controlled)
+    let gateWarningHtml = '';
+    if (isGateJump && jump && jump.gate === 'player') {
+      gateWarningHtml = ' <span title="Player gate — availability may vary (owner-controlled)" style="color:#ffcc00">⚠️</span>';
+    }
+
     html += `
       <tr>
         <td data-label="System"><strong>${sys.name}</strong></td>
@@ -599,7 +605,7 @@ const trapCount = results.filter(
         <td data-label="Total After">${!hasShipData ? 'N/A' : (isGateJump ? (jump?.lowHeat != null ? jump.lowHeat.toFixed(2) : 'N/A') : (jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'))}</td>
 
         <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
-          ${jumpStatus}
+          ${jumpStatus}${gateWarningHtml}
         </td>
 
         <td data-label="Status">

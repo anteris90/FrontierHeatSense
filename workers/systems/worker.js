@@ -453,3 +453,28 @@ export default {
 
             if (!canJumpThis) canComplete = false;
           }
+
+        }
+
+        // status mapping
+        const statusMap = { 'S': 'SAFE', 'M': 'MODERATE', 'D': 'DANGEROUS', 'C': 'CRITICAL' };
+
+        routeData.push({
+          name: rawName,
+          id: entry[0],
+          low_heat: lowHeat.toFixed(2),
+          status: statusMap[st] || 'UNKNOWN',
+          jump_heat_gen: jumpHeatGen.toFixed(2),
+          total_after_jump: totalAfter.toFixed(2),
+          can_jump: Boolean(canJumpThis),
+          gate: gateType // 'npc' | 'player' | null
+        });
+
+        prevEntry = entry;
+      }
+
+      return Response.json({
+        route: routeData,
+        total_distance_ly: totalLY.toFixed(2),
+        can_complete_route: canComplete
+      }, { headers: cors });
