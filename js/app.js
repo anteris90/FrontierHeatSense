@@ -424,6 +424,112 @@ async function displayMultipleResults(results) {
     const namesForApi = systems.map(s => normalizeSystemName(s.name));
 
     const body = { names: namesForApi };
+    // Try to auto-resolve player gates in the frontend if a World API is provided
+    // Use window.PLAYER_GATE_API (set in page or by deploy) to allow client-side resolution.
+    async function resolvePlayerGatesClient(names) {
+      const base = window.PLAYER_GATE_API && String(window.PLAYER_GATE_API).replace(/\/$/, '');
+      if (!base) throw new Error('No PLAYER_GATE_API configured for client-side resolution');
+
+      // limit systems to avoid excessive client work
+      const MAX_CLIENT_SYSTEMS = 50;
+      if (names.length > MAX_CLIENT_SYSTEMS) throw new Error('Too many systems for client-side player gate resolution');
+
+      // 1) fetch system IDs via batch endpoint
+      const res = await fetch(API_BATCH, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ names })
+      });
+      if (!res.ok) throw new Error('Failed to fetch system IDs');
+      const data = await res.json();
+      const ids = (data.systems || []).map(s => s.id).filter(Boolean).map(String);
+      if (!ids.length) throw new Error('No system IDs found');
+
+      // helper to fetch JSON with retries (simple)
+      async function fetchJson(url) {
+        for (let i = 0; i < 3; i++) {
+          try {
+            const r = await fetch(url, { method: 'GET' });
+            if (!r.ok) continue;
+            return await r.json();
+          } catch (e) {
+            await new Promise(r => setTimeout(r, 200 * Math.pow(2, i)));
+            continue;
+          }
+        }
+        return null;
+      }
+
+      // 2) fetch systems -> collect smartAssemblies
+      const originByGate = Object.create(null);
+      const gateIds = [];
+      for (const sid of ids) {
+        const sys = await fetchJson(`${base}/v2/solarsystems/${sid}?format=json`);
+        if (!sys) continue;
+        const originId = String(sys.id || sid);
+        const assemblies = Array.isArray(sys.smartAssemblies) ? sys.smartAssemblies : [];
+        for (const asm of assemblies) {
+          if (!asm || String(asm.type).toLowerCase() !== 'smartgate') continue;
+          const gid = String(asm.id);
+          if (!gid) continue;
+          originByGate[gid] = originByGate[gid] || [];
+          if (originByGate[gid].indexOf(originId) === -1) originByGate[gid].push(originId);
+          gateIds.push(gid);
+        }
+      }
+
+      const uniqueGateIds = Array.from(new Set(gateIds));
+      const tmp = Object.create(null);
+
+      // 3) resolve each gate assembly to destination system id
+      for (const gid of uniqueGateIds) {
+        const asm = await fetchJson(`${base}/v2/smartassemblies/${encodeURIComponent(gid)}?format=json`);
+        if (!asm || !asm.gate) continue;
+        let destSystemId = null;
+        if (Array.isArray(asm.gate.inRange) && asm.gate.inRange.length) {
+          const r = asm.gate.inRange[0];
+          destSystemId = (r && r.solarSystem && r.solarSystem.id) ? r.solarSystem.id : (r && r.solarSystemId) ? r.solarSystemId : null;
+        }
+        if (!destSystemId && asm.gate.destinationId) {
+          const destAsm = await fetchJson(`${base}/v2/smartassemblies/${encodeURIComponent(String(asm.gate.destinationId))}?format=json`);
+          if (destAsm && destAsm.gate && Array.isArray(destAsm.gate.inRange) && destAsm.gate.inRange.length) {
+            const rr = destAsm.gate.inRange[0];
+            destSystemId = (rr && rr.solarSystem && rr.solarSystem.id) ? rr.solarSystem.id : (rr && rr.solarSystemId) ? rr.solarSystemId : null;
+          }
+        }
+        if (!destSystemId) continue;
+        const origins = originByGate[gid] || [];
+        for (const o of origins) {
+          const a = String(o);
+          const b = String(destSystemId);
+          tmp[a] = tmp[a] || [];
+          if (tmp[a].indexOf(b) === -1) tmp[a].push(b);
+          tmp[b] = tmp[b] || [];
+          if (tmp[b].indexOf(a) === -1) tmp[b].push(a);
+        }
+      }
+
+      return tmp;
+    }
+
+    // Attempt client-side resolution if configured; otherwise instruct backend to resolve
+    let resolvedPlayerGates = null;
+    if (window.PLAYER_GATE_API) {
+      try {
+        srStatus.textContent = 'Resolving player gates (client)...';
+        resolvedPlayerGates = await resolvePlayerGatesClient(namesForApi);
+        srStatus.textContent = 'Player gates resolved (client).';
+      } catch (err) {
+        console.warn('Client-side player gate resolution failed:', err && err.message);
+        srStatus.textContent = 'Client-side player gate resolution failed; falling back to server.';
+        resolvedPlayerGates = null;
+      }
+    }
+
+    if (resolvedPlayerGates && Object.keys(resolvedPlayerGates).length) {
+      body.playerGates = resolvedPlayerGates;
+    } else {
+      // Ask server to resolve player gates as a fallback
+      body.resolvePlayerGates = true;
+    }
     if (hasShipData) {
       body.totalMass = Number(totalHullMassInput.value) || selectedShip.hullMass;
       body.hullMass = selectedShip.hullMass;
@@ -655,6 +761,13 @@ document.getElementById('systemInput').addEventListener('paste', function(e) {
   }
   // move cursor to end
   this.selectionStart = this.selectionEnd = this.value.length;
+  // Auto-run the search after paste so user workflow is: paste -> check
+  try {
+    // small delay so textarea value updates propagate
+    setTimeout(() => { if (typeof searchSystems === 'function') searchSystems(); }, 60);
+  } catch (e) {
+    // ignore if searchSystems not available in context
+  }
 });
 
 // Ctrl+Enter support
