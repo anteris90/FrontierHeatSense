@@ -287,9 +287,9 @@ footer a:hover {text-decoration:underline}
   width: 100%;
   padding: 10px 12px;
   font-size: 0.95em;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 2px solid rgba(255,100,50,0.3);
   border-radius: 10px;
-  background-color: rgba(80,80,80,0.1);
+  background-color: rgba(10,5,0,0.6);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   color: #ffddcc;
