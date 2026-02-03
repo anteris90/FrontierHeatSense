@@ -233,8 +233,8 @@ Test custom stellar parameters without system lookup:
 
 ```
 FrontierHeatSense/
-├── index.html          # Production HTML (read-only)
-├── index_dev.html      # Development HTML (refactored)
+├── index.html          # Production HTML (refactored with external files)
+├── index_dev.html      # Backup: Original inline version
 ├── css/
 │   └── styles.css      # All application styles
 ├── js/
@@ -263,12 +263,12 @@ FrontierHeatSense/
 
 ### Development Workflow
 
-1. Edit `index_dev.html` for HTML changes
+1. Edit `index.html` for HTML changes
 2. Modify `css/styles.css` for styling
 3. Update `js/app.js` for functionality
 4. Test locally, then deploy to production
 
-**Note:** `index.html` is read-only. All improvements must be achieved by extracting code into external files.
+**Note:** `index_dev.html` is a backup of the original inline version. All active development happens in `index.html`.
 
 ---
 
