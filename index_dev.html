@@ -179,7 +179,8 @@ footer a:hover {text-decoration:underline}
   margin-bottom: 6px;
 }
 
-.ship-selector-compact select {
+.ship-selector-compact select,
+.ship-selector-compact input[type="number"] {
   width: 100%;
   padding: 10px 12px;
   font-size: 0.95em;
@@ -188,18 +189,49 @@ footer a:hover {text-decoration:underline}
   background: rgba(10,5,0,0.6);
   color: #ffddcc;
   font-family: inherit;
-  cursor: pointer;
   transition: all 0.3s;
 }
 
-.ship-selector-compact select:hover {
+.ship-selector-compact select {
+  cursor: pointer;
+}
+
+.ship-selector-compact select:hover,
+.ship-selector-compact input[type="number"]:hover {
   border-color: rgba(255,100,50,0.5);
 }
 
-.ship-selector-compact select:focus {
+.ship-selector-compact select:focus,
+.ship-selector-compact input[type="number"]:focus {
   outline: none;
   border-color: rgba(255,120,60,0.6);
   box-shadow: 0 0 10px rgba(255,100,50,0.3);
+}
+
+.ship-selector-compact input[type="range"] {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.ship-details-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.ship-detail-item label {
+  font-size: 0.85em;
+  color: #aa8866;
+}
+
+.ship-detail-value {
+  font-size: 0.9em;
+  color: #ffddcc;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  margin-top: 4px;
 }
 
 </style>
@@ -239,6 +271,32 @@ footer a:hover {text-decoration:underline}
       <select id="shipSelect">
         <option value="">— No ship selected —</option>
       </select>
+
+      <div id="shipDetails" style="display:none; margin-top:12px">
+        <div class="ship-details-row">
+          <div class="ship-detail-item">
+            <label>Base Hull Mass</label>
+            <div class="ship-detail-value" id="hullMassDisplay">—</div>
+          </div>
+          <div class="ship-detail-item">
+            <label>Base C Value</label>
+            <div class="ship-detail-value" id="baseCDisplay">—</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <label for="totalHullMass">Total Hull Mass (with cargo):</label>
+          <input type="number" id="totalHullMass" min="0" step="100" />
+        </div>
+
+        <div style="margin-top:12px">
+          <label>
+            Skill Level: <span id="skillValue">0</span> 
+            <span style="color:#6cf">(C: <span id="effectiveCValue">—</span>, +<span id="skillBonus">0</span>%)</span>
+          </label>
+          <input type="range" id="skillSlider" min="0" max="10" step="1" value="0" />
+        </div>
+      </div>
     </div>
 
     <button class="btn" id="searchBtn">Check Heat</button>
@@ -787,6 +845,14 @@ document.getElementById('systemInput').addEventListener('keydown', function(e) {
 // Compact ship selector for jump calculations
 
 const shipSelect = document.getElementById('shipSelect');
+const shipDetails = document.getElementById('shipDetails');
+const hullMassDisplay = document.getElementById('hullMassDisplay');
+const baseCDisplay = document.getElementById('baseCDisplay');
+const totalHullMassInput = document.getElementById('totalHullMass');
+const skillSlider = document.getElementById('skillSlider');
+const skillValue = document.getElementById('skillValue');
+const skillBonus = document.getElementById('skillBonus');
+const effectiveCValue = document.getElementById('effectiveCValue');
 
 let SHIPS = [];
 let selectedShip = null;
@@ -821,11 +887,57 @@ function populateShips() {
   });
 }
 
+// Update effective C value based on skill level
+function updateEffectiveC() {
+  if (!selectedShip) return;
+  
+  const skill = Number(skillSlider.value);
+  const bonus = skill * 2;
+  const effectiveC = selectedShip.baseC * (1 + skill * 0.02);
+  
+  skillValue.textContent = skill;
+  skillBonus.textContent = bonus;
+  effectiveCValue.textContent = effectiveC.toFixed(3);
+}
+
 // Handle ship selection
 shipSelect.addEventListener('change', () => {
   const shipName = shipSelect.value;
   selectedShip = shipName ? SHIPS.find(s => s.name === shipName) : null;
 
+  if (selectedShip) {
+    // Show ship details
+    shipDetails.style.display = 'block';
+    hullMassDisplay.textContent = selectedShip.hullMass.toLocaleString();
+    baseCDisplay.textContent = selectedShip.baseC.toFixed(3);
+    totalHullMassInput.value = selectedShip.hullMass;
+    
+    // Reset skill to 0 when selecting a new ship
+    skillSlider.value = 0;
+    updateEffectiveC();
+  } else {
+    // Hide ship details
+    shipDetails.style.display = 'none';
+  }
+
+  // Recalculate route jumps if route exists
+  if (lastRouteResults) {
+    displayMultipleResults(lastRouteResults);
+  }
+});
+
+// Handle skill slider changes
+skillSlider.addEventListener('input', () => {
+  updateEffectiveC();
+  
+  // Recalculate route jumps if route exists
+  if (lastRouteResults) {
+    displayMultipleResults(lastRouteResults);
+  }
+});
+
+// Handle total hull mass changes
+totalHullMassInput.addEventListener('input', () => {
   // Recalculate route jumps if route exists
   if (lastRouteResults) {
     displayMultipleResults(lastRouteResults);
@@ -900,10 +1012,11 @@ function calculateRouteJumps(systems) {
   // Check if ship is selected
   const hasShipData = selectedShip !== null;
 
-  // Use ship base values (no cargo/skill modifiers for now)
+  // Use ship values with skill bonus and cargo
   const hullMass = hasShipData ? selectedShip.hullMass : 0;
-  const totalHullMass = hasShipData ? selectedShip.hullMass : 0;
-  const C = hasShipData ? selectedShip.baseC : 0;
+  const totalHullMass = hasShipData ? Number(totalHullMassInput.value) || selectedShip.hullMass : 0;
+  const skill = hasShipData ? Number(skillSlider.value) : 0;
+  const C = hasShipData ? selectedShip.baseC * (1 + skill * 0.02) : 0;
 
   for (let i = 0; i < systems.length - 1; i++) {
     const from = systems[i];
