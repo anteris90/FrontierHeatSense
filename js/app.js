@@ -789,7 +789,6 @@ document.getElementById('systemInput').addEventListener('paste', function(e) {
   // move cursor to end
   this.selectionStart = this.selectionEnd = this.value.length;
 });
-});
 
 // Ctrl+Enter support
 document.getElementById('systemInput').addEventListener('keydown', function(e) {
