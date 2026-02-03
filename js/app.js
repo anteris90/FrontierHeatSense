@@ -476,7 +476,6 @@ async function displayMultipleResults(results) {
       showError(err && err.error ? err.error : `Route request failed: ${resp.status}`);
       routeJumps = [];
     }
-    }
   } catch (err) {
     // fallback to local calculation if server request fails
     if (hasShipData) routeJumps = calculateRouteJumps(systems);
