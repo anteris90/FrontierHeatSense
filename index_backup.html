@@ -116,7 +116,7 @@ textarea {
 }
 .route-table {
   width:100%;border-collapse:collapse;margin:20px 0;
-  table-layout:fixed;
+  table-layout:auto;
   font-size:clamp(0.7rem, 1.5vw, 0.95em)
 }
 .route-table th {
@@ -182,9 +182,8 @@ textarea {
   font-weight:bold;font-size:1.1em
 }
 .trap-indicator {
-  display:block;padding:6px 10px;border-radius:6px;
-  font-size:0.95em;margin-top:0;margin-left:0;white-space:nowrap;
-  width:fit-content;font-weight:600
+  display:inline-block;padding:4px 8px;border-radius:5px;
+  font-size:0.9em;margin-left:8px
 }
 .trap-yes {
   background:rgba(255,0,0,0.3);border:1px solid #f00;color:#ff6666
@@ -426,7 +425,7 @@ let lastRouteResults = null;
   - `METERS_PER_LY` is used to convert API coordinates (meters) → light-years
   ========================================== */
 // API base can be overridden in dev console: `window.HEATSENSE_API = 'https://...'`
-const API_BASE = window.HEATSENSE_API || 'https://systems.heatsense.workers.dev';
+const API_BASE = window.HEATSENSE_API || 'https://systems-test.heatsense.workers.dev';
 const API_SINGLE = `${API_BASE}/api/system`;
 const API_BATCH = `${API_BASE}/api/systems`;
 
@@ -839,8 +838,9 @@ const trapCount = results.filter(
       <thead>
         <tr>
           <th>System</th>
-          <th>Distance (LY)</th>
+          <th>Star</th>
           <th>Heat</th>
+          <th>Distance (LY)</th>
           <th>Jump Heat</th>
           <th>Total After</th>
           <th>Jump</th>
@@ -896,8 +896,7 @@ const trapCount = results.filter(
     html += `
       <tr>
         <td data-label="System"><strong>${sys.name}</strong></td>
-
-        <td data-label="Distance (LY)">${jump?.distanceLY != null ? jump.distanceLY.toFixed(2) : '—'}</td>
+        <td data-label="Star">${sys.star_class} (${sys.temperature}K)</td>
 
         <td data-label="Heat" class="heat-cell" style="color:${
           sys.coldest_point.heat >= 70
@@ -908,6 +907,8 @@ const trapCount = results.filter(
         }">
           ${sys.coldest_point.heat.toFixed(1)}
         </td>
+
+        <td data-label="Distance (LY)">${jump?.distanceLY != null ? jump.distanceLY.toFixed(2) : '—'}</td>
         <td data-label="Jump Heat">${jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A'}</td>
         <td data-label="Total After">${jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'}</td>
 
@@ -916,7 +917,8 @@ const trapCount = results.filter(
         </td>
 
         <td data-label="Status">
-          ${isTrap ? '<span class="trap-indicator trap-yes">⚠️ TRAP!</span>' : `${statusEmoji} ${sys.status}`}
+          ${statusEmoji} ${sys.status}
+          ${isTrap ? '<span class="trap-indicator trap-yes">⚠️ TRAP!</span>' : ''}
         </td>
       </tr>
     `;
