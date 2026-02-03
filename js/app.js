@@ -602,6 +602,8 @@ async function displayMultipleResults(results) {
       // Ask server to resolve player gates as a fallback
       body.resolvePlayerGates = true;
     }
+    // persist the inferred/resolved mapping for debug/UI display
+    window.__lastInferredPlayerGates = body.playerGates || (resolvedPlayerGates && Object.keys(resolvedPlayerGates).length ? resolvedPlayerGates : null);
     if (hasShipData) {
       body.totalMass = Number(totalHullMassInput.value) || selectedShip.hullMass;
       body.hullMass = selectedShip.hullMass;
@@ -663,6 +665,7 @@ async function displayMultipleResults(results) {
 
 // --- meta ---
 const resultDiv = document.getElementById('result');
+  const inferredGatesToShow = window.__lastInferredPlayerGates;
 const successCount = results.filter(r => !r.error).length;
 const trapCount = results.filter(
     r => !r.error && r.system?.coldest_point?.heat >= 85
@@ -670,6 +673,7 @@ const trapCount = results.filter(
 
   // --- HTML header ---
   let html = `
+    ${inferredGatesToShow ? `<div style="margin:8px 0;padding:8px;border-radius:6px;background:#111;color:#afa;font-size:0.9em"><strong>Inferred playerGates:</strong><pre style="white-space:pre-wrap;margin:6px 0 0;padding:6px;background:#000;border-radius:4px;color:#cfc;">${escapeHtml(JSON.stringify(inferredGatesToShow, null, 2))}</pre></div>` : ''}
     ${
       !hasShipData
         ? `<div class="input-hint" style="margin:6px 0 10px">
@@ -1052,4 +1056,11 @@ function mapRouteJumpsBySystem(routeJumps) {
     map[j.from] = j;
   });
   return map;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
