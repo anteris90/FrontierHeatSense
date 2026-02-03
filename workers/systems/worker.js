@@ -6,6 +6,25 @@ const METERS_PER_LY = 9.46073e15;
 let cachedData = null;
 let cachedNpcGates = null;
 
+// Simple concurrency mapper for controlled parallel fetches
+async function mapWithConcurrency(list, mapper, concurrency = 6) {
+  const results = new Array(list.length);
+  let i = 0;
+  const workers = new Array(Math.min(concurrency, list.length)).fill(0).map(async () => {
+    while (true) {
+      const idx = i++;
+      if (idx >= list.length) return;
+      try {
+        results[idx] = await mapper(list[idx], idx);
+      } catch (err) {
+        results[idx] = null;
+      }
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 async function loadNpcGates(env) {
   if (cachedNpcGates) return cachedNpcGates;
 
@@ -242,26 +261,85 @@ export default {
           playerGates = tmp;
         } else if (raw && typeof raw === 'object') playerGates = raw;
       } else if (env.PLAYER_GATE_API) {
+        // The World API exposes GET /v2/solarsystems/{id} and
+        // GET /v2/smartassemblies/{id}. We'll fetch each system's
+        // smartAssemblies, find SmartGate entries, then resolve each
+        // gate to its destination solar system and build the mapping.
         try {
+          const base = String(env.PLAYER_GATE_API).replace(/\/$/, '');
           const ids = names.map(n => (D[n.toUpperCase().trim()] ? D[n.toUpperCase().trim()][0] : null)).filter(Boolean);
-          const resp = await fetch(env.PLAYER_GATE_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
-          if (resp.ok) {
-            const pg = await resp.json().catch(() => ({}));
-            if (Array.isArray(pg)) {
-              const tmp = Object.create(null);
-              for (const it of pg) {
-                let a, b;
-                if (Array.isArray(it) && it.length >= 2) { a = it[0]; b = it[1]; }
-                else if (it && typeof it === 'object' && 'from' in it && 'to' in it) { a = it.from; b = it.to; }
-                if (a == null || b == null) continue;
-                tmp[a] = tmp[a] || [];
-                tmp[a].push(b);
-                tmp[b] = tmp[b] || [];
-                tmp[b].push(a);
+          const tmp = Object.create(null);
+
+          for (const sid of ids) {
+            try {
+              const sysUrl = `${base}/v2/solarsystems/${sid}?format=json`;
+              const sysResp = await fetch(sysUrl, { method: 'GET', headers: { 'Accept': 'application/json' } });
+              if (!sysResp.ok) continue;
+              const sysJson = await sysResp.json().catch(() => null);
+              if (!sysJson) continue;
+
+              const originId = String(sysJson.id || sid);
+              const assemblies = Array.isArray(sysJson.smartAssemblies) ? sysJson.smartAssemblies : [];
+
+              for (const asm of assemblies) {
+                if (!asm || String(asm.type).toLowerCase() !== 'smartgate') continue;
+                const gateId = asm.id;
+                if (!gateId) continue;
+
+                // fetch assembly details to learn destination/inRange
+                try {
+                  const asmUrl = `${base}/v2/smartassemblies/${encodeURIComponent(gateId)}?format=json`;
+                  const asmResp = await fetch(asmUrl, { method: 'GET', headers: { 'Accept': 'application/json' } });
+                  if (!asmResp.ok) continue;
+                  const asmJson = await asmResp.json().catch(() => null);
+                  if (!asmJson) continue;
+
+                  // prefer inRange[].solarSystem.id if present
+                  let destSystemId = null;
+                  if (asmJson.gate && Array.isArray(asmJson.gate.inRange) && asmJson.gate.inRange.length) {
+                    const r = asmJson.gate.inRange[0];
+                    destSystemId = (r && r.solarSystem && r.solarSystem.id) ? r.solarSystem.id : (r && r.solarSystemId) ? r.solarSystemId : null;
+                  }
+
+                  // fallback: if gate.gate.destinationId seems to point to another assembly id,
+                  // try to fetch that assembly and read its inRange.solarSystem
+                  if (!destSystemId && asmJson.gate && asmJson.gate.destinationId) {
+                    const destAsmId = String(asmJson.gate.destinationId);
+                    try {
+                      const destAsmUrl = `${base}/v2/smartassemblies/${encodeURIComponent(destAsmId)}?format=json`;
+                      const destAsmResp = await fetch(destAsmUrl, { method: 'GET', headers: { 'Accept': 'application/json' } });
+                      if (destAsmResp.ok) {
+                        const destAsmJson = await destAsmResp.json().catch(() => null);
+                        if (destAsmJson && destAsmJson.gate && Array.isArray(destAsmJson.gate.inRange) && destAsmJson.gate.inRange.length) {
+                          const rr = destAsmJson.gate.inRange[0];
+                          destSystemId = (rr && rr.solarSystem && rr.solarSystem.id) ? rr.solarSystem.id : (rr && rr.solarSystemId) ? rr.solarSystemId : null;
+                        }
+                      }
+                    } catch (e) {
+                      // ignore per-gate failures
+                    }
+                  }
+
+                  if (destSystemId) {
+                    const a = String(originId);
+                    const b = String(destSystemId);
+                    tmp[a] = tmp[a] || [];
+                    if (tmp[a].indexOf(b) === -1) tmp[a].push(b);
+                    tmp[b] = tmp[b] || [];
+                    if (tmp[b].indexOf(a) === -1) tmp[b].push(a);
+                  }
+                } catch (e) {
+                  // ignore this gate
+                  continue;
+                }
               }
-              playerGates = tmp;
-            } else if (pg && typeof pg === 'object') playerGates = pg;
+            } catch (e) {
+              // ignore this system
+              continue;
+            }
           }
+
+          if (Object.keys(tmp).length) playerGates = tmp;
         } catch (err) {
           playerGates = {};
         }
@@ -313,70 +391,108 @@ export default {
             jumpHeatGen = 0;
             totalAfter = lowHeat;
             canJumpThis = true;
-            // do not add to totalLY for gate jumps
-          } else {
-            const dx = entry[8] - prevEntry[8];
-            const dy = entry[9] - prevEntry[9];
-            const dz = entry[10] - prevEntry[10];
-            const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
-            const distLY = distM / METERS_PER_LY;
-            totalLY += distLY;
+            } else if (env.PLAYER_GATE_API) {
+              // Use concurrent fetching with a per-request cache to speed up
+              // resolving player-built SmartGate links. The worker will:
+              //  - fetch /v2/solarsystems/{id}?format=json for each system in route
+              //  - inspect smartAssemblies[] for SmartGate entries
+              //  - fetch each SmartGate via /v2/smartassemblies/{id}?format=json
+              //  - resolve destination solar system id via gate.inRange[].solarSystem.id
+              // Concurrency is limited to avoid hammering the World API.
+              try {
+                const base = String(env.PLAYER_GATE_API).replace(/\/$/, '');
+                const ids = names.map(n => (D[n.toUpperCase().trim()] ? String(D[n.toUpperCase().trim()][0]) : null)).filter(Boolean);
 
-            jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
-            totalAfter = lowHeat + jumpHeatGen;
-            canJumpThis = totalAfter <= 150;
+                const sysCache = Object.create(null);
+                const asmCache = Object.create(null);
+                const tmp = Object.create(null);
 
-            if (!canJumpThis) canComplete = false;
-          }
-        }
+                const fetchSys = async (sid) => {
+                  if (sysCache[sid]) return sysCache[sid];
+                  const sysUrl = `${base}/v2/solarsystems/${sid}?format=json`;
+                  const resp = await fetch(sysUrl, { method: 'GET', headers: { 'Accept': 'application/json' } });
+                  if (!resp.ok) return null;
+                  const j = await resp.json().catch(() => null);
+                  sysCache[sid] = j;
+                  return j;
+                };
 
-        routeData.push({
-          name: rawName,
-          low_heat: lowHeat.toFixed(2),
-          status: ['SAFE', 'MODERATE', 'DANGEROUS', 'CRITICAL'][{ S: 0, M: 1, D: 2, C: 3 }[st] || 0],
-          jump_heat_gen: jumpHeatGen.toFixed(2),
-          total_after_jump: totalAfter.toFixed(2),
-          can_jump: canJumpThis,
-          gate: gateType
-        });
+                const fetchAsm = async (aid) => {
+                  if (asmCache[aid]) return asmCache[aid];
+                  const url = `${base}/v2/smartassemblies/${encodeURIComponent(aid)}?format=json`;
+                  const r = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+                  if (!r.ok) return null;
+                  const j = await r.json().catch(() => null);
+                  asmCache[aid] = j;
+                  return j;
+                };
 
-        prevEntry = entry;
-      }
+                // Fetch systems concurrently (limited)
+                const systemsJson = await mapWithConcurrency(ids, fetchSys, 8);
 
-      return Response.json({
-        route: routeData,
-        total_distance_ly: totalLY.toFixed(2),
-        can_complete_route: canComplete
-      }, { headers: cors });
-    }
+                // Collect all gateIds to fetch
+                const gateTasks = [];
+                const originByGate = Object.create(null); // gateId -> [originSysId,...]
 
-    // HIGH-HEAT LIST ENDPOINT
-    if (url.pathname === '/api/highheat') {
-      const out = [];
+                for (let idx = 0; idx < ids.length; idx++) {
+                  const sid = ids[idx];
+                  const sysJson = systemsJson[idx];
+                  if (!sysJson) continue;
+                  const originId = String(sysJson.id || sid);
+                  const assemblies = Array.isArray(sysJson.smartAssemblies) ? sysJson.smartAssemblies : [];
+                  for (const asm of assemblies) {
+                    if (!asm || String(asm.type).toLowerCase() !== 'smartgate') continue;
+                    const gateId = String(asm.id);
+                    if (!gateId) continue;
+                    if (!originByGate[gateId]) originByGate[gateId] = [];
+                    if (originByGate[gateId].indexOf(originId) === -1) originByGate[gateId].push(originId);
+                    gateTasks.push(gateId);
+                  }
+                }
 
-      for (const name in D) {
-        const e = D[name];
-        const heat = Number(e[6]);   // fontos
+                // unique gate ids
+                const uniqueGateIds = Array.from(new Set(gateTasks));
 
-        if (heat >= 85) {   // 🔥 DANGER+
-          out.push({
-            name,
-            star: e[1],
-            temp: e[2],
-            au: e[4],
-            ls: e[5],
-            heat,
-            status: heat >= 90 ? 'TRAP' : 'DANGER'
-          });
-        }
-      }
+                // Fetch assemblies concurrently
+                const asmResults = await mapWithConcurrency(uniqueGateIds, fetchAsm, 8);
 
-      // heat DESC sort
-      out.sort((a, b) => b.heat - a.heat);
+                // Resolve destinations from assemblies
+                for (let i = 0; i < uniqueGateIds.length; i++) {
+                  const gid = uniqueGateIds[i];
+                  const asmJson = asmResults[i];
+                  if (!asmJson) continue;
 
-      return Response.json(out, { headers: cors });
-    }
+                  let destSystemId = null;
+                  if (asmJson.gate && Array.isArray(asmJson.gate.inRange) && asmJson.gate.inRange.length) {
+                    const r = asmJson.gate.inRange[0];
+                    destSystemId = (r && r.solarSystem && r.solarSystem.id) ? r.solarSystem.id : (r && r.solarSystemId) ? r.solarSystemId : null;
+                  }
 
-    return new Response('Not Found', { status: 404, headers: cors });
-  }
-};
+                  // fallback: follow destinationId to another assembly
+                  if (!destSystemId && asmJson.gate && asmJson.gate.destinationId) {
+                    const destAsmId = String(asmJson.gate.destinationId);
+                    const destAsmJson = await fetchAsm(destAsmId).catch(() => null);
+                    if (destAsmJson && destAsmJson.gate && Array.isArray(destAsmJson.gate.inRange) && destAsmJson.gate.inRange.length) {
+                      const rr = destAsmJson.gate.inRange[0];
+                      destSystemId = (rr && rr.solarSystem && rr.solarSystem.id) ? rr.solarSystem.id : (rr && rr.solarSystemId) ? rr.solarSystemId : null;
+                    }
+                  }
+
+                  if (!destSystemId) continue;
+
+                  const origins = originByGate[gid] || [];
+                  for (const aOrigin of origins) {
+                    const a = String(aOrigin);
+                    const b = String(destSystemId);
+                    tmp[a] = tmp[a] || [];
+                    if (tmp[a].indexOf(b) === -1) tmp[a].push(b);
+                    tmp[b] = tmp[b] || [];
+                    if (tmp[b].indexOf(a) === -1) tmp[b].push(a);
+                  }
+                }
+
+                if (Object.keys(tmp).length) playerGates = tmp;
+              } catch (err) {
+                playerGates = {};
+              }
+            }
