@@ -428,10 +428,6 @@ async function searchSystems() {
     } else {
       lastRouteResults = results;
       displayMultipleResults(results);
-      const shipHullMass = Number(hullMassBase.value);
-      const shipTotalHullMass = Number(totalHullMass.value);
-      const shipC = Number(baseCInput.value);
-
     }
   } catch (error) {
     console.error('Search error:', error);
@@ -623,11 +619,8 @@ function displayMultipleResults(results) {
     .map(r => r.system);
 
   // --- route jump calculation ---
-  const routeJumps = calculateRouteJumps(systems, {
-    hullMass: shipHullMass,
-    totalHullMass: shipTotalHullMass,
-    C: shipC
-  });
+const routeJumps = calculateRouteJumps(systems);
+
 
   const jumpMap = mapRouteJumpsBySystem(routeJumps);
 
@@ -921,24 +914,23 @@ function calculateDistanceLY(a, b) {
   return distanceUnits * LY_SCALE;
 }
 
-
 /**
  * Calculates jump-by-jump heat data for a route
  * @param {Array} systems - array of system objects in route order
  * @returns {Array}
  */
-function calculateRouteJumps(systems, shipParams) {
+function calculateRouteJumps(systems) {
   const results = [];
-  const {
-  hullMass,
-  totalHullMass,
-  C
-}  = shipParams || {};
 
-const hasShipData =
-  hullMass > 0 &&
-  totalHullMass > 0 &&
-  C > 0;
+  // === READ SHIP DATA FROM UI (SINGLE SOURCE OF TRUTH) ===
+  const hullMass = Number(hullBase.value);
+  const totalHullMass = Number(totalHull.value);
+  const C = Number(baseCInput.value);
+
+  const hasShipData =
+    hullMass > 0 &&
+    totalHullMass > 0 &&
+    C > 0;
 
   for (let i = 0; i < systems.length - 1; i++) {
     const from = systems[i];
@@ -946,22 +938,22 @@ const hasShipData =
 
     const distanceLY = calculateDistanceLY(from, to);
 
-let jump = {
-  jumpHeat: null,
-  totalAfterJump: null,
-  warning: from.coldest_point.heat > 90,
-  canJump: null
-};
+    let jump = {
+      jumpHeat: null,
+      totalAfterJump: null,
+      warning: from.coldest_point.heat > 90,
+      canJump: null
+    };
 
-  if (hasShipData) {
-  jump = calculateJumpHeat({
-    lowHeat: from.coldest_point.heat,
-    distanceLY,
-    totalHullMass,
-    hullMass,
-    C
-  });
-}
+    if (hasShipData) {
+      jump = calculateJumpHeat({
+        lowHeat: from.coldest_point.heat,
+        distanceLY,
+        totalHullMass,
+        hullMass,
+        C
+      });
+    }
 
     results.push({
       from: from.name,
@@ -971,19 +963,10 @@ let jump = {
       ...jump
     });
 
-    // HARD STOP on failed jump
     if (hasShipData && jump.canJump === false) break;
   }
 
   return results;
-}
-
-function mapRouteJumpsBySystem(routeJumps) {
-  const map = {};
-  routeJumps.forEach(j => {
-    map[j.from] = j;
-  });
-  return map;
 }
 
 
