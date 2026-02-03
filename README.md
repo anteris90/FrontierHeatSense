@@ -227,7 +227,52 @@ Test custom stellar parameters without system lookup:
 
 ---
 
-## 👥 Credits
+## � Development
+
+### Project Structure
+
+```
+FrontierHeatSense/
+├── index.html          # Production HTML (read-only)
+├── index_dev.html      # Development HTML (refactored)
+├── css/
+│   └── styles.css      # All application styles
+├── js/
+│   └── app.js          # Main application logic
+├── db/
+│   ├── ships.json      # Ship data for jump calculations
+│   └── [other data files]
+└── README.md           # This file
+```
+
+### Architecture Overview
+
+- **Frontend-only:** No build process, pure HTML/CSS/JS
+- **Modular CSS:** External stylesheet with CSS variables for theming
+- **Vanilla JS:** No frameworks, event-driven architecture
+- **Progressive Enhancement:** Core functionality works without ship data
+- **Accessibility:** Screen reader support, keyboard navigation, semantic HTML
+
+### Key Features
+
+- **System Heat Lookup:** Single or batch system queries via API
+- **Route Analysis:** Jump-by-jump heat calculations with ship parameters
+- **Ship Integration:** Optional ship selection for feasibility analysis
+- **Responsive Design:** Mobile-optimized table layouts
+- **Error Handling:** Graceful degradation on API failures
+
+### Development Workflow
+
+1. Edit `index_dev.html` for HTML changes
+2. Modify `css/styles.css` for styling
+3. Update `js/app.js` for functionality
+4. Test locally, then deploy to production
+
+**Note:** `index.html` is read-only. All improvements must be achieved by extracting code into external files.
+
+---
+
+## �👥 Credits
 
 **🧮 Model:** Ergod (Arctangent heat-signature model)  
 **💻 Implementation:** Anteris with Claude assistance  
