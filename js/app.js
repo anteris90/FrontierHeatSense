@@ -563,7 +563,7 @@ const trapCount = results.filter(
     // If this jump is a gate (npc/player), override display values
     const isGateJump = !!(jump && jump.gate);
     if (isGateJump) {
-      jumpStatus = (jump.gate === 'npc' ? 'GATE (NPC)' : 'GATE (PLAYER)');
+      jumpStatus = 'GATE';
       jumpColor = '#66CCFF';
     }
 
