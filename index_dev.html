@@ -675,9 +675,11 @@ const trapCount = results.filter(
         <tr>
           <td>${result.name}</td>
           <td colspan="3" style="color:#ff6666">❌ ${result.error}</td>
-          <td>${jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A'}</td>
-          <td>${jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'}</td>
-          <td style="color:#888">N/A</td>
+          <td>${hasShipData ? jump?.jumpHeat?.toFixed(2) ?? '—' : '—'}</td>
+          <td>${hasShipData ? jump?.totalAfterJump?.toFixed(2) ?? '—' : '—'}</td>
+          <td style="font-weight:bold;color:${jumpColor}">
+              ${hasShipData ? jumpStatus : 'N/A'}
+          </td>
         </tr>
       `;
       continue;
@@ -817,13 +819,20 @@ fetch('./db/ships.csv')
 // dropdown feltöltése
 function populateShips() {
   shipSelect.innerHTML = '';
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '— Select ship —';
+  shipSelect.appendChild(placeholder);
+
   SHIPS.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s.name;
     opt.textContent = s.name;
     shipSelect.appendChild(opt);
   });
-  if (SHIPS.length) applyShip(SHIPS[0]);
+
+  // ❗ NINCS applyShip() itt
 }
 
 // kiválasztott hajó alkalmazása
@@ -855,6 +864,13 @@ shipSelect.addEventListener('change', () => {
     displayMultipleResults(lastRouteResults);
   }
 });
+
+function clearShipState() {
+  hullBase.value = '';
+  totalHull.value = '';
+  baseCInput.value = '';
+  baseCInput.dataset.base = '';
+}
 
 
 /**
