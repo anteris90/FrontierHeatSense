@@ -10,53 +10,7 @@
     })(window, document, "clarity", "script", "v9t6b8czy5");
 </script>
 
-<script>
-// Dev-only in-page test: enable by adding `?dev_test=1` to the URL
-(function() {
-  try {
-    const params = new URLSearchParams(location.search);
-    if (params.get('dev_test') !== '1') return;
-
-    console.log('DEV TEST: running in-page normalization + ordering test');
-
-    const pasted = `E31-937 → AVQ-9F6\nO3H–1FN, i9t-0fn\n\nOFC-3FN (Gate)\n`;
-    const parsed = parseSystemInput(pasted);
-    console.log('DEV TEST parsed:', parsed);
-
-    // mock API (shuffled)
-    const apiSystems = [
-      { id: 1, name: 'ofc-3fn' },
-      { id: 2, name: 'I9T–0FN' },
-      { id: 3, name: 'O3H-1FN' }
-    ];
-
-    // shuffle
-    for (let i = apiSystems.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [apiSystems[i], apiSystems[j]] = [apiSystems[j], apiSystems[i]];
-    }
-
-    console.log('DEV TEST mock API order:', apiSystems.map(s => s.name));
-
-    const systemMap = new Map();
-    for (const s of apiSystems) systemMap.set(normalizeSystemName(s.name), s);
-
-    const reconstructed = [];
-    for (const name of parsed) {
-      const s = systemMap.get(normalizeSystemName(name));
-      reconstructed.push(s ? normalizeSystemName(s.name) : { name, error: 'not found' });
-    }
-
-    console.log('DEV TEST reconstructed:', reconstructed);
-    const reconstructedNames = reconstructed.map(x => (typeof x === 'string' ? x : x.name));
-    const ok = JSON.stringify(reconstructedNames) === JSON.stringify(parsed);
-    console.assert(ok, 'DEV TEST FAILED: reconstructed order != parsed order');
-    if (ok) console.log('DEV TEST PASSED: ordering preserved');
-  } catch (e) {
-    console.warn('DEV TEST error', e);
-  }
-})();
-</script>
+<!-- Dev in-page test removed. Re-enable locally if needed. -->
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -361,6 +315,11 @@ footer a:hover {text-decoration:underline}
 
 <script>
 let lastRouteResults = null;
+/* ==========================================
+  Configuration / Constants
+  - `API_BASE` can be overridden from console for local/dev testing
+  - `METERS_PER_LY` is used to convert API coordinates (meters) → light-years
+  ========================================== */
 // API base can be overridden in dev console: `window.HEATSENSE_API = 'https://...'`
 const API_BASE = window.HEATSENSE_API || 'https://systems-test.heatsense.workers.dev';
 const API_SINGLE = `${API_BASE}/api/system`;
@@ -392,6 +351,8 @@ function normalizeSystemName(name) {
   return s;
 }
 
+/* ---------- UI: Event bindings ---------- */
+// Primary action: run lookup / route analysis
 document.getElementById('searchBtn').addEventListener('click', searchSystems);
 
 async function searchSystems() {
@@ -421,12 +382,13 @@ async function searchSystems() {
   resultDiv.innerHTML = `<div class="loading">🔍 Checking ${systemNames.length} system(s)...</div>`;
   resultDiv.style.display = 'block';
 
+  // Main try/catch wraps network + rendering logic so UI state is restored
   try {
     let results = [];
     let model = 'arctangent-v1.0'; // Fallback
 
     if (systemNames.length > 1) {
-      // Batch request for multiple systems
+      // Batch request for multiple systems: POST names and rehydrate
       const response = await fetch(API_BATCH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -438,7 +400,8 @@ async function searchSystems() {
       }
 
       const data = await response.json();
-      console.log('Batch response:', data); // Debug
+      // NOTE: API may return systems in arbitrary order. We'll map by
+      // normalized name and reconstruct the route in the input order.
       // data.systems → map by normalized name (API order not guaranteed)
       const systemMap = new Map();
 
@@ -476,7 +439,7 @@ async function searchSystems() {
         results.push({ name: s.name, system: normalizedSystem, model: data.model || model });
       }
     } else {
-      // Single system fallback
+      // Single system fallback — query the single-name endpoint
       const name = systemNames[0];
       const nameForApi = normalizeSystemName(name);
       const url = `${API_SINGLE}?name=${encodeURIComponent(nameForApi)}`;
@@ -487,8 +450,8 @@ async function searchSystems() {
       }
 
       const data = await response.json();
-      console.log('Single response:', data); // Debug
 
+      // API may return an `error` field for missing records
       if (data.error) {
         results.push({ name, error: data.error });
       } else {
@@ -519,6 +482,7 @@ async function searchSystems() {
       displayMultipleResults(results);
     }
   } catch (error) {
+    // Keep console message for serious failures only
     console.error('Search error:', error);
     showError(error.message);
   } finally {
@@ -534,7 +498,9 @@ function parseSystemInput(input) {
   temp.innerHTML = text;
   text = temp.textContent || temp.innerText || text;
 
-  // 1️⃣ drop summary line (FROM → TO)
+  // 1️⃣ Drop obvious route summary lines (e.g. "FROM → TO") so they
+  //    don't become parsed system names. Also remove common noise like
+  //    parentheses, HTML, Gate annotations and numeric measurements.
   text = text
     .split('\n')
     .filter(line =>
@@ -552,8 +518,9 @@ function parseSystemInput(input) {
     .replace(/[\d]+\.[\d]+/g, ' ')
     .replace(/\s+/g, ' ');
 
-  // 2️⃣ normalize text and extract systems IN ORDER (NO SET! — keep first occurrence)
-  // normalize diacritics and various dash characters so regex can match reliably
+  // 2️⃣ Normalize text and extract systems IN ORDER (preserve first occurrence)
+  //    This step decomposes Unicode, strips diacritics and normalizes dash
+  //    characters so the regex reliably matches EVE-style system names.
   text = text.normalize('NFKD').replace(/\p{M}/gu, '');
   text = text.replace(/[\u2012\u2013\u2014\u2015\u2212]/g, '-');
 
@@ -718,7 +685,7 @@ function displayMultipleResults(results) {
     shipTotalHullMass > 0 &&
     shipC > 0;
 
-  // --- systems list ---
+  // --- systems list (in input order) ---
   const systems = results
     .filter(r => !r.error)
     .map(r => r.system);
@@ -776,7 +743,12 @@ const trapCount = results.filter(
 
   // --- rows ---
   for (const result of results) {
+    // default labels for jump/status columns — used for both error and success rows
+    let jumpStatus = 'N/A';
+    let jumpColor = '#888';
+
     if (result.error) {
+      // system not found — still show placeholder jump info when ship data exists
       const jump = jumpMap[result.name];
 
       html += `
@@ -786,19 +758,17 @@ const trapCount = results.filter(
           <td>${hasShipData ? jump?.jumpHeat?.toFixed(2) ?? '—' : '—'}</td>
           <td>${hasShipData ? jump?.totalAfterJump?.toFixed(2) ?? '—' : '—'}</td>
           <td style="font-weight:bold;color:${jumpColor}">
-              ${hasShipData ? jumpStatus : 'N/A'}
+            ${hasShipData ? jumpStatus : 'N/A'}
           </td>
         </tr>
       `;
       continue;
     }
 
+    // Normal system row
     const sys = result.system;
     const jump = jumpMap[sys.name];
     const isTrap = sys.coldest_point.heat >= 85;
-
-    let jumpStatus = 'N/A';
-    let jumpColor = '#888';
 
     if (jump && jump.canJump !== null) {
       if (jump.canJump) {
@@ -918,7 +888,6 @@ fetch('./db/ships.csv')
       });
 
     populateShips();
-    console.log('SHIP MODULE LOADED');
 
   });
 
