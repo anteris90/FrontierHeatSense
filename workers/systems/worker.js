@@ -478,3 +478,8 @@ export default {
         total_distance_ly: totalLY.toFixed(2),
         can_complete_route: canComplete
       }, { headers: cors });
+    }
+    // If no matching route endpoint matched, fall through to Not Found
+    return new Response('Not Found', { status: 404, headers: cors });
+  }
+};
