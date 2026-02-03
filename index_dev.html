@@ -531,6 +531,75 @@ function displayResult(system, model) {
   resultDiv.style.display = 'block';
 }
 
+/**
+ * Renders route jump analysis table
+ * @param {Array} routeJumps
+ * @returns {string} HTML
+ */
+function renderRouteJumps(routeJumps) {
+  if (!routeJumps || !routeJumps.length) return '';
+
+  let html = `
+    <h2 style="margin-top:30px">Route Jump Analysis</h2>
+    <table class="route-table">
+      <thead>
+        <tr>
+          <th>Jump</th>
+          <th>Distance (LY)</th>
+          <th>Low Heat</th>
+          <th>Jump Heat</th>
+          <th>Total After</th>
+          <th>Status</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  for (const j of routeJumps) {
+    let status = 'OK';
+    let color = '#aaffaa';
+
+  if (j.canJump === null) {
+    status = 'N/A';
+    color = '#888';
+} 
+  else if (j.totalAfterJump >= 149) {
+    status = 'FAIL';
+    color = '#ff5555';
+} 
+  else if (j.warning) {
+    status = 'WARN';
+    color = '#ffaa66';
+}
+
+    html += `
+      <tr>
+        <td><strong>${j.from}</strong> → ${j.to}</td>
+        <td>${j.distanceLY.toFixed(2)}</td>
+        <td>${j.lowHeat.toFixed(1)}</td>
+        <td>${j.totalAfterJump === null ? 'N/A' : j.totalAfterJump.toFixed(2)}
+        <td style="color:${color};font-weight:bold">
+          ${j.totalAfterJump.toFixed(2)}
+        </td>
+        <td style="color:${color};font-weight:bold">
+          ${status}
+        </td>
+        <td style="font-size:0.9em;color:#ccc">
+          ${j.reason || '-'}
+        </td>
+      </tr>
+    `;
+  }
+
+  html += `
+      </tbody>
+    </table>
+  `;
+
+  return html;
+}
+
 function displayMultipleResults(results) {
   const resultDiv = document.getElementById('result');
   const successCount = results.filter(r => !r.error).length;
@@ -756,9 +825,15 @@ function calculateRouteJumps(systems) {
   const results = [];
 
   // ship data comes from the UI
-  const hullMass = Number(hullMassBase.value);
-  const totalHullMass = Number(totalHullMass.value);
-  const C = Number(baseCInput.value);
+const hullMass = Number(hullMassBase.value);
+const totalHullMass = Number(totalHullMass.value);
+const C = Number(baseCInput.value);
+
+const hasShipData =
+  hullMass > 0 &&
+  totalHullMass > 0 &&
+  C > 0;
+
 
   for (let i = 0; i < systems.length - 1; i++) {
     const from = systems[i];
@@ -766,13 +841,22 @@ function calculateRouteJumps(systems) {
 
     const distanceLY = calculateDistanceLY(from, to);
 
-    const jump = calculateJumpHeat({
-      lowHeat: from.coldest_point.heat,
-      distanceLY,
-      totalHullMass,
-      hullMass,
-      C
-    });
+let jump = {
+  jumpHeat: null,
+  totalAfterJump: null,
+  warning: from.coldest_point.heat > 90,
+  canJump: null
+};
+
+  if (hasShipData) {
+  jump = calculateJumpHeat({
+    lowHeat: from.coldest_point.heat,
+    distanceLY,
+    totalHullMass,
+    hullMass,
+    C
+  });
+}
 
     results.push({
       from: from.name,
@@ -783,13 +867,13 @@ function calculateRouteJumps(systems) {
     });
 
     // HARD STOP on failed jump
-    if (!jump.canJump) break;
+    if (hasShipData && jump.canJump === false) break;
   }
 
   return results;
 }
 
-console.log('route fn exists:', typeof calculateRouteJumps);
+console.log('render fn:', typeof renderRouteJumps);
 
 
 
