@@ -891,6 +891,25 @@ function calculateJumpHeat({
 }
 
 /**
+ * Calculates distance in light-years between two systems
+ * based on their 3D coordinates
+ *
+ * @param {Object} a - source system (with coords.x/y/z)
+ * @param {Object} b - target system (with coords.x/y/z)
+ * @returns {number} distance in LY
+ */
+function calculateDistanceLY(a, b) {
+  if (!a?.coords || !b?.coords) return 0;
+
+  const dx = a.coords.x - b.coords.x;
+  const dy = a.coords.y - b.coords.y;
+  const dz = a.coords.z - b.coords.z;
+
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+
+/**
  * Calculates jump-by-jump heat data for a route
  * @param {Array} systems - array of system objects in route order
  * @returns {Array}
