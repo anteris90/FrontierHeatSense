@@ -560,11 +560,18 @@ const trapCount = results.filter(
       }
     }
 
+    // If this jump is a gate (npc/player), override display values
+    const isGateJump = !!(jump && jump.gate);
+    if (isGateJump) {
+      jumpStatus = (jump.gate === 'npc' ? 'GATE (NPC)' : 'GATE (PLAYER)');
+      jumpColor = '#66CCFF';
+    }
+
     html += `
       <tr>
         <td data-label="System"><strong>${sys.name}</strong></td>
 
-        <td data-label="Distance (LY)">${jump?.distanceLY != null ? jump.distanceLY.toFixed(2) : '—'}</td>
+        <td data-label="Distance (LY)">${isGateJump ? 'GATE' : (jump?.distanceLY != null ? jump.distanceLY.toFixed(2) : '—')}</td>
 
         <td data-label="Heat" class="heat-cell" style="color:${
           sys.coldest_point.heat >= 70
@@ -575,8 +582,8 @@ const trapCount = results.filter(
         }">
           ${sys.coldest_point.heat.toFixed(1)}
         </td>
-        <td data-label="Jump Heat">${jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A'}</td>
-        <td data-label="Total After">${jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'}</td>
+        <td data-label="Jump Heat">${isGateJump ? 'N/A' : (jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A')}</td>
+        <td data-label="Total After">${isGateJump ? (jump?.lowHeat != null ? jump.lowHeat.toFixed(2) : 'N/A') : (jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A')}</td>
 
         <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
           ${jumpStatus}
