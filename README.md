@@ -38,7 +38,7 @@ where:
   λ = K · T^α · R^β
 ```
 
-### Parameters
+### Parameters / OLD Values
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|

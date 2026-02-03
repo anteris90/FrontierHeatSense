@@ -166,6 +166,55 @@ footer {
 }
 footer a {color:#6cf;text-decoration:none}
 footer a:hover {text-decoration:underline}
+
+/* === SHIP PANEL – a meglévő designhoz igazítva === */
+
+.expert-toggle {
+  cursor: pointer;
+  margin-top: 20px;
+  padding: 14px 18px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 120, 60, 0.12),
+    rgba(180, 60, 20, 0.12)
+  );
+  border: 2px solid rgba(255, 120, 60, 0.35);
+  border-radius: 12px;
+  color: #ffb38a;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.expert-toggle.open {
+  box-shadow: 0 0 30px rgba(255, 80, 20, 0.6);
+}
+
+.expert-panel {
+  display: none;
+  margin-top: 20px;
+  padding: 25px;
+  background: rgba(255,100,50,0.1);
+  border: 2px solid rgba(255,100,50,0.3);
+  border-radius: 15px;
+}
+
+/* inputok örököljék a HeatSense stílust */
+.expert-panel input,
+.expert-panel select {
+  width: 100%;
+  padding: 15px;
+  font-size: 1.1em;
+  border: 2px solid rgba(255,100,50,0.3);
+  border-radius: 10px;
+  background: rgba(10,5,0,0.6);
+  color: #ffddcc;
+  font-family: inherit;
+}
+
+.expert-panel input:disabled {
+  opacity: 0.8;
+}
+
 </style>
 </head>
 <body>
@@ -199,6 +248,52 @@ footer a:hover {text-decoration:underline}
 
     <button class="btn" id="searchBtn">Check Heat</button>
   </div>
+
+  <!-- === SHIP PANEL (ÚJ FUNKCIÓ – NEM NYÚL MEGLÉVŐHÖZ) === -->
+<div class="expert-toggle" id="shipToggle">
+  ▶ Select Ship
+</div>
+
+<div class="expert-panel" id="shipPanel">
+
+  <div class="input-group">
+    <label for="shipSelect">Ship</label>
+    <select id="shipSelect"></select>
+  </div>
+
+  <div class="input-group">
+    <label>Hull Mass (base)</label>
+    <input type="number" id="hullMassBase" disabled />
+  </div>
+
+  <div class="input-group">
+    <label>Total Hull Mass</label>
+    <input type="number" id="totalHullMass" />
+  </div>
+
+  <div class="input-group">
+    <label>C value</label>
+    <input type="number" id="baseC" disabled />
+  </div>
+
+  <div class="input-group">
+    <label>
+      Skill Level:
+      <span id="skillValue">0</span>
+      (+<span id="skillBonus">0</span>%)
+    </label>
+    <input
+      type="range"
+      id="skillSlider"
+      min="0"
+      max="10"
+      step="1"
+      value="0"
+    />
+  </div>
+
+</div>
+
 
   <div id="result" class="result"></div>
   <div id="error" class="error"></div>
@@ -527,6 +622,96 @@ document.getElementById('systemInput').addEventListener('keydown', function(e) {
     searchSystems();
   }
 });
+
+// === SHIP MODULE ===
+// Izolált ship logika, NEM nyúl route / heat számításhoz
+// Adatforrás: db/ship.txt
+
+const shipToggle = document.getElementById('shipToggle');
+const shipPanel  = document.getElementById('shipPanel');
+
+const shipSelect = document.getElementById('shipSelect');
+const hullBase   = document.getElementById('hullMassBase');
+const totalHull  = document.getElementById('totalHullMass');
+const baseCInput = document.getElementById('baseC');
+
+const skillSlider = document.getElementById('skillSlider');
+const skillValue  = document.getElementById('skillValue');
+const skillBonus  = document.getElementById('skillBonus');
+
+let SHIPS = [];
+
+// panel nyit/zár
+shipToggle.addEventListener('click', () => {
+  const open = shipPanel.style.display === 'block';
+  shipPanel.style.display = open ? 'none' : 'block';
+  shipToggle.textContent = open ? '▶ Select Ship' : '▼ Select Ship';
+  shipToggle.classList.toggle('open', !open);
+});
+
+// hajók betöltése txt-ből
+fetch('./db/ships.csv')
+  .then(r => r.text())
+  .then(text => {
+
+    SHIPS = text
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l && !l.toLowerCase().startsWith('name'))
+      .map(line => {
+        const [name, hullmass, c] = line.split(',');
+
+        return {
+          name: name.trim(),
+          hullMass: Number(hullmass),
+          baseC: Number(c)
+        };
+      });
+
+    populateShips();
+    console.log('SHIP MODULE LOADED');
+
+  });
+
+
+
+// dropdown feltöltése
+function populateShips() {
+  shipSelect.innerHTML = '';
+  SHIPS.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.name;
+    opt.textContent = s.name;
+    shipSelect.appendChild(opt);
+  });
+  if (SHIPS.length) applyShip(SHIPS[0]);
+}
+
+// kiválasztott hajó alkalmazása
+function applyShip(ship) {
+  hullBase.value = ship.hullMass;
+  totalHull.value = ship.hullMass;
+  baseCInput.dataset.base = ship.baseC;
+  updateCFromSkill();
+}
+
+// skill → C számítás
+function updateCFromSkill() {
+  const skill = Number(skillSlider.value);
+  skillValue.textContent = skill;
+  skillBonus.textContent = skill * 2;
+
+  const baseC = Number(baseCInput.dataset.base);
+  baseCInput.value = (baseC * (1 + skill * 0.02)).toFixed(3);
+}
+
+skillSlider.addEventListener('input', updateCFromSkill);
+
+shipSelect.addEventListener('change', () => {
+  const ship = SHIPS.find(s => s.name === shipSelect.value);
+  if (ship) applyShip(ship);
+});
+
 </script>
 
 </body>
