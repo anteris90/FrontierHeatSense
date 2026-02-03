@@ -605,7 +605,11 @@ function displayMultipleResults(results) {
     .filter(r => !r.error)
     .map(r => r.system);
 
-  const routeJumps = calculateRouteJumps(systems);
+  const routeJumps = calculateRouteJumps(systems, {
+    hullMass: Number(hullMassBase.value),
+    totalHullMass: Number(totalHullMass.value),
+    C: Number(baseCInput.value)
+  });
   const jumpMap = mapRouteJumpsBySystem(routeJumps);
 
   const resultDiv = document.getElementById('result');
@@ -876,13 +880,19 @@ function calculateJumpHeat({
  * @param {Array} systems - array of system objects in route order
  * @returns {Array}
  */
-function calculateRouteJumps(systems) {
+function calculateRouteJumps(systems, shipParams) {
   const results = [];
+  const {
+  hullMass,
+  totalHullMass,
+  C
+}  = shipParams || {};
 
-  // ship data comes from the UI
-const hullMass = Number(hullMassBase.value);
-const totalHullMass = Number(totalHullMass.value);
-const C = Number(baseCInput.value);
+const hasShipData =
+  hullMass > 0 &&
+  totalHullMass > 0 &&
+  C > 0;
+
 
 const hasShipData =
   hullMass > 0 &&
