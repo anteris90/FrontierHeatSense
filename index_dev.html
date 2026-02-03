@@ -884,7 +884,15 @@ const trapCount = results.filter(
     const statusEmoji = statusIcon[sys.status] || 'ℹ️';
 
     if (jump && jump.canJump !== null) {
-      if (jump.canJump) {
+      if (isTrap) {
+        // TRAP systems always show as WARN
+        jumpStatus = 'WARN';
+        jumpColor = '#ffaa66';
+      } else if (jump.totalAfterJump >= 149) {
+        // Total after jump >= 149 is FAIL
+        jumpStatus = 'FAIL';
+        jumpColor = '#FF6B6B';
+      } else if (jump.canJump) {
         jumpStatus = 'OK';
         jumpColor = '#7CFF7C';
       } else {
