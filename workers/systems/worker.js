@@ -272,6 +272,7 @@ export default {
       // Player gates: prefer request-provided `playerGates` (array of pairs or mapping).
       // If not provided and env.PLAYER_GATE_API exists, attempt to fetch.
       let playerGates = {};
+      const playerGateDiagnostics = { skippedSystems: [], authFailed: false, rateLimited: false, notes: [] };
       if (body.playerGates) {
         const raw = body.playerGates;
         if (Array.isArray(raw)) {
@@ -309,12 +310,26 @@ export default {
           const asmCache = Object.create(null);
           const tmp = Object.create(null);
 
+          // include optional auth token in env (if provided)
+          const authHeaders = {};
+          if (env.PLAYER_GATE_TOKEN) authHeaders['Authorization'] = `Bearer ${env.PLAYER_GATE_TOKEN}`;
+
+          const safeFetch = async (url) => {
+            const r = await fetchWithRetry(url, { method: 'GET', headers: { 'Accept': 'application/json', ...authHeaders } }, PLAYER_GATE_RETRIES, PLAYER_GATE_BASE_BACKOFF_MS, PLAYER_GATE_MAX_BACKOFF_MS);
+            if (!r) return null;
+            if (r.status === 401 || r.status === 403) {
+              playerGateDiagnostics.authFailed = true;
+              return null;
+            }
+            if (r.status === 429) playerGateDiagnostics.rateLimited = true;
+            if (!r.ok) return null;
+            try { return await r.json(); } catch (e) { return null; }
+          };
+
           const fetchSys = async (sid) => {
             if (sysCache[sid]) return sysCache[sid];
             const sysUrl = `${base}/v2/solarsystems/${sid}?format=json`;
-            const resp = await fetchWithRetry(sysUrl, { method: 'GET', headers: { 'Accept': 'application/json' } }, PLAYER_GATE_RETRIES, PLAYER_GATE_BASE_BACKOFF_MS, PLAYER_GATE_MAX_BACKOFF_MS);
-            if (!resp || !resp.ok) return null;
-            const j = await resp.json().catch(() => null);
+            const j = await safeFetch(sysUrl);
             sysCache[sid] = j;
             return j;
           };
@@ -322,9 +337,7 @@ export default {
           const fetchAsm = async (aid) => {
             if (asmCache[aid]) return asmCache[aid];
             const url = `${base}/v2/smartassemblies/${encodeURIComponent(aid)}?format=json`;
-            const r = await fetchWithRetry(url, { method: 'GET', headers: { 'Accept': 'application/json' } }, PLAYER_GATE_RETRIES, PLAYER_GATE_BASE_BACKOFF_MS, PLAYER_GATE_MAX_BACKOFF_MS);
-            if (!r || !r.ok) return null;
-            const j = await r.json().catch(() => null);
+            const j = await safeFetch(url);
             asmCache[aid] = j;
             return j;
           };
@@ -338,7 +351,7 @@ export default {
           for (let idx = 0; idx < ids.length; idx++) {
             const sid = ids[idx];
             const sysJson = systemsJson[idx];
-            if (!sysJson) continue;
+            if (!sysJson) { playerGateDiagnostics.skippedSystems.push(sid); continue; }
             const originId = String(sysJson.id || sid);
             const assemblies = Array.isArray(sysJson.smartAssemblies) ? sysJson.smartAssemblies : [];
             for (const asm of assemblies) {
@@ -354,26 +367,30 @@ export default {
           const uniqueGateIds = Array.from(new Set(gateTasks));
           const asmResults = await mapWithConcurrency(uniqueGateIds, fetchAsm, PLAYER_GATE_CONCURRENCY);
 
+          // helper: resolve destination system id with depth limit and visited set
+          const resolveDestSystem = async (asmJson, visited = new Set(), depth = 0) => {
+            if (!asmJson || depth > 6) return null;
+            if (visited.has(asmJson.id || asmJson)) return null;
+            visited.add(asmJson.id || asmJson);
+            if (asmJson.gate && Array.isArray(asmJson.gate.inRange) && asmJson.gate.inRange.length) {
+              const r = asmJson.gate.inRange[0];
+              return (r && r.solarSystem && r.solarSystem.id) ? r.solarSystem.id : (r && r.solarSystemId) ? r.solarSystemId : null;
+            }
+            if (asmJson.gate && asmJson.gate.destinationId) {
+              const destId = String(asmJson.gate.destinationId);
+              const destAsm = await fetchAsm(destId).catch(() => null);
+              if (!destAsm) return null;
+              return await resolveDestSystem(destAsm, visited, depth + 1);
+            }
+            return null;
+          };
+
           for (let i = 0; i < uniqueGateIds.length; i++) {
             const gid = uniqueGateIds[i];
             const asmJson = asmResults[i];
             if (!asmJson) continue;
 
-            let destSystemId = null;
-            if (asmJson.gate && Array.isArray(asmJson.gate.inRange) && asmJson.gate.inRange.length) {
-              const r = asmJson.gate.inRange[0];
-              destSystemId = (r && r.solarSystem && r.solarSystem.id) ? r.solarSystem.id : (r && r.solarSystemId) ? r.solarSystemId : null;
-            }
-
-            if (!destSystemId && asmJson.gate && asmJson.gate.destinationId) {
-              const destAsmId = String(asmJson.gate.destinationId);
-              const destAsmJson = await fetchAsm(destAsmId).catch(() => null);
-              if (destAsmJson && destAsmJson.gate && Array.isArray(destAsmJson.gate.inRange) && destAsmJson.gate.inRange.length) {
-                const rr = destAsmJson.gate.inRange[0];
-                destSystemId = (rr && rr.solarSystem && rr.solarSystem.id) ? rr.solarSystem.id : (rr && rr.solarSystemId) ? rr.solarSystemId : null;
-              }
-            }
-
+            const destSystemId = await resolveDestSystem(asmJson).catch(() => null);
             if (!destSystemId) continue;
 
             const origins = originByGate[gid] || [];
@@ -390,6 +407,7 @@ export default {
           if (Object.keys(tmp).length) playerGates = tmp;
         } catch (err) {
           playerGates = {};
+          playerGateDiagnostics.notes.push(String(err && err.message ? err.message : err));
         }
       }
 
@@ -440,18 +458,27 @@ export default {
             totalAfter = lowHeat;
             canJumpThis = true;
           } else {
-            const dx = entry[8] - prevEntry[8];
-            const dy = entry[9] - prevEntry[9];
-            const dz = entry[10] - prevEntry[10];
-            const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
-            const distLY = distM / METERS_PER_LY;
-            totalLY += distLY;
+              // Ensure coordinates are present
+              if (entry.length >= 11 && prevEntry.length >= 11 && isFinite(entry[8]) && isFinite(prevEntry[8])) {
+                const dx = entry[8] - prevEntry[8];
+                const dy = entry[9] - prevEntry[9];
+                const dz = entry[10] - prevEntry[10];
+                const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                const distLY = distM / METERS_PER_LY;
+                totalLY += distLY;
 
-            jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
-            totalAfter = lowHeat + jumpHeatGen;
-            canJumpThis = totalAfter <= 150;
+                jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
+                totalAfter = lowHeat + jumpHeatGen;
+                canJumpThis = Number.isFinite(totalAfter) ? (totalAfter <= 150) : null;
 
-            if (!canJumpThis) canComplete = false;
+                if (canJumpThis === false) canComplete = false;
+              } else {
+                // Missing coordinates — cannot compute distance/jump heat reliably
+                jumpHeatGen = null;
+                totalAfter = lowHeat;
+                canJumpThis = null;
+                playerGateDiagnostics.skippedSystems.push({ name: rawName, reason: 'missing_coords' });
+              }
           }
 
         }
@@ -462,22 +489,26 @@ export default {
         routeData.push({
           name: rawName,
           id: entry[0],
-          low_heat: lowHeat.toFixed(2),
+          low_heat: Number(lowHeat),
           status: statusMap[st] || 'UNKNOWN',
-          jump_heat_gen: jumpHeatGen.toFixed(2),
-          total_after_jump: totalAfter.toFixed(2),
-          can_jump: Boolean(canJumpThis),
+          jump_heat_gen: (jumpHeatGen == null) ? null : Number(jumpHeatGen),
+          total_after_jump: (totalAfter == null) ? null : Number(totalAfter),
+          can_jump: (canJumpThis == null) ? null : Boolean(canJumpThis),
           gate: gateType // 'npc' | 'player' | null
         });
 
         prevEntry = entry;
       }
 
-      return Response.json({
+      const respBody = {
         route: routeData,
-        total_distance_ly: totalLY.toFixed(2),
+        total_distance_ly: Number(totalLY),
         can_complete_route: canComplete
-      }, { headers: cors });
+      };
+      // attach diagnostics when available
+      if (typeof playerGateDiagnostics !== 'undefined') respBody.playerGateDiagnostics = playerGateDiagnostics;
+
+      return Response.json(respBody, { headers: cors });
     }
     // If no matching route endpoint matched, fall through to Not Found
     return new Response('Not Found', { status: 404, headers: cors });
