@@ -312,6 +312,7 @@ footer a:hover {text-decoration:underline}
 </footer>
 
 <script>
+let lastRouteResults = null;
 const API_SINGLE = 'https://systems-test.heatsense.workers.dev/api/system';
 const API_BATCH = 'https://systems-test.heatsense.workers.dev/api/systems';
 
@@ -425,6 +426,7 @@ async function searchSystems() {
     if (results.length === 1 && !results[0].error) {
       displayResult(results[0].system, results[0].model);
     } else {
+      lastRouteResults = results;
       displayMultipleResults(results);
       const shipHullMass = Number(hullMassBase.value);
       const shipTotalHullMass = Number(totalHullMass.value);
@@ -853,7 +855,13 @@ skillSlider.addEventListener('input', updateCFromSkill);
 shipSelect.addEventListener('change', () => {
   const ship = SHIPS.find(s => s.name === shipSelect.value);
   if (ship) applyShip(ship);
+
+  // 🔁 újraszámoljuk a route jumpokat, ha már van route
+  if (lastRouteResults) {
+    displayMultipleResults(lastRouteResults);
+  }
 });
+
 
 /**
  * Calculates jump heat and jump feasibility between two systems
@@ -905,7 +913,12 @@ function calculateDistanceLY(a, b) {
   const dy = a.coords.y - b.coords.y;
   const dz = a.coords.z - b.coords.z;
 
-  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  const distanceUnits = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+  // EF coords → LY konverzió (EZ KELL)
+  const LY_SCALE = 1; // ← IDE jön majd a valós skála
+
+  return distanceUnits * LY_SCALE;
 }
 
 
