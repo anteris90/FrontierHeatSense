@@ -631,8 +631,24 @@ function showError(message) {
 document.getElementById('systemInput').addEventListener('paste', function(e) {
   e.preventDefault();
   const text = (e.clipboardData || window.clipboardData).getData('text');
-  const systems = parseSystemInput(text);
-  this.value = systems.join(', ');
+  const pasted = parseSystemInput(text);
+  // existing systems in the textarea
+  const current = parseSystemInput(this.value || '');
+  // Merge while preserving order and avoiding duplicates
+  const merged = current.slice();
+  for (const s of pasted) {
+    if (!merged.includes(s)) merged.push(s);
+  }
+  // If nothing parsed from pasted text, fall back to appending raw text
+  if (merged.length === 0 && text.trim()) {
+    // try to append raw trimmed text separated by comma
+    const fallback = (this.value || '').trim();
+    this.value = fallback ? `${fallback}, ${text.trim()}` : text.trim();
+  } else {
+    this.value = merged.join(', ');
+  }
+  // move cursor to end
+  this.selectionStart = this.selectionEnd = this.value.length;
 });
 
 // Ctrl+Enter support
