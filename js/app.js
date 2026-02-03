@@ -339,7 +339,7 @@ function renderRouteJumps(routeJumps) {
           <th>Distance (LY)</th>
           <th>Low Heat</th>
           <th>Jump Heat</th>
-          <th>Total After</th>
+          <th>Post‑Jump Heat</th>
           <th>Status</th>
           <th>Reason</th>
         </tr>
