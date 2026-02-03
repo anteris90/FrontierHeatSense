@@ -838,9 +838,8 @@ const trapCount = results.filter(
       <thead>
         <tr>
           <th>System</th>
-          <th>Star</th>
-          <th>Heat</th>
           <th>Distance (LY)</th>
+          <th>Heat</th>
           <th>Jump Heat</th>
           <th>Total After</th>
           <th>Jump</th>
@@ -896,7 +895,8 @@ const trapCount = results.filter(
     html += `
       <tr>
         <td data-label="System"><strong>${sys.name}</strong></td>
-        <td data-label="Star">${sys.star_class} (${sys.temperature}K)</td>
+
+        <td data-label="Distance (LY)">${jump?.distanceLY != null ? jump.distanceLY.toFixed(2) : '—'}</td>
 
         <td data-label="Heat" class="heat-cell" style="color:${
           sys.coldest_point.heat >= 70
@@ -907,8 +907,6 @@ const trapCount = results.filter(
         }">
           ${sys.coldest_point.heat.toFixed(1)}
         </td>
-
-        <td data-label="Distance (LY)">${jump?.distanceLY != null ? jump.distanceLY.toFixed(2) : '—'}</td>
         <td data-label="Jump Heat">${jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A'}</td>
         <td data-label="Total After">${jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'}</td>
 
