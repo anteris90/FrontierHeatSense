@@ -10,17 +10,42 @@
     })(window, document, "clarity", "script", "v9t6b8czy5");
 </script>
 
+<!-- Dev in-page test removed. Re-enable locally if needed. -->
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Frontier HeatSense: check system heat, trap status, and jump feasibility with a fast, accessible UI.">
+<meta name="theme-color" content="#120808">
+<meta name="color-scheme" content="dark">
 <title>EF - HeatSense</title>
 <style>
 * {margin:0;padding:0;box-sizing:border-box}
+:root {
+  color-scheme: dark;
+  --bg: #120808;
+  --bg-2: #1a0a0a;
+  --panel: rgba(25,12,10,0.85);
+  --accent: #ff8844;
+  --accent-2: #ffaa77;
+  --info: #6cf;
+  --text: #fff;
+  --muted: #aa8866;
+  --border: rgba(255,100,50,0.35);
+  --shadow: 0 10px 30px rgba(0,0,0,0.35);
+  --radius: 14px;
+  --focus: 0 0 0 3px rgba(255,120,60,0.4);
+}
 body {
   font-family:'Segoe UI',system-ui,sans-serif;
-  background:linear-gradient(135deg,#0a0505 0%,#1a0a0a 50%,#0f0505 100%);
-  min-height:100vh;color:#fff;padding:20px
+  background:linear-gradient(135deg,var(--bg) 0%,var(--bg-2) 50%,#0f0505 100%);
+  min-height:100vh;color:var(--text);padding:20px
 }
-.container {max-width:800px;margin:0 auto;padding:40px 20px}
+.skip-link {
+  position:absolute;left:-999px;top:10px;background:#000;color:#fff;
+  padding:10px 14px;border-radius:8px;z-index:1000
+}
+.skip-link:focus {left:10px;box-shadow:var(--focus)}
+.container {max-width:900px;margin:0 auto;padding:40px 20px}
 header {text-align:center;margin-bottom:40px}
 h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
 .subtitle {color:#aa8866;font-size:1.1em}
@@ -31,13 +56,13 @@ h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
   font-size:0.9em;color:#6cf
 }
 .danger-link-box {
-  display:block;margin:-20px auto 40px;max-width:600px;
+  display:block;margin:20px auto 40px;max-width:600px;
   background:rgba(255,100,50,0.1);border:2px solid rgba(255,100,50,0.3);
   border-radius:12px;text-align:center;text-decoration:none;
   color:#ff8844;font-size:1.15em;font-weight:600;padding:20px;
   box-shadow:0 0 20px rgba(255,100,50,0.3);
   animation:dangerPulse 3s ease-in-out infinite;
-  transition:all 0.3s;cursor:pointer
+  transition:all 0.3s;cursor:pointer;clear:both
 }
 .danger-link-box:hover {
   transform:translateY(-2px);
@@ -49,15 +74,30 @@ h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
   50%{box-shadow:0 0 30px rgba(255,50,0,0.6);border-color:rgba(255,50,0,0.5)}
 }
 .search-section {
-  background:rgba(255,100,50,0.1);border:2px solid rgba(255,100,50,0.3);
-  border-radius:15px;padding:30px;margin-bottom:30px
+  background:var(--panel);border:2px solid var(--border);
+  border-radius:var(--radius);padding:30px;margin-bottom:30px;
+  box-shadow:var(--shadow)
 }
 .input-group {margin-bottom:20px}
 label {display:block;margin-bottom:8px;color:#ffaa77;font-weight:600}
 textarea {
-  width:100%;padding:15px;font-size:1.1em;border:2px solid rgba(255,100,50,0.3);
-  border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;transition:all 0.3s;
+  width:100%;padding:15px;font-size:1.05em;border:2px solid rgba(255,100,50,0.3);
+  border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;transition:all 0.2s;
   font-family:inherit;resize:vertical
+}
+.input-hint {margin-top:8px;font-size:0.85em;color:var(--muted)}
+.input-hint a {color:var(--info);text-decoration:none}
+.input-hint a:hover {text-decoration:underline}
+.field-row {display:flex;gap:16px;flex-wrap:wrap}
+.field-row > * {flex:1 1 260px}
+.card {
+  background:rgba(15,8,6,0.6);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:12px;padding:16px
+}
+.sr-only {
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);border:0
 }
 .btn {
   width:100%;padding:15px;font-size:1.2em;font-weight:bold;
@@ -66,12 +106,18 @@ textarea {
 }
 .btn:hover:not(:disabled) {transform:translateY(-2px);box-shadow:0 6px 25px rgba(255,100,0,0.6)}
 .btn:disabled {opacity:0.5;cursor:not-allowed}
+.btn:focus-visible, textarea:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible {
+  outline:none;box-shadow:var(--focus)
+}
 .result {
   background:rgba(30,15,10,0.8);border:2px solid rgba(255,100,50,0.3);
-  border-radius:15px;padding:30px;display:none;animation:fadeIn 0.5s
+  border-radius:15px;padding:30px;display:none;animation:fadeIn 0.5s;
+  overflow:hidden
 }
 .route-table {
-  width:100%;border-collapse:collapse;margin:20px 0
+  width:100%;border-collapse:collapse;margin:20px 0;
+  table-layout:auto;
+  font-size:clamp(0.7rem, 1.5vw, 0.95em)
 }
 .route-table th {
   background:rgba(255,100,50,0.2);padding:12px;text-align:left;
@@ -79,6 +125,55 @@ textarea {
 }
 .route-table td {
   padding:12px;border-bottom:1px solid rgba(255,255,255,0.1)
+}
+.route-table th,
+.route-table td {
+  white-space:nowrap
+}
+@media (max-width: 1100px) {
+  .route-table {
+    font-size:0.85em
+  }
+  .route-table th,
+  .route-table td {
+    padding:8px
+  }
+  .result {
+    padding:20px
+  }
+
+  .route-table thead {
+    display:none
+  }
+
+  .route-table,
+  .route-table tbody,
+  .route-table tr,
+  .route-table td {
+    display:block;
+    width:100%
+  }
+
+  .route-table tr {
+    margin-bottom:12px;
+    background:rgba(15,8,5,0.7);
+    border:1px solid rgba(255,100,50,0.2);
+    border-radius:10px;
+    padding:8px
+  }
+
+  .route-table td {
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    white-space:normal
+  }
+
+  .route-table td::before {
+    content:attr(data-label);
+    color:#aa8866;
+    font-weight:600
+  }
 }
 .route-table tr:hover {
   background:rgba(255,100,50,0.1)
@@ -166,11 +261,79 @@ footer {
 }
 footer a {color:#6cf;text-decoration:none}
 footer a:hover {text-decoration:underline}
+
+/* === COMPACT SHIP SELECTOR === */
+.ship-selector-compact {
+  margin-bottom: 15px;
+}
+
+.ship-selector-compact label {
+  font-size: 0.9em;
+  margin-bottom: 6px;
+}
+
+.ship-selector-compact select,
+.ship-selector-compact input[type="number"] {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.95em;
+  border: 2px solid rgba(255,100,50,0.3);
+  border-radius: 8px;
+  background: rgba(10,5,0,0.6);
+  color: #ffddcc;
+  font-family: inherit;
+  transition: all 0.3s;
+}
+
+.ship-selector-compact select {
+  cursor: pointer;
+}
+
+.ship-selector-compact select:hover,
+.ship-selector-compact input[type="number"]:hover {
+  border-color: rgba(255,100,50,0.5);
+}
+
+.ship-selector-compact select:focus,
+.ship-selector-compact input[type="number"]:focus {
+  outline: none;
+  border-color: rgba(255,120,60,0.6);
+  box-shadow: 0 0 10px rgba(255,100,50,0.3);
+}
+
+.ship-selector-compact input[type="range"] {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.ship-details-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.ship-detail-item label {
+  font-size: 0.85em;
+  color: #aa8866;
+}
+
+.ship-detail-value {
+  font-size: 0.9em;
+  color: #ffddcc;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
 </style>
 </head>
 <body>
 
-<div class="container">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<main id="main" class="container" role="main">
   <header>
     <h1>Frontier :: HeatSense</h1>
     <div class="subtitle">System Heat Calculator</div>
@@ -179,7 +342,8 @@ footer a:hover {text-decoration:underline}
     </div>
   </header>
 
-  <div class="search-section">
+  <section class="search-section" aria-labelledby="search-title">
+    <div class="sr-only" id="search-title">HeatSense search</div>
     <div class="input-group">
       <label for="systemInput">System Names (one or multiple):</label>
       <textarea
@@ -191,18 +355,53 @@ footer a:hover {text-decoration:underline}
     - Route paste: Copy from EF-Map or evedataco.re"
         rows="6"
         autocomplete="off"
+        aria-describedby="systemInputHint"
       ></textarea>
-      <div style="margin-top:8px;font-size:0.85em;color:#aa8866">
-        💡 Tip: Paste route from <a href="https://ef-map.com/" target="_blank" style="color:#6cf;text-decoration:none">EF-Map by Lacal</a> - HTML formatting will be auto-cleaned
+      <div id="systemInputHint" class="input-hint">
+        💡 Tip: Paste route from <a href="https://ef-map.com/" target="_blank" rel="noreferrer">EF-Map by Lacal</a> — HTML formatting will be auto-cleaned.
       </div>
     </div>
 
-    <button class="btn" id="searchBtn">Check Heat</button>
-  </div>
+    <!-- Compact Ship Selector -->
+    <div class="ship-selector-compact">
+      <label for="shipSelect">🚀 Ship (optional — for jump calculations):</label>
+      <select id="shipSelect">
+        <option value="">— No ship selected —</option>
+      </select>
 
-  <div id="result" class="result"></div>
-  <div id="error" class="error"></div>
-</div>
+      <div id="shipDetails" style="display:none; margin-top:12px">
+        <div class="ship-details-row" id="shipBaseStats">
+          <div class="ship-detail-item">
+            <label>Ship Mass</label>
+            <div class="ship-detail-value" id="hullMassDisplay">—</div>
+          </div>
+          <div class="ship-detail-item">
+            <label>Specific Heat (C)</label>
+            <div class="ship-detail-value" id="baseCDisplay">—</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <label for="totalHullMass">Ship Mass (with cargo and fit):</label>
+          <input type="number" id="totalHullMass" min="0" step="100" />
+        </div>
+
+        <div style="margin-top:12px">
+          <label>
+            Skill Level: <span id="skillValue">0</span>
+            <span style="color:#6cf">(+<span id="skillBonus">0</span>%)</span>
+          </label>
+          <input type="range" id="skillSlider" min="0" max="10" step="1" value="0" />
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" id="searchBtn" type="button">Check Heat</button>
+  </section>
+
+  <div id="srStatus" class="sr-only" role="status" aria-live="polite"></div>
+  <div id="result" class="result" role="region" aria-live="polite" aria-label="HeatSense results" tabindex="-1"></div>
+  <div id="error" class="error" role="alert" aria-live="assertive" tabindex="-1"></div>
 
 <a href="dangerous-systems.html" class="danger-link-box">
   ⚠️ View High-Heat (85+) & TRAP Systems (90+) ⚠️
@@ -212,14 +411,52 @@ footer a:hover {text-decoration:underline}
   <p>
     EF-HeatSense Arctangent v2.0 |
     © Anteris |
-    Model by <a href="https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model" target="_blank">Ergod</a>
+    Model by <a href="https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model" target="_blank" rel="noreferrer">Ergod</a>
   </p>
 </footer>
 
-<script>
-const API_SINGLE = 'https://systems-test.heatsense.workers.dev/api/system';
-const API_BATCH = 'https://systems-test.heatsense.workers.dev/api/systems';
+</main>
 
+<script>
+let lastRouteResults = null;
+/* ==========================================
+  Configuration / Constants
+  - `API_BASE` can be overridden from console for local/dev testing
+  - `METERS_PER_LY` is used to convert API coordinates (meters) → light-years
+  ========================================== */
+// API base can be overridden in dev console: `window.HEATSENSE_API = 'https://...'`
+const API_BASE = window.HEATSENSE_API || 'https://systems-test.heatsense.workers.dev';
+const API_SINGLE = `${API_BASE}/api/system`;
+const API_BATCH = `${API_BASE}/api/systems`;
+
+// meters per light-year constant (shared reference for frontend)
+const METERS_PER_LY = 9.4607e15;
+
+/**
+ * Normalize system name for stable lookup and display.
+ * - Unicode-normalizes, strips diacritics
+ * - replaces various dash characters with ASCII hyphen
+ * - collapses whitespace and uppercases
+ */
+function normalizeSystemName(name) {
+  if (!name) return '';
+  // decompose diacritics
+  let s = String(name).normalize('NFKD');
+  // remove combining diacritics
+  s = s.replace(/\p{M}/gu, '');
+  // normalize different dash characters to ASCII hyphen
+  s = s.replace(/[\u2012\u2013\u2014\u2015\u2212]/g, '-');
+  // remove HTML-ish garbage, keep letters, numbers, hyphen
+  s = s.replace(/[^\p{L}\p{N}\-\s]/gu, ' ');
+  // collapse whitespace, trim, uppercase
+  s = s.replace(/\s+/g, ' ').trim().toUpperCase();
+  // tighten spaces around hyphen
+  s = s.replace(/\s*-\s*/g, '-');
+  return s;
+}
+
+/* ---------- UI: Event bindings ---------- */
+// Primary action: run lookup / route analysis
 document.getElementById('searchBtn').addEventListener('click', searchSystems);
 
 async function searchSystems() {
@@ -227,9 +464,11 @@ async function searchSystems() {
   const btn = document.getElementById('searchBtn');
   const resultDiv = document.getElementById('result');
   const errorDiv = document.getElementById('error');
+  const srStatus = document.getElementById('srStatus');
 
   resultDiv.style.display = 'none';
   errorDiv.style.display = 'none';
+  srStatus.textContent = '';
 
   if (!input) {
     showError('Please enter at least one system name');
@@ -248,13 +487,15 @@ async function searchSystems() {
   btn.textContent = 'Checking...';
   resultDiv.innerHTML = `<div class="loading">🔍 Checking ${systemNames.length} system(s)...</div>`;
   resultDiv.style.display = 'block';
+  srStatus.textContent = `Checking ${systemNames.length} system(s).`;
 
+  // Main try/catch wraps network + rendering logic so UI state is restored
   try {
     let results = [];
     let model = 'arctangent-v1.0'; // Fallback
 
     if (systemNames.length > 1) {
-      // Batch request for multiple systems
+      // Batch request for multiple systems: POST names and rehydrate
       const response = await fetch(API_BATCH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -266,11 +507,24 @@ async function searchSystems() {
       }
 
       const data = await response.json();
-      console.log('Batch response:', data); // Debug
+      // NOTE: API may return systems in arbitrary order. We'll map by
+      // normalized name and reconstruct the route in the input order.
+      // data.systems → map by normalized name (API order not guaranteed)
+      const systemMap = new Map();
 
       for (const s of data.systems) {
-        if (s.error) {
-          results.push({ name: s.name, error: s.error });
+        systemMap.set(normalizeSystemName(s.name), s);
+      }
+
+      // populate outer `results` (avoid shadowing the variable)
+      results = [];
+
+      // 🔑 Process in the input order
+      for (const name of systemNames) {
+        const s = systemMap.get(normalizeSystemName(name));
+
+        if (!s) {
+          results.push({ name, error: 'System not found' });
           continue;
         }
 
@@ -292,9 +546,10 @@ async function searchSystems() {
         results.push({ name: s.name, system: normalizedSystem, model: data.model || model });
       }
     } else {
-      // Single system fallback
+      // Single system fallback — query the single-name endpoint
       const name = systemNames[0];
-      const url = `${API_SINGLE}?name=${encodeURIComponent(name)}`;
+      const nameForApi = normalizeSystemName(name);
+      const url = `${API_SINGLE}?name=${encodeURIComponent(nameForApi)}`;
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -302,8 +557,8 @@ async function searchSystems() {
       }
 
       const data = await response.json();
-      console.log('Single response:', data); // Debug
 
+      // API may return an `error` field for missing records
       if (data.error) {
         results.push({ name, error: data.error });
       } else {
@@ -330,11 +585,15 @@ async function searchSystems() {
     if (results.length === 1 && !results[0].error) {
       displayResult(results[0].system, results[0].model);
     } else {
+      lastRouteResults = results;
       displayMultipleResults(results);
     }
+    srStatus.textContent = `Results ready for ${results.length} system(s).`;
   } catch (error) {
+    // Keep console message for serious failures only
     console.error('Search error:', error);
     showError(error.message);
+    srStatus.textContent = `Error: ${error.message}`;
   } finally {
     btn.disabled = false;
     btn.textContent = 'Check Heat';
@@ -342,14 +601,22 @@ async function searchSystems() {
 }
 
 function parseSystemInput(input) {
-  const systems = new Set();
   let text = input;
 
   const temp = document.createElement('div');
   temp.innerHTML = text;
   text = temp.textContent || temp.innerText || text;
 
+  // 1️⃣ Drop obvious route summary lines (e.g. "FROM → TO") so they
+  //    don't become parsed system names. Also remove common noise like
+  //    parentheses, HTML, Gate annotations and numeric measurements.
   text = text
+    .split('\n')
+    .filter(line =>
+      !/^[A-Z0-9]{2,5}-[A-Z0-9]{2,5}\s*→\s*[A-Z0-9]{2,5}-[A-Z0-9]{2,5}$/i
+        .test(line.trim())
+    )
+    .join('\n')
     .replace(/→/g, ' ')
     .replace(/\|/g, ' ')
     .replace(/\*/g, ' ')
@@ -360,27 +627,38 @@ function parseSystemInput(input) {
     .replace(/[\d]+\.[\d]+/g, ' ')
     .replace(/\s+/g, ' ');
 
+  // 2️⃣ Normalize text and extract systems IN ORDER (preserve first occurrence)
+  //    This step decomposes Unicode, strips diacritics and normalizes dash
+  //    characters so the regex reliably matches EVE-style system names.
+  text = text.normalize('NFKD').replace(/\p{M}/gu, '');
+  text = text.replace(/[\u2012\u2013\u2014\u2015\u2212]/g, '-');
+
   const regex = /\b[A-Z0-9]{2,4}-[A-Z0-9]{2,4}\b/gi;
   const matches = text.match(regex);
 
+  const systems = [];
+
   if (matches) {
     for (const m of matches) {
-      systems.add(m.toUpperCase());
+      const name = normalizeSystemName(m);
+      if (!systems.includes(name)) {
+        systems.push(name);
+      }
     }
   }
 
-  return Array.from(systems);
+  return systems;
 }
 
 function displayResult(system, model) {
   const resultDiv = document.getElementById('result');
-  const isTrap = system.coldest_point.heat >= 85;
+  const isTrap = system.coldest_point.heat >= 85 || system.status === 'CRITICAL';
 
   const statusConfig = {
-    'SAFE': { class: 'status-safe', emoji: '✅' },
-    'MODERATE': { class: 'status-moderate', emoji: '⚠️' },
-    'DANGEROUS': { class: 'status-dangerous', emoji: '🔥' },
-    'CRITICAL': { class: 'status-critical', emoji: '☠️' }
+    'SAFE': { class: 'status-safe', emoji: '✅', label: 'Safe' },
+    'MODERATE': { class: 'status-moderate', emoji: '⚠️', label: 'Moderate' },
+    'DANGEROUS': { class: 'status-dangerous', emoji: '🔥', label: 'Dangerous' },
+    'CRITICAL': { class: 'status-critical', emoji: '☠️', label: 'Critical' }
   };
 
   const config = statusConfig[system.status] || statusConfig['SAFE'];
@@ -408,7 +686,7 @@ function displayResult(system, model) {
     </div>
     
     <div class="status-badge ${config.class}">
-      ${config.emoji} ${system.status}
+      ${config.emoji} ${config.label}
     </div>
     
     ${trapWarningHTML}
@@ -429,69 +707,217 @@ function displayResult(system, model) {
     </div>
     
     <div class="info-box">
-      Read more: <a href="https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model" target="_blank" style="color:#6cf">Ergod's Research Paper</a>
+      Read more: <a href="https://thoughtfolio.xyz/All+to+Avoid+Heat+Traps%2C+Exponential+Heat-Signature+Decay+Model" target="_blank" rel="noreferrer" style="color:#6cf">Ergod's Research Paper</a>
     </div>
   `;
   
   resultDiv.style.display = 'block';
+  resultDiv.focus();
+}
+
+/**
+ * Renders route jump analysis table
+ * @param {Array} routeJumps
+ * @returns {string} HTML
+ */
+function renderRouteJumps(routeJumps) {
+  if (!routeJumps || !routeJumps.length) return '';
+
+  let html = `
+    <h2 style="margin-top:30px">Route Jump Analysis</h2>
+    <table class="route-table">
+      <thead>
+        <tr>
+          <th>Jump</th>
+          <th>Distance (LY)</th>
+          <th>Low Heat</th>
+          <th>Jump Heat</th>
+          <th>Total After</th>
+          <th>Status</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  for (const j of routeJumps) {
+    let status = 'OK';
+    let color = '#aaffaa';
+
+  if (j.canJump === null) {
+    status = 'N/A';
+    color = '#888';
+} 
+  else if (j.totalAfterJump >= 149) {
+    status = 'FAIL';
+    color = '#ff5555';
+} 
+  else if (j.warning) {
+    status = 'WARN';
+    color = '#ffaa66';
+}
+
+    html += `
+      <tr>
+        <td><strong>${j.from}</strong> → ${j.to}</td>
+        <td>${j.distanceLY.toFixed(2)}</td>
+        <td>${j.lowHeat.toFixed(1)}</td>
+        <td>${j.jumpHeat == null ? 'N/A' : j.jumpHeat.toFixed(2)}</td>
+        <td style="color:${color};font-weight:bold">
+          ${j.totalAfterJump == null ? 'N/A' : j.totalAfterJump.toFixed(2)}
+        </td>
+        <td style="color:${color};font-weight:bold">
+          ${status}
+        </td>
+        <td style="font-size:0.9em;color:#ccc">
+          ${j.reason || '-'}
+        </td>
+      </tr>
+    `;
+  }
+
+  html += `
+      </tbody>
+    </table>
+  `;
+
+  return html;
 }
 
 function displayMultipleResults(results) {
-  const resultDiv = document.getElementById('result');
-  const successCount = results.filter(r => !r.error).length;
-  const trapCount = results.filter(r => !r.error && r.system?.coldest_point?.heat >= 85).length;
+  // Check if ship is selected
+  const hasShipData = selectedShip !== null;
 
+  const statusIcon = {
+    SAFE: '✅',
+    MODERATE: '⚠️',
+    DANGEROUS: '🔥',
+    CRITICAL: '☠️'
+  };
+
+  // --- systems list (in input order) ---
+  const systems = results
+    .filter(r => !r.error)
+    .map(r => r.system);
+
+  // --- route jump calculation (only when ship data is explicitly provided) ---
+  let routeJumps = [];
+  if (hasShipData) {
+    routeJumps = calculateRouteJumps(systems);
+  }
+
+
+
+const jumpMap = mapRouteJumpsBySystem(routeJumps);
+
+// --- meta ---
+const resultDiv = document.getElementById('result');
+const successCount = results.filter(r => !r.error).length;
+const trapCount = results.filter(
+    r => !r.error && r.system?.coldest_point?.heat >= 85
+  ).length;
+
+  // --- HTML header ---
   let html = `
-    <h2>Route Heat Check</h2>
+    ${
+      !hasShipData
+        ? `<div class="input-hint" style="margin:6px 0 10px">
+             💡 Tip: Select a ship to evaluate jump feasibility.
+           </div>`
+        : ''
+    }
+
     <p style="text-align:center;margin:15px 0;font-size:1.1em;color:#ffaa77">
       ${successCount} / ${results.length} systems found
-      ${trapCount > 0 ? `| <span style="color:#ff6666">⚠️ ${trapCount} TRAP(s) detected!</span>` : ''}
+      ${trapCount > 0
+        ? ` | <span style="color:#ff6666">⚠️ ${trapCount} TRAP(s) detected!</span>`
+        : ''}
     </p>
-    
+
     <table class="route-table">
       <thead>
         <tr>
           <th>System</th>
           <th>Star</th>
           <th>Heat</th>
+          <th>Distance (LY)</th>
+          <th>Jump Heat</th>
+          <th>Total After</th>
+          <th>Jump</th>
           <th>Status</th>
         </tr>
       </thead>
       <tbody>
   `;
 
+  // --- rows ---
   for (const result of results) {
+    // default labels for jump/status columns — used for both error and success rows
+    let jumpStatus = 'N/A';
+    let jumpColor = '#888';
+
     if (result.error) {
+      // system not found — still show placeholder jump info when ship data exists
+      const jump = jumpMap[result.name];
+
       html += `
         <tr>
-          <td>${result.name}</td>
-          <td colspan="3" style="color:#ff6666">❌ ${result.error}</td>
+          <td data-label="System">${result.name}</td>
+          <td data-label="Star" style="color:#ff6666">❌ ${result.error}</td>
+          <td data-label="Heat">—</td>
+          <td data-label="Distance (LY)">${jump?.distanceLY != null ? jump.distanceLY.toFixed(2) : '—'}</td>
+          <td data-label="Jump Heat">${hasShipData ? jump?.jumpHeat?.toFixed(2) ?? '—' : '—'}</td>
+          <td data-label="Total After">${hasShipData ? jump?.totalAfterJump?.toFixed(2) ?? '—' : '—'}</td>
+          <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
+            ${hasShipData ? jumpStatus : 'N/A'}
+          </td>
+          <td data-label="Status" style="color:#ff6666">ERROR</td>
         </tr>
       `;
       continue;
     }
 
+    // Normal system row
     const sys = result.system;
-    const isTrap = sys.coldest_point.heat >= 85;
+    const jump = jumpMap[sys.name];
+    const isTrap = sys.coldest_point.heat >= 85 || sys.status === 'CRITICAL';
+    const statusEmoji = statusIcon[sys.status] || 'ℹ️';
 
-    const statusConfig = {
-      'SAFE': { emoji: '✅' },
-      'MODERATE': { emoji: '⚠️' },
-      'DANGEROUS': { emoji: '🔥' },
-      'CRITICAL': { emoji: '☠️' }
-    };
-
-    const config = statusConfig[sys.status] || statusConfig['SAFE'];
+    if (jump && jump.canJump !== null) {
+      if (jump.canJump) {
+        jumpStatus = 'OK';
+        jumpColor = '#7CFF7C';
+      } else {
+        jumpStatus = 'FAIL';
+        jumpColor = '#FF6B6B';
+      }
+    }
 
     html += `
       <tr>
-        <td><strong>${sys.name}</strong></td>
-        <td>${sys.star_class} (${sys.temperature}K)</td>
-        <td class="heat-cell" style="color:${sys.coldest_point.heat >= 70 ? '#ff6666' : sys.coldest_point.heat >= 30 ? '#ffaa66' : '#aaffaa'}">
+        <td data-label="System"><strong>${sys.name}</strong></td>
+        <td data-label="Star">${sys.star_class} (${sys.temperature}K)</td>
+
+        <td data-label="Heat" class="heat-cell" style="color:${
+          sys.coldest_point.heat >= 70
+            ? '#ff6666'
+            : sys.coldest_point.heat >= 30
+              ? '#ffaa66'
+              : '#aaffaa'
+        }">
           ${sys.coldest_point.heat.toFixed(1)}
         </td>
-        <td>
-          ${config.emoji} ${sys.status}
+
+        <td data-label="Distance (LY)">${jump?.distanceLY != null ? jump.distanceLY.toFixed(2) : '—'}</td>
+        <td data-label="Jump Heat">${jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A'}</td>
+        <td data-label="Total After">${jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'}</td>
+
+        <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
+          ${jumpStatus}
+        </td>
+
+        <td data-label="Status">
+          ${statusEmoji} ${sys.status}
           ${isTrap ? '<span class="trap-indicator trap-yes">⚠️ TRAP!</span>' : ''}
         </td>
       </tr>
@@ -502,7 +928,10 @@ function displayMultipleResults(results) {
 
   resultDiv.innerHTML = html;
   resultDiv.style.display = 'block';
+  resultDiv.focus();
 }
+
+
 
 function showError(message) {
   const errorDiv = document.getElementById('error');
@@ -510,6 +939,7 @@ function showError(message) {
   resultDiv.style.display = 'none';
   errorDiv.innerHTML = `<strong>❌ Error:</strong> ${message}<br><small>Make sure the system name is correct. Try exact names like "O3H-1FN".</small>`;
   errorDiv.style.display = 'block';
+  errorDiv.focus();
 }
 
 // paste handler + auto clean
@@ -527,6 +957,220 @@ document.getElementById('systemInput').addEventListener('keydown', function(e) {
     searchSystems();
   }
 });
+
+// === SHIP MODULE ===
+// Compact ship selector for jump calculations
+
+const shipSelect = document.getElementById('shipSelect');
+const shipDetails = document.getElementById('shipDetails');
+const shipBaseStats = document.getElementById('shipBaseStats');
+const hullMassDisplay = document.getElementById('hullMassDisplay');
+const baseCDisplay = document.getElementById('baseCDisplay');
+const totalHullMassInput = document.getElementById('totalHullMass');
+const skillSlider = document.getElementById('skillSlider');
+const skillValue = document.getElementById('skillValue');
+const skillBonus = document.getElementById('skillBonus');
+
+let SHIPS = [];
+let selectedShip = null;
+
+// Load ships from CSV
+fetch('./db/ships.json')
+  .then(r => r.json())
+  .then(data => {
+    SHIPS = Array.isArray(data) ? data : [];
+    populateShips();
+  });
+
+// Populate ship dropdown
+function populateShips() {
+  SHIPS.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.name;
+    opt.textContent = s.name;
+    shipSelect.appendChild(opt);
+  });
+}
+
+// Update effective C value based on skill level
+function updateEffectiveC() {
+  if (!selectedShip) return;
+  
+  const skill = Number(skillSlider.value);
+  const bonus = skill * 2;
+  const effectiveC = selectedShip.baseC * (1 + skill * 0.02);
+  
+  skillValue.textContent = skill;
+  skillBonus.textContent = bonus;
+  baseCDisplay.textContent = effectiveC.toFixed(3);
+}
+
+// Handle ship selection
+shipSelect.addEventListener('change', () => {
+  const shipName = shipSelect.value;
+  selectedShip = shipName ? SHIPS.find(s => s.name === shipName) : null;
+
+  if (selectedShip) {
+    // Show ship details
+    shipDetails.style.display = 'block';
+    shipBaseStats.style.display = 'grid';
+    hullMassDisplay.textContent = selectedShip.hullMass.toLocaleString();
+    baseCDisplay.textContent = selectedShip.baseC.toFixed(3);
+    totalHullMassInput.value = selectedShip.hullMass;
+    
+    // Reset skill to 0 when selecting a new ship
+    skillSlider.value = 0;
+    updateEffectiveC();
+  } else {
+    // Hide ship details
+    shipDetails.style.display = 'none';
+  }
+
+  // Recalculate route jumps if route exists
+  if (lastRouteResults) {
+    displayMultipleResults(lastRouteResults);
+  }
+});
+
+// Handle skill slider changes
+skillSlider.addEventListener('input', () => {
+  updateEffectiveC();
+  
+  // Recalculate route jumps if route exists
+  if (lastRouteResults) {
+    displayMultipleResults(lastRouteResults);
+  }
+});
+
+// Handle total hull mass changes
+totalHullMassInput.addEventListener('input', () => {
+  // Recalculate route jumps if route exists
+  if (lastRouteResults) {
+    displayMultipleResults(lastRouteResults);
+  }
+});
+
+
+/**
+ * Calculates jump heat and jump feasibility between two systems
+ *
+ * @param {number} lowHeat        - coldest heat of the starting system
+ * @param {number} distanceLY     - distance in light-years
+ * @param {number} totalHullMass  - effective ship mass (with cargo etc.)
+ * @param {number} hullMass       - base hull mass of the ship
+ * @param {number} C              - ship C value (after skill bonus)
+ *
+ * @returns {object}
+ */
+function calculateJumpHeat({
+  lowHeat,
+  distanceLY,
+  totalHullMass,
+  hullMass,
+  C
+}) {
+  const jumpHeat =
+    (3 * totalHullMass * distanceLY) /
+    (C * hullMass);
+
+  const totalAfterJump = lowHeat + jumpHeat;
+
+  const warning = lowHeat > 90;
+  const canJump = totalAfterJump < 149;
+
+  return {
+    jumpHeat,
+    totalAfterJump,
+    warning,
+    canJump
+  };
+}
+
+/**
+ * Calculates distance in light-years between two systems
+ * based on their 3D coordinates
+ *
+ * @param {Object} a - source system (with coords.x/y/z)
+ * @param {Object} b - target system (with coords.x/y/z)
+ * @returns {number} distance in LY
+ */
+function calculateDistanceLY(a, b) {
+  if (!a?.coords || !b?.coords) return 0;
+
+  const dx = a.coords.x - b.coords.x;
+  const dy = a.coords.y - b.coords.y;
+  const dz = a.coords.z - b.coords.z;
+
+  const distanceMeters = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+  // convert meters -> light-years
+  return distanceMeters / METERS_PER_LY;
+}
+
+/**
+ * Calculates jump-by-jump heat data for a route
+ * @param {Array} systems - array of system objects in route order
+ * @returns {Array}
+ */
+function calculateRouteJumps(systems) {
+  const results = [];
+
+  // Check if ship is selected
+  const hasShipData = selectedShip !== null;
+
+  // Use ship values with skill bonus and cargo
+  const hullMass = hasShipData ? selectedShip.hullMass : 0;
+  const totalHullMass = hasShipData ? Number(totalHullMassInput.value) || selectedShip.hullMass : 0;
+  const skill = hasShipData ? Number(skillSlider.value) : 0;
+  const C = hasShipData ? selectedShip.baseC * (1 + skill * 0.02) : 0;
+
+  for (let i = 0; i < systems.length - 1; i++) {
+    const from = systems[i];
+    const to = systems[i + 1];
+
+    const distanceLY = calculateDistanceLY(from, to);
+
+    let jump = {
+      jumpHeat: null,
+      totalAfterJump: null,
+      warning: from.coldest_point.heat > 90,
+      canJump: null
+    };
+
+    if (hasShipData) {
+      jump = calculateJumpHeat({
+        lowHeat: from.coldest_point.heat,
+        distanceLY,
+        totalHullMass,
+        hullMass,
+        C
+      });
+    }
+
+    results.push({
+      from: from.name,
+      to: to.name,
+      distanceLY,
+      lowHeat: from.coldest_point.heat,
+      ...jump
+    });
+
+    // if (hasShipData && jump.canJump === false) break;
+  }
+
+  return results;
+}
+
+function mapRouteJumpsBySystem(routeJumps) {
+  const map = {};
+  routeJumps.forEach(j => {
+    map[j.from] = j;
+  });
+  return map;
+}
+
+
+
 </script>
 
 </body>
