@@ -26,6 +26,15 @@
  */
 
 let lastRouteResults = null;
+// Read app version from meta tag and expose in footer
+try {
+  const meta = document.querySelector('meta[name="app-version"]');
+  const v = (meta && meta.content) ? meta.content : 'v0.0.0';
+  const el = document.getElementById('appVersion');
+  if (el) el.textContent = v;
+} catch (e) {
+  // ignore in non-browser environments
+}
 /* ==========================================
   Configuration / Constants
   - `API_BASE` can be overridden from console for local/dev testing
@@ -64,7 +73,34 @@ function normalizeSystemName(name) {
 
 /* ---------- UI: Event bindings ---------- */
 // Primary action: run lookup / route analysis
-document.getElementById('searchBtn').addEventListener('click', searchSystems);
+// Ensure textarea is normalized/formatted before running the search
+function bindSearchButton() {
+  const btnEl = document.getElementById('searchBtn');
+  if (!btnEl) return false;
+  btnEl.removeEventListener('click', searchSystems);
+  btnEl.addEventListener('click', async function (e) {
+    try {
+      const ta = document.getElementById('systemInput');
+      if (ta) {
+        const parsed = parseSystemInput(ta.value || '');
+        if (parsed && parsed.length) ta.value = parsed.join(', ');
+      }
+    } catch (err) {
+      console.warn('Input parse failed:', err && err.message);
+    }
+    try {
+      await searchSystems();
+    } catch (err) {
+      console.error('searchSystems failed:', err);
+      showError('Unexpected error running search');
+    }
+  });
+  return true;
+}
+
+if (!bindSearchButton()) {
+  window.addEventListener('DOMContentLoaded', () => bindSearchButton());
+}
 
 async function searchSystems() {
   const input = document.getElementById('systemInput').value.trim();
@@ -208,51 +244,70 @@ async function searchSystems() {
 }
 
 function parseSystemInput(input) {
-  let text = input;
-
+  // We'll parse the input as HTML (if any) so we can capture <a href="showinfo:..."> anchors
+  // and their IDs, while also extracting plain-text system names in order.
   const temp = document.createElement('div');
-  temp.innerHTML = text;
-  text = temp.textContent || temp.innerText || text;
+  temp.innerHTML = input || '';
 
-  // 1️⃣ Drop obvious route summary lines (e.g. "FROM → TO") so they
-  //    don't become parsed system names. Also remove common noise like
-  //    parentheses, HTML, Gate annotations and numeric measurements.
-  text = text
-    .split('\n')
-    .filter(line =>
-      !/^[A-Z0-9]{2,5}-[A-Z0-9]{2,5}\s*→\s*[A-Z0-9]{2,5}-[A-Z0-9]{2,5}$/i
-        .test(line.trim())
-    )
-    .join('\n')
-    .replace(/→/g, ' ')
-    .replace(/\|/g, ' ')
-    .replace(/\*/g, ' ')
-    .replace(/Gate:|SmartGate:|Jump:/gi, ' ')
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/\[[^\]]*\]/g, ' ')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/[\d]+\.[\d]+/g, ' ')
-    .replace(/\s+/g, ' ');
+  const nameRegex = /\b[A-Z0-9]{2,4}-[A-Z0-9]{2,4}\b/gi;
+  const results = [];
 
-  // 2️⃣ Normalize text and extract systems IN ORDER (preserve first occurrence)
-  //    This step decomposes Unicode, strips diacritics and normalizes dash
-  //    characters so the regex reliably matches EVE-style system names.
-  text = text.normalize('NFKD').replace(/\p{M}/gu, '');
-  text = text.replace(/[\u2012\u2013\u2014\u2015\u2212]/g, '-');
-
-  const regex = /\b[A-Z0-9]{2,4}-[A-Z0-9]{2,4}\b/gi;
-  const matches = text.match(regex);
-
-  const systems = [];
-
-  if (matches) {
+  function pushNameRaw(text, id = null) {
+    if (!text) return;
+    const matches = String(text).match(nameRegex);
+    if (!matches) return;
     for (const m of matches) {
-      const name = normalizeSystemName(m);
-      if (!systems.includes(name)) {
-        systems.push(name);
+      results.push({ name: normalizeSystemName(m), id: id ? String(id) : null });
+    }
+  }
+
+  // Walk child nodes in order to preserve sequence of anchors vs plain text
+  function walk(node) {
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        pushNameRaw(child.textContent, null);
+      } else if (child.nodeType === Node.ELEMENT_NODE && child.tagName === 'A') {
+        const inner = child.textContent || '';
+        const href = child.getAttribute('href') || '';
+        // try to extract numeric system id from href (e.g. showinfo:5//30004088)
+        const idMatch = href.match(/(\d{6,9})/);
+        const id = idMatch ? idMatch[1] : null;
+        // anchors may contain one or more system-like tokens; push those with the extracted id
+        const innerMatches = inner.match(nameRegex);
+        if (innerMatches) {
+          for (const m of innerMatches) results.push({ name: normalizeSystemName(m), id: id ? String(id) : null });
+        } else {
+          // fallback: attempt to parse any name-like token inside innerText
+          pushNameRaw(inner, id);
+        }
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        walk(child);
       }
     }
   }
+
+  walk(temp);
+
+  // As a final pass also look at any leftover plain text (when input wasn't HTML)
+  if (results.length === 0) {
+    pushNameRaw(input, null);
+  }
+
+  // Deduplicate while preserving order
+  const systems = [];
+  const ids = [];
+  for (const r of results) {
+    if (!systems.includes(r.name)) {
+      systems.push(r.name);
+      ids.push(r.id || null);
+    }
+  }
+
+  // Expose last parsed IDs for the caller to use when constructing player gate mappings
+  window.__lastParsedSystemIds = ids;
+
+  // Expose last parsed normalized system names for client-side resolution
+  window.__lastParsedSystemNames = systems.slice();
 
   return systems;
 }
@@ -339,7 +394,7 @@ function renderRouteJumps(routeJumps) {
           <th>Distance (LY)</th>
           <th>Low Heat</th>
           <th>Jump Heat</th>
-          <th>Total After</th>
+          <th>Post‑Jump Heat</th>
           <th>Status</th>
           <th>Reason</th>
         </tr>
@@ -369,9 +424,9 @@ function renderRouteJumps(routeJumps) {
         <td><strong>${j.from}</strong> → ${j.to}</td>
         <td>${j.distanceLY.toFixed(2)}</td>
         <td>${j.lowHeat.toFixed(1)}</td>
-        <td>${j.jumpHeat == null ? 'N/A' : j.jumpHeat.toFixed(2)}</td>
+        <td>${j.gate ? 'N/A' : (j.jumpHeat == null ? 'N/A' : j.jumpHeat.toFixed(2))}</td>
         <td style="color:${color};font-weight:bold">
-          ${j.totalAfterJump == null ? 'N/A' : j.totalAfterJump.toFixed(2)}
+          ${j.gate ? (j.lowHeat == null ? 'N/A' : j.lowHeat.toFixed(2)) : (j.totalAfterJump == null ? 'N/A' : j.totalAfterJump.toFixed(2))}
         </td>
         <td style="color:${color};font-weight:bold">
           ${status}
@@ -391,9 +446,10 @@ function renderRouteJumps(routeJumps) {
   return html;
 }
 
-function displayMultipleResults(results) {
+async function displayMultipleResults(results) {
   // Check if ship is selected
   const hasShipData = selectedShip !== null;
+  const srStatus = document.getElementById('srStatus');
 
   const statusIcon = {
     SAFE: '✅',
@@ -409,16 +465,289 @@ function displayMultipleResults(results) {
 
   // --- route jump calculation (only when ship data is explicitly provided) ---
   let routeJumps = [];
-  if (hasShipData) {
-    routeJumps = calculateRouteJumps(systems);
+
+  // Request authoritative route data from the worker (includes gate detection)
+  try {
+    const namesForApi = systems.map(s => normalizeSystemName(s.name));
+
+    const body = { names: namesForApi };
+    // If client-side resolver is available and user enabled local resolution,
+    // ensure we attempt to resolve player gates before POSTing so the server
+    // receives an explicit `playerGates` map (works like NPC gates flow).
+    try {
+      if (!window.PLAYER_GATES && typeof window.loadPlayerGates === 'function' && (window.USE_LOCAL_SYSTEM_DATA || window.PLAYER_GATE_API)) {
+        srStatus.textContent = 'Resolving player gates (client preflight)...';
+        updatePlayerGateIndicator();
+        const namesForResolve = Array.isArray(window.__lastParsedSystemNames) && window.__lastParsedSystemNames.length ? window.__lastParsedSystemNames : namesForApi;
+        try {
+          const resolved = await window.loadPlayerGates({ names: namesForResolve });
+          if (resolved && Object.keys(resolved).length) {
+            window.PLAYER_GATES = resolved;
+          }
+        } catch (e) {
+          console.warn('Preflight player gate resolution failed:', e && e.message);
+        }
+        srStatus.textContent = '';
+        updatePlayerGateIndicator();
+      }
+    } catch (e) {
+      console.warn('Player gate preflight error:', e && e.message);
+    }
+    // If the user pasted EF-Map anchors, `parseSystemInput` exposes numeric IDs
+    // in `window.__lastParsedSystemIds`. Use them to infer player gate pairs
+    // between consecutive systems (fromId -> [toId]) and send to server.
+    let parsedIds = Array.isArray(window.__lastParsedSystemIds) ? window.__lastParsedSystemIds.slice() : [];
+    // If no showinfo IDs were parsed from pasted HTML, fall back to the
+    // resolved system IDs we already have in `systems` (from the API batch response).
+    if ((!parsedIds || parsedIds.length < 2) && Array.isArray(systems) && systems.length >= 2) {
+      const sysIds = systems.map(s => s.id).filter(Boolean).map(String);
+      if (sysIds.length >= 2) parsedIds = sysIds;
+    }
+
+    if (Array.isArray(parsedIds) && parsedIds.length >= 2) {
+      const inferred = Object.create(null);
+      for (let i = 0; i < Math.min(parsedIds.length, namesForApi.length) - 1; i++) {
+        const a = parsedIds[i];
+        const b = parsedIds[i + 1];
+        if (a && b) {
+          const sa = String(a);
+          const sb = String(b);
+          inferred[sa] = inferred[sa] || [];
+          if (inferred[sa].indexOf(sb) === -1) inferred[sa].push(sb);
+        }
+      }
+      if (Object.keys(inferred).length) {
+        body.playerGates = inferred;
+      }
+    }
+
+    // Try to auto-resolve player gates in the frontend if a World API is provided
+    // Use window.PLAYER_GATE_API (set in page or by deploy) to allow client-side resolution.
+    async function resolvePlayerGatesClient(names) {
+      const base = window.PLAYER_GATE_API && String(window.PLAYER_GATE_API).replace(/\/$/, '');
+      if (!base) throw new Error('No PLAYER_GATE_API configured for client-side resolution');
+
+      // limit systems to avoid excessive client work
+      const MAX_CLIENT_SYSTEMS = 50;
+      if (names.length > MAX_CLIENT_SYSTEMS) throw new Error('Too many systems for client-side player gate resolution');
+
+      // 1) fetch system IDs via batch endpoint
+      const res = await fetch(API_BATCH, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ names })
+      });
+      if (!res.ok) throw new Error('Failed to fetch system IDs');
+      const data = await res.json();
+      const ids = (data.systems || []).map(s => s.id).filter(Boolean).map(String);
+      if (!ids.length) throw new Error('No system IDs found');
+
+      // helper to fetch JSON with retries (simple)
+      async function fetchJson(url) {
+        for (let i = 0; i < 3; i++) {
+          try {
+            const r = await fetch(url, { method: 'GET' });
+            if (!r.ok) continue;
+            return await r.json();
+          } catch (e) {
+            await new Promise(r => setTimeout(r, 200 * Math.pow(2, i)));
+            continue;
+          }
+        }
+        return null;
+      }
+
+      // 2) fetch systems -> collect smartAssemblies
+      const originByGate = Object.create(null);
+      const gateIds = [];
+      for (const sid of ids) {
+        const sys = await fetchJson(`${base}/v2/solarsystems/${sid}?format=json`);
+        if (!sys) continue;
+        const originId = String(sys.id || sid);
+        const assemblies = Array.isArray(sys.smartAssemblies) ? sys.smartAssemblies : [];
+        for (const asm of assemblies) {
+          if (!asm || String(asm.type).toLowerCase() !== 'smartgate') continue;
+          const gid = String(asm.id);
+          if (!gid) continue;
+          originByGate[gid] = originByGate[gid] || [];
+          if (originByGate[gid].indexOf(originId) === -1) originByGate[gid].push(originId);
+          gateIds.push(gid);
+        }
+      }
+
+      const uniqueGateIds = Array.from(new Set(gateIds));
+      const tmp = Object.create(null);
+
+      // 3) resolve each gate assembly to destination system id
+      for (const gid of uniqueGateIds) {
+        const asm = await fetchJson(`${base}/v2/smartassemblies/${encodeURIComponent(gid)}?format=json`);
+        if (!asm || !asm.gate) continue;
+        let destSystemId = null;
+        if (Array.isArray(asm.gate.inRange) && asm.gate.inRange.length) {
+          const r = asm.gate.inRange[0];
+          destSystemId = (r && r.solarSystem && r.solarSystem.id) ? r.solarSystem.id : (r && r.solarSystemId) ? r.solarSystemId : null;
+        }
+        if (!destSystemId && asm.gate.destinationId) {
+          const destAsm = await fetchJson(`${base}/v2/smartassemblies/${encodeURIComponent(String(asm.gate.destinationId))}?format=json`);
+          if (destAsm && destAsm.gate && Array.isArray(destAsm.gate.inRange) && destAsm.gate.inRange.length) {
+            const rr = destAsm.gate.inRange[0];
+            destSystemId = (rr && rr.solarSystem && rr.solarSystem.id) ? rr.solarSystem.id : (rr && rr.solarSystemId) ? rr.solarSystemId : null;
+          }
+        }
+        if (!destSystemId) continue;
+        const origins = originByGate[gid] || [];
+        for (const o of origins) {
+          const a = String(o);
+          const b = String(destSystemId);
+          tmp[a] = tmp[a] || [];
+          if (tmp[a].indexOf(b) === -1) tmp[a].push(b);
+          tmp[b] = tmp[b] || [];
+          if (tmp[b].indexOf(a) === -1) tmp[b].push(a);
+        }
+      }
+
+      return tmp;
+    }
+
+    // Attempt client-side resolution if configured and we don't already have inferred playerGates;
+    // otherwise instruct backend to resolve
+    let resolvedPlayerGates = null;
+    if (!body.playerGates && window.PLAYER_GATE_API) {
+      try {
+        srStatus.textContent = 'Resolving player gates (client)...';
+        resolvedPlayerGates = await resolvePlayerGatesClient(namesForApi);
+        srStatus.textContent = 'Player gates resolved (client).';
+      } catch (err) {
+        console.warn('Client-side player gate resolution failed:', err && err.message);
+        srStatus.textContent = 'Client-side player gate resolution failed; falling back to server.';
+        resolvedPlayerGates = null;
+      }
+    }
+
+    if (resolvedPlayerGates && Object.keys(resolvedPlayerGates).length) {
+      body.playerGates = resolvedPlayerGates;
+    } else {
+      // Ask server to resolve player gates as a fallback
+      body.resolvePlayerGates = true;
+    }
+    // persist the inferred/resolved mapping for debug/UI display
+    window.__lastInferredPlayerGates = body.playerGates || (resolvedPlayerGates && Object.keys(resolvedPlayerGates).length ? resolvedPlayerGates : null);
+    if (hasShipData) {
+      body.totalMass = Number(totalHullMassInput.value) || selectedShip.hullMass;
+      body.hullMass = selectedShip.hullMass;
+      body.baseC = selectedShip.baseC;
+      body.skillLevel = Number(skillSlider.value) || 0;
+    }
+
+    // include player gates if provided globally (window.PLAYER_GATES) as JSON-friendly structure
+    if (window.PLAYER_GATES) body.playerGates = window.PLAYER_GATES;
+
+    const resp = await fetch(`${API_BASE}/api/route`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (resp.ok) {
+      const data = await resp.json().catch(() => ({}));
+      // expose server-side diagnostics for UI debugging
+      window.__lastPlayerGateDiagnostics = data.playerGateDiagnostics || null;
+      if (Array.isArray(data.route)) {
+        // Map server route entries by normalized name (entry.name → jump info for that system)
+        const serverMap = new Map();
+        for (const e of data.route) {
+          serverMap.set(normalizeSystemName(String(e.name)), e);
+        }
+
+        // Build routeJumps entries between consecutive systems
+        for (let i = 0; i < systems.length - 1; i++) {
+          const from = systems[i];
+          const to = systems[i + 1];
+          const normTo = normalizeSystemName(to.name);
+          const serverEntry = serverMap.get(normTo) || {};
+
+          const distanceLY = calculateDistanceLY(from, to);
+
+          routeJumps.push({
+            from: from.name,
+            to: to.name,
+            distanceLY,
+            lowHeat: from.coldest_point.heat,
+            jumpHeat: hasShipData && serverEntry.jump_heat_gen != null ? Number(serverEntry.jump_heat_gen) : null,
+            totalAfterJump: hasShipData && serverEntry.total_after_jump != null ? Number(serverEntry.total_after_jump) : null,
+            warning: from.coldest_point.heat > 90,
+            canJump: hasShipData && serverEntry.can_jump != null ? Boolean(serverEntry.can_jump) : null,
+            gate: serverEntry.gate || null
+          });
+        }
+
+        // Client-side fallback: if server didn't mark a jump as a gate but
+        // we inferred player gates (or have window.PLAYER_GATES), try flexible
+        // matching (IDs or names) and mark it as player so the UI hides jump-heat.
+        try {
+          const inferred = window.__lastInferredPlayerGates || window.PLAYER_GATES || null;
+          if (inferred && typeof inferred === 'object') {
+            const lookupList = (obj, key) => {
+              if (!obj) return null;
+              // try direct key, normalized name, plain name
+              return obj[key] || obj[String(key)] || obj[String(Number(key))] || null;
+            };
+
+            for (let i = 0; i < routeJumps.length; i++) {
+              const fromSys = systems[i];
+              const toSys = systems[i + 1];
+              if (!fromSys || !toSys) continue;
+
+              const fromId = fromSys.id != null ? String(fromSys.id) : null;
+              const toId = toSys.id != null ? String(toSys.id) : null;
+              const fromName = normalizeSystemName(fromSys.name || '');
+              const toName = normalizeSystemName(toSys.name || '');
+
+              const candidates = [fromId, fromName, fromSys.name];
+
+              let matched = false;
+              for (const key of candidates) {
+                if (!key) continue;
+                const list = lookupList(inferred, key);
+                if (!list || !Array.isArray(list)) continue;
+                // check any entry in list matches the destination by id or name
+                for (const item of list) {
+                  const s = item == null ? null : String(item);
+                  if (!s) continue;
+                  if ((toId && s === toId) || (toName && s === toName) || s === String(Number(toId))) {
+                    matched = true;
+                    break;
+                  }
+                }
+                if (matched) break;
+              }
+
+              if (matched) {
+                routeJumps[i].gate = 'player';
+                routeJumps[i].jumpHeat = null;
+                routeJumps[i].totalAfterJump = routeJumps[i].lowHeat || null;
+                routeJumps[i].canJump = true;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Player gate fallback failed:', e && e.message);
+        }
+      }
+    } else {
+      const err = await resp.json().catch(() => null);
+      showError(err && err.error ? err.error : `Route request failed: ${resp.status}`);
+      routeJumps = [];
+    }
+  } catch (err) {
+    // fallback to local calculation if server request fails
+    if (hasShipData) routeJumps = calculateRouteJumps(systems);
   }
 
-
-
-const jumpMap = mapRouteJumpsBySystem(routeJumps);
+  const jumpMap = mapRouteJumpsBySystem(routeJumps);
 
 // --- meta ---
-const resultDiv = document.getElementById('result');
+  const resultDiv = document.getElementById('result');
+  const inferredGatesToShow = window.__lastInferredPlayerGates;
+  const playerGateDiag = window.__lastPlayerGateDiagnostics || null;
 const successCount = results.filter(r => !r.error).length;
 const trapCount = results.filter(
     r => !r.error && r.system?.coldest_point?.heat >= 85
@@ -448,7 +777,7 @@ const trapCount = results.filter(
           <th>Distance (LY)</th>
           <th>Heat</th>
           <th>Jump Heat</th>
-          <th>Total After</th>
+              <th>Post‑Jump Heat</th>
           <th>Jump</th>
           <th>Status</th>
         </tr>
@@ -472,8 +801,8 @@ const trapCount = results.filter(
           <td data-label="Star" style="color:#ff6666">❌ ${result.error}</td>
           <td data-label="Heat">—</td>
           <td data-label="Distance (LY)">${jump?.distanceLY != null ? jump.distanceLY.toFixed(2) : '—'}</td>
-          <td data-label="Jump Heat">${hasShipData ? jump?.jumpHeat?.toFixed(2) ?? '—' : '—'}</td>
-          <td data-label="Total After">${hasShipData ? jump?.totalAfterJump?.toFixed(2) ?? '—' : '—'}</td>
+          <td data-label="Jump Heat">${hasShipData ? (jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : '—') : 'N/A'}</td>
+          <td data-label="Post‑Jump Heat">${hasShipData ? (jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : '—') : 'N/A'}</td>
           <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
             ${hasShipData ? jumpStatus : 'N/A'}
           </td>
@@ -507,11 +836,24 @@ const trapCount = results.filter(
       }
     }
 
+    // If this jump is a gate (npc/player), override display values
+    const isGateJump = !!(jump && (String(jump.gate).toLowerCase() === 'npc' || String(jump.gate).toLowerCase() === 'player'));
+    if (isGateJump) {
+      jumpStatus = (jump.gate === 'npc') ? 'GATE (NPC)' : 'GATE (PLAYER)';
+      jumpColor = '#66CCFF';
+    }
+
+    // Show a warning for player gates (may be offline / owner-controlled)
+    let gateWarningHtml = '';
+    if (isGateJump && jump && jump.gate === 'player') {
+      gateWarningHtml = ' <span title="Player gate — availability may vary (owner-controlled)" style="color:#ffcc00">⚠️</span>';
+    }
+
     html += `
       <tr>
         <td data-label="System"><strong>${sys.name}</strong></td>
 
-        <td data-label="Distance (LY)">${jump?.distanceLY != null ? jump.distanceLY.toFixed(2) : '—'}</td>
+        <td data-label="Distance (LY)">${isGateJump ? 'GATE' : (jump?.distanceLY != null ? jump.distanceLY.toFixed(2) : '—')}</td>
 
         <td data-label="Heat" class="heat-cell" style="color:${
           sys.coldest_point.heat >= 70
@@ -522,11 +864,11 @@ const trapCount = results.filter(
         }">
           ${sys.coldest_point.heat.toFixed(1)}
         </td>
-        <td data-label="Jump Heat">${jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A'}</td>
-        <td data-label="Total After">${jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'}</td>
+        <td data-label="Jump Heat">${!hasShipData ? 'N/A' : ((jump && jump.gate) ? 'N/A' : (jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A'))}</td>
+        <td data-label="Post‑Jump Heat">${!hasShipData ? 'N/A' : ((jump && jump.gate) ? (jump?.lowHeat != null ? jump.lowHeat.toFixed(2) : 'N/A') : (jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'))}</td>
 
         <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
-          ${jumpStatus}
+          ${hasShipData ? (jumpStatus + gateWarningHtml) : 'N/A'}
         </td>
 
         <td data-label="Status">
@@ -558,8 +900,37 @@ function showError(message) {
 document.getElementById('systemInput').addEventListener('paste', function(e) {
   e.preventDefault();
   const text = (e.clipboardData || window.clipboardData).getData('text');
-  const systems = parseSystemInput(text);
-  this.value = systems.join(', ');
+  const pasted = parseSystemInput(text);
+  // Trigger client-side player gate resolution automatically when user pastes systems
+  try {
+    if (window.loadPlayerGates && (window.USE_LOCAL_SYSTEM_DATA || window.PLAYER_GATE_API)) {
+      // use the parsed names from the paste
+      const parsed = pasted && Array.isArray(pasted) ? pasted.map(s => String(s)) : [];
+        if (parsed.length >= 2) {
+        // run in background and update indicator when done
+        window.loadPlayerGates({ names: parsed }).then(() => {
+          try { updatePlayerGateIndicator(); } catch (e) {}
+        }).catch(() => {});
+      }
+    }
+  } catch (e) {}
+  // existing systems in the textarea
+  const current = parseSystemInput(this.value || '');
+  // Merge while preserving order and avoiding duplicates
+  const merged = current.slice();
+  for (const s of pasted) {
+    if (!merged.includes(s)) merged.push(s);
+  }
+  // If nothing parsed from pasted text, fall back to appending raw text
+  if (merged.length === 0 && text.trim()) {
+    // try to append raw trimmed text separated by comma
+    const fallback = (this.value || '').trim();
+    this.value = fallback ? `${fallback}, ${text.trim()}` : text.trim();
+  } else {
+    this.value = merged.join(', ');
+  }
+  // move cursor to end
+  this.selectionStart = this.selectionEnd = this.value.length;
 });
 
 // Ctrl+Enter support
@@ -779,4 +1150,58 @@ function mapRouteJumpsBySystem(routeJumps) {
     map[j.from] = j;
   });
   return map;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// --- Player Gate UI indicator (small, user-friendly) ---
+function ensurePlayerGateIndicator() {
+  if (document.getElementById('playerGateIndicator')) return document.getElementById('playerGateIndicator');
+  const el = document.createElement('div');
+  el.id = 'playerGateIndicator';
+  el.style.position = 'fixed';
+  el.style.right = '12px';
+  el.style.top = '12px';
+  el.style.zIndex = '9999';
+  el.style.padding = '8px 10px';
+  el.style.background = 'rgba(0,0,0,0.75)';
+  el.style.color = '#cff';
+  el.style.borderRadius = '6px';
+  el.style.fontSize = '13px';
+  el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.6)';
+  el.style.cursor = 'pointer';
+  el.title = 'Click to toggle local system->id lookup';
+  el.addEventListener('click', () => {
+    window.USE_LOCAL_SYSTEM_DATA = !window.USE_LOCAL_SYSTEM_DATA;
+    updatePlayerGateIndicator();
+  });
+  document.body.appendChild(el);
+  return el;
+}
+
+function updatePlayerGateIndicator() {
+  const el = ensurePlayerGateIndicator();
+  const pg = window.PLAYER_GATES;
+  const diag = window.__lastPlayerGateDiagnostics;
+  const useLocal = !!window.USE_LOCAL_SYSTEM_DATA;
+  if (!pg || Object.keys(pg).length === 0) {
+    if (diag && diag.authFailed) {
+      el.textContent = 'PlayerGates: auth failed';
+      el.style.background = 'rgba(80,0,0,0.85)';
+      return el;
+    }
+    el.textContent = `PlayerGates: none (${useLocal ? 'local' : 'api'} off)`;
+    el.style.background = 'rgba(40,40,40,0.9)';
+    return el;
+  }
+
+  const pairs = Object.keys(pg).reduce((acc, k) => acc + (Array.isArray(pg[k]) ? pg[k].length : 0), 0);
+  el.textContent = `PlayerGates: ${pairs} mapping(s) — ${useLocal ? 'local' : 'api'}`;
+  el.style.background = 'rgba(0,80,80,0.9)';
+  return el;
 }
