@@ -97,12 +97,15 @@ function updateEffectiveCDisplay(effectiveC) {
  * @param {number} skillLevel - Current skill level
  * @param {number} bonus - Bonus percentage
  */
+import { setSkillProgress } from './skill-progress.js';
+
 function updateSkillDisplay(skillLevel, bonus) {
   const skillValue = document.getElementById('skillValue');
   const skillBonus = document.getElementById('skillBonus');
 
   if (skillValue) skillValue.textContent = skillLevel;
   if (skillBonus) skillBonus.textContent = bonus;
+  setSkillProgress(skillLevel);
 }
 
 /**
@@ -111,6 +114,7 @@ function updateSkillDisplay(skillLevel, bonus) {
 function resetSkillSlider() {
   const skillSlider = document.getElementById('skillSlider');
   if (skillSlider) skillSlider.value = 0;
+  setSkillProgress(0);
 }
 
 export {

@@ -1,3 +1,5 @@
+import { setSkillProgress } from './skill-progress.js';
+
 /**
  * ui/event-handlers.js
  * 
@@ -131,9 +133,28 @@ function bindSkillSlider(onSkillChanged) {
   const slider = document.getElementById('skillSlider');
   if (!slider) return;
 
-  slider.addEventListener('input', function() {
-    if (onSkillChanged) onSkillChanged(Number(this.value));
+  const commitSkillValue = () => {
+    if (onSkillChanged) onSkillChanged(Number(slider.value));
+  };
+
+  const updatePreview = () => {
+    setSkillProgress(Number(slider.value));
+  };
+
+  slider.addEventListener('input', updatePreview);
+  slider.addEventListener('pointerup', function() {
+    updatePreview();
+    commitSkillValue();
   });
+  slider.addEventListener('change', commitSkillValue);
+  slider.addEventListener('keyup', function(e) {
+    const keys = ['Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'];
+    if (keys.includes(e.key)) {
+      commitSkillValue();
+    }
+  });
+
+  updatePreview();
 }
 
 /**
@@ -145,8 +166,17 @@ function bindTotalMassInput(onMassChanged) {
   const input = document.getElementById('totalHullMass');
   if (!input) return;
 
-  input.addEventListener('input', function() {
-    if (onMassChanged) onMassChanged(Number(this.value));
+  const commitMass = () => {
+    if (onMassChanged) onMassChanged(Number(input.value));
+  };
+
+  input.addEventListener('change', commitMass);
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitMass();
+      this.blur();
+    }
   });
 }
 
