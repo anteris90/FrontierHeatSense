@@ -8,6 +8,34 @@ FrontierHeatSense is an **EVE Frontier** heat prediction system using Ergod's Ar
 - **Backend**: Cloudflare Worker API with R2 storage for system data
 - **Data**: 24K+ star systems with heat calculations and player gate detection
 
+## Data Structure
+
+### System Data (`db/` and `workers/systems/`)
+- `db/data.json`: Local fallback with system data as `[id, class, temp, radius_km, coldest_au, coldest_ls, coldest_heat, status]`
+- `workers/systems/data.json`: Production system lookup data
+- `db/systems.csv`: Raw system data from measurements
+- `db/ships.json`: Ship specifications for jump calculations
+- `workers/systems/player_gates.json`: Player gate mappings stored in R2
+
+### API Response Format
+```json
+{
+  "systems": [{
+    "id": 30000004,
+    "name": "O3H-1FN", 
+    "class": "G0",
+    "temp": 6136,
+    "radius_km": 1110158,
+    "status": "SAFE",
+    "coldest": {
+      "au": 32.16,
+      "ls": 16048.0, 
+      "heat": 4.98
+    }
+  }]
+}
+```
+
 ## Architecture
 
 ### Client-Side Structure (`js/`)
