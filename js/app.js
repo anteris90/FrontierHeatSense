@@ -306,6 +306,9 @@ function parseSystemInput(input) {
   // Expose last parsed IDs for the caller to use when constructing player gate mappings
   window.__lastParsedSystemIds = ids;
 
+  // Expose last parsed normalized system names for client-side resolution
+  window.__lastParsedSystemNames = systems.slice();
+
   return systems;
 }
 
@@ -421,9 +424,9 @@ function renderRouteJumps(routeJumps) {
         <td><strong>${j.from}</strong> → ${j.to}</td>
         <td>${j.distanceLY.toFixed(2)}</td>
         <td>${j.lowHeat.toFixed(1)}</td>
-        <td>${j.jumpHeat == null ? 'N/A' : j.jumpHeat.toFixed(2)}</td>
+        <td>${j.gate ? 'N/A' : (j.jumpHeat == null ? 'N/A' : j.jumpHeat.toFixed(2))}</td>
         <td style="color:${color};font-weight:bold">
-          ${j.totalAfterJump == null ? 'N/A' : j.totalAfterJump.toFixed(2)}
+          ${j.gate ? (j.lowHeat == null ? 'N/A' : j.lowHeat.toFixed(2)) : (j.totalAfterJump == null ? 'N/A' : j.totalAfterJump.toFixed(2))}
         </td>
         <td style="color:${color};font-weight:bold">
           ${status}
@@ -446,6 +449,7 @@ function renderRouteJumps(routeJumps) {
 async function displayMultipleResults(results) {
   // Check if ship is selected
   const hasShipData = selectedShip !== null;
+  const srStatus = document.getElementById('srStatus');
 
   const statusIcon = {
     SAFE: '✅',
@@ -467,6 +471,28 @@ async function displayMultipleResults(results) {
     const namesForApi = systems.map(s => normalizeSystemName(s.name));
 
     const body = { names: namesForApi };
+    // If client-side resolver is available and user enabled local resolution,
+    // ensure we attempt to resolve player gates before POSTing so the server
+    // receives an explicit `playerGates` map (works like NPC gates flow).
+    try {
+      if (!window.PLAYER_GATES && typeof window.loadPlayerGates === 'function' && (window.USE_LOCAL_SYSTEM_DATA || window.PLAYER_GATE_API)) {
+        srStatus.textContent = 'Resolving player gates (client preflight)...';
+        updatePlayerGateIndicator();
+        const namesForResolve = Array.isArray(window.__lastParsedSystemNames) && window.__lastParsedSystemNames.length ? window.__lastParsedSystemNames : namesForApi;
+        try {
+          const resolved = await window.loadPlayerGates({ names: namesForResolve });
+          if (resolved && Object.keys(resolved).length) {
+            window.PLAYER_GATES = resolved;
+          }
+        } catch (e) {
+          console.warn('Preflight player gate resolution failed:', e && e.message);
+        }
+        srStatus.textContent = '';
+        updatePlayerGateIndicator();
+      }
+    } catch (e) {
+      console.warn('Player gate preflight error:', e && e.message);
+    }
     // If the user pasted EF-Map anchors, `parseSystemInput` exposes numeric IDs
     // in `window.__lastParsedSystemIds`. Use them to infer player gate pairs
     // between consecutive systems (fromId -> [toId]) and send to server.
@@ -622,6 +648,8 @@ async function displayMultipleResults(results) {
 
     if (resp.ok) {
       const data = await resp.json().catch(() => ({}));
+      // expose server-side diagnostics for UI debugging
+      window.__lastPlayerGateDiagnostics = data.playerGateDiagnostics || null;
       if (Array.isArray(data.route)) {
         // Map server route entries by normalized name (entry.name → jump info for that system)
         const serverMap = new Map();
@@ -650,6 +678,59 @@ async function displayMultipleResults(results) {
             gate: serverEntry.gate || null
           });
         }
+
+        // Client-side fallback: if server didn't mark a jump as a gate but
+        // we inferred player gates (or have window.PLAYER_GATES), try flexible
+        // matching (IDs or names) and mark it as player so the UI hides jump-heat.
+        try {
+          const inferred = window.__lastInferredPlayerGates || window.PLAYER_GATES || null;
+          if (inferred && typeof inferred === 'object') {
+            const lookupList = (obj, key) => {
+              if (!obj) return null;
+              // try direct key, normalized name, plain name
+              return obj[key] || obj[String(key)] || obj[String(Number(key))] || null;
+            };
+
+            for (let i = 0; i < routeJumps.length; i++) {
+              const fromSys = systems[i];
+              const toSys = systems[i + 1];
+              if (!fromSys || !toSys) continue;
+
+              const fromId = fromSys.id != null ? String(fromSys.id) : null;
+              const toId = toSys.id != null ? String(toSys.id) : null;
+              const fromName = normalizeSystemName(fromSys.name || '');
+              const toName = normalizeSystemName(toSys.name || '');
+
+              const candidates = [fromId, fromName, fromSys.name];
+
+              let matched = false;
+              for (const key of candidates) {
+                if (!key) continue;
+                const list = lookupList(inferred, key);
+                if (!list || !Array.isArray(list)) continue;
+                // check any entry in list matches the destination by id or name
+                for (const item of list) {
+                  const s = item == null ? null : String(item);
+                  if (!s) continue;
+                  if ((toId && s === toId) || (toName && s === toName) || s === String(Number(toId))) {
+                    matched = true;
+                    break;
+                  }
+                }
+                if (matched) break;
+              }
+
+              if (matched) {
+                routeJumps[i].gate = 'player';
+                routeJumps[i].jumpHeat = null;
+                routeJumps[i].totalAfterJump = routeJumps[i].lowHeat || null;
+                routeJumps[i].canJump = true;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Player gate fallback failed:', e && e.message);
+        }
       }
     } else {
       const err = await resp.json().catch(() => null);
@@ -664,8 +745,9 @@ async function displayMultipleResults(results) {
   const jumpMap = mapRouteJumpsBySystem(routeJumps);
 
 // --- meta ---
-const resultDiv = document.getElementById('result');
+  const resultDiv = document.getElementById('result');
   const inferredGatesToShow = window.__lastInferredPlayerGates;
+  const playerGateDiag = window.__lastPlayerGateDiagnostics || null;
 const successCount = results.filter(r => !r.error).length;
 const trapCount = results.filter(
     r => !r.error && r.system?.coldest_point?.heat >= 85
@@ -674,6 +756,7 @@ const trapCount = results.filter(
   // --- HTML header ---
   let html = `
     ${inferredGatesToShow ? `<div style="margin:8px 0;padding:8px;border-radius:6px;background:#111;color:#afa;font-size:0.9em"><strong>Inferred playerGates:</strong><pre style="white-space:pre-wrap;margin:6px 0 0;padding:6px;background:#000;border-radius:4px;color:#cfc;">${escapeHtml(JSON.stringify(inferredGatesToShow, null, 2))}</pre></div>` : ''}
+    ${playerGateDiag ? `<div style="margin:8px 0;padding:8px;border-radius:6px;background:#111;color:#fcc;font-size:0.9em"><strong>Player Gate Diagnostics:</strong><pre style="white-space:pre-wrap;margin:6px 0 0;padding:6px;background:#000;border-radius:4px;color:#f88;">${escapeHtml(JSON.stringify(playerGateDiag, null, 2))}</pre></div>` : ''}
     ${
       !hasShipData
         ? `<div class="input-hint" style="margin:6px 0 10px">
@@ -756,7 +839,7 @@ const trapCount = results.filter(
     }
 
     // If this jump is a gate (npc/player), override display values
-    const isGateJump = !!(jump && jump.gate);
+    const isGateJump = !!(jump && (String(jump.gate).toLowerCase() === 'npc' || String(jump.gate).toLowerCase() === 'player'));
     if (isGateJump) {
       jumpStatus = (jump.gate === 'npc') ? 'GATE (NPC)' : 'GATE (PLAYER)';
       jumpColor = '#66CCFF';
@@ -783,11 +866,11 @@ const trapCount = results.filter(
         }">
           ${sys.coldest_point.heat.toFixed(1)}
         </td>
-        <td data-label="Jump Heat">${!hasShipData ? 'N/A' : (isGateJump ? 'N/A' : (jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A'))}</td>
-        <td data-label="Post‑Jump Heat">${!hasShipData ? 'N/A' : (isGateJump ? (jump?.lowHeat != null ? jump.lowHeat.toFixed(2) : 'N/A') : (jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'))}</td>
+        <td data-label="Jump Heat">${!hasShipData ? 'N/A' : ((jump && jump.gate) ? 'N/A' : (jump?.jumpHeat != null ? jump.jumpHeat.toFixed(2) : 'N/A'))}</td>
+        <td data-label="Post‑Jump Heat">${!hasShipData ? 'N/A' : ((jump && jump.gate) ? (jump?.lowHeat != null ? jump.lowHeat.toFixed(2) : 'N/A') : (jump?.totalAfterJump != null ? jump.totalAfterJump.toFixed(2) : 'N/A'))}</td>
 
         <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
-          ${jumpStatus}${gateWarningHtml}
+          ${hasShipData ? (jumpStatus + gateWarningHtml) : 'N/A'}
         </td>
 
         <td data-label="Status">
@@ -820,6 +903,19 @@ document.getElementById('systemInput').addEventListener('paste', function(e) {
   e.preventDefault();
   const text = (e.clipboardData || window.clipboardData).getData('text');
   const pasted = parseSystemInput(text);
+  // Trigger client-side player gate resolution automatically when user pastes systems
+  try {
+    if (window.loadPlayerGates && (window.USE_LOCAL_SYSTEM_DATA || window.PLAYER_GATE_API)) {
+      // use the parsed names from the paste
+      const parsed = pasted && Array.isArray(pasted) ? pasted.map(s => String(s)) : [];
+        if (parsed.length >= 2) {
+        // run in background and update indicator when done
+        window.loadPlayerGates({ names: parsed }).then(() => {
+          try { updatePlayerGateIndicator(); } catch (e) {}
+        }).catch(() => {});
+      }
+    }
+  } catch (e) {}
   // existing systems in the textarea
   const current = parseSystemInput(this.value || '');
   // Merge while preserving order and avoiding duplicates
@@ -1063,4 +1159,51 @@ function escapeHtml(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+// --- Player Gate UI indicator (small, user-friendly) ---
+function ensurePlayerGateIndicator() {
+  if (document.getElementById('playerGateIndicator')) return document.getElementById('playerGateIndicator');
+  const el = document.createElement('div');
+  el.id = 'playerGateIndicator';
+  el.style.position = 'fixed';
+  el.style.right = '12px';
+  el.style.top = '12px';
+  el.style.zIndex = '9999';
+  el.style.padding = '8px 10px';
+  el.style.background = 'rgba(0,0,0,0.75)';
+  el.style.color = '#cff';
+  el.style.borderRadius = '6px';
+  el.style.fontSize = '13px';
+  el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.6)';
+  el.style.cursor = 'pointer';
+  el.title = 'Click to toggle local system->id lookup';
+  el.addEventListener('click', () => {
+    window.USE_LOCAL_SYSTEM_DATA = !window.USE_LOCAL_SYSTEM_DATA;
+    updatePlayerGateIndicator();
+  });
+  document.body.appendChild(el);
+  return el;
+}
+
+function updatePlayerGateIndicator() {
+  const el = ensurePlayerGateIndicator();
+  const pg = window.PLAYER_GATES;
+  const diag = window.__lastPlayerGateDiagnostics;
+  const useLocal = !!window.USE_LOCAL_SYSTEM_DATA;
+  if (!pg || Object.keys(pg).length === 0) {
+    if (diag && diag.authFailed) {
+      el.textContent = 'PlayerGates: auth failed';
+      el.style.background = 'rgba(80,0,0,0.85)';
+      return el;
+    }
+    el.textContent = `PlayerGates: none (${useLocal ? 'local' : 'api'} off)`;
+    el.style.background = 'rgba(40,40,40,0.9)';
+    return el;
+  }
+
+  const pairs = Object.keys(pg).reduce((acc, k) => acc + (Array.isArray(pg[k]) ? pg[k].length : 0), 0);
+  el.textContent = `PlayerGates: ${pairs} mapping(s) — ${useLocal ? 'local' : 'api'}`;
+  el.style.background = 'rgba(0,80,80,0.9)';
+  return el;
 }

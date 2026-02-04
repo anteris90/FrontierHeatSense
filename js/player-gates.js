@@ -51,7 +51,28 @@ async function loadPlayerGates(opts = {}) {
 
   const base = String(playerGateApi).replace(/\/+$/, '');
   // attempt to find system ids to query
-  const systemIds = Array.isArray(opts.systemIds) && opts.systemIds.length ? opts.systemIds.slice() : (Array.isArray(window.__lastParsedSystemIds) ? window.__lastParsedSystemIds.slice() : []);
+  let systemIds = Array.isArray(opts.systemIds) && opts.systemIds.length ? opts.systemIds.slice() : (Array.isArray(window.__lastParsedSystemIds) ? window.__lastParsedSystemIds.slice() : []);
+
+  // If caller passed `opts.names` (normalized system names) or USE_LOCAL_SYSTEM_DATA is enabled,
+  // try to resolve names to IDs using the local `/db/data.json` file (fast, single fetch).
+  if ((!systemIds || systemIds.length === 0) && (Array.isArray(opts.names) && opts.names.length || window.USE_LOCAL_SYSTEM_DATA)) {
+    try {
+      const names = Array.isArray(opts.names) && opts.names.length ? opts.names : (Array.isArray(window.__lastParsedSystemNames) ? window.__lastParsedSystemNames : []);
+      if (names && names.length) {
+        const txt = await fetch('/db/data.json').then(r => r.ok ? r.json() : null).catch(() => null);
+        if (txt && typeof txt === 'object') {
+          const ids = [];
+          for (const n of names) {
+            const nn = String(n).toUpperCase().trim();
+            if (txt[nn] && Array.isArray(txt[nn]) && txt[nn].length) ids.push(String(txt[nn][0]));
+          }
+          if (ids.length) systemIds = ids;
+        }
+      }
+    } catch (e) {
+      // ignore and fall back to other resolution methods
+    }
+  }
   if (!systemIds.length && Array.isArray(window.lastRouteResults) && window.lastRouteResults.length) {
     // try to pull ids from server-provided route entries (if present)
     const ids = [];
@@ -110,6 +131,9 @@ async function loadPlayerGates(opts = {}) {
   window.PLAYER_GATES = out;
   if (window.lastRouteResults && window.renderRouteJumps) window.renderRouteJumps(window.lastRouteResults);
   else if (window.recalculateRoute) window.recalculateRoute();
+  if (typeof window.updatePlayerGateIndicator === 'function') {
+    try { window.updatePlayerGateIndicator(); } catch (e) {}
+  }
   return out;
 }
 
@@ -119,6 +143,12 @@ window.loadPlayerGates = loadPlayerGates;
 // Auto-run when page loads if API is configured and parsed ids exist
 window.addEventListener('DOMContentLoaded', () => {
   try {
+    // prefer parsed names (from textarea) to resolve locally via /db/data.json
+    const names = Array.isArray(window.__lastParsedSystemNames) ? window.__lastParsedSystemNames : null;
+    if (names && names.length >= 2 && (window.USE_LOCAL_SYSTEM_DATA || window.PLAYER_GATE_API)) {
+      loadPlayerGates({ names }).catch(() => {});
+      return;
+    }
     if (window.PLAYER_GATE_API && Array.isArray(window.__lastParsedSystemIds) && window.__lastParsedSystemIds.length >= 2) {
       // don't await — run in background
       loadPlayerGates({});

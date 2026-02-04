@@ -5,6 +5,7 @@ const METERS_PER_LY = 9.46073e15;
 
 let cachedData = null;
 let cachedNpcGates = null;
+let cachedPlayerGates = null;
 
 // Simple concurrency mapper for controlled parallel fetches
 async function mapWithConcurrency(list, mapper, concurrency = 6) {
@@ -94,6 +95,45 @@ async function loadNpcGates(env) {
   }
 }
 
+async function loadPlayerGatesR2(env) {
+  if (cachedPlayerGates) return cachedPlayerGates;
+  try {
+    const obj = await env.R2_BUCKET.get('player_gates.json');
+    if (!obj) {
+      cachedPlayerGates = null;
+      return cachedPlayerGates;
+    }
+    const txt = await obj.text();
+    const raw = JSON.parse(txt);
+    const map = Object.create(null);
+    if (Array.isArray(raw)) {
+      for (const item of raw) {
+        let a, b;
+        if (Array.isArray(item) && item.length >= 2) { a = item[0]; b = item[1]; }
+        else if (item && typeof item === 'object' && 'from' in item && 'to' in item) { a = item.from; b = item.to; }
+        if (a == null || b == null) continue;
+        const sa = String(a); const sb = String(b);
+        map[sa] = map[sa] || new Set(); map[sa].add(sb);
+        map[sb] = map[sb] || new Set(); map[sb].add(sa);
+      }
+    } else if (raw && typeof raw === 'object') {
+      for (const k of Object.keys(raw)) {
+        const arr = Array.isArray(raw[k]) ? raw[k] : [];
+        const sk = String(k);
+        map[sk] = map[sk] || new Set();
+        for (const v of arr) map[sk].add(String(v));
+      }
+    }
+    const out = Object.create(null);
+    for (const k of Object.keys(map)) out[k] = Array.from(map[k]);
+    cachedPlayerGates = out;
+    return cachedPlayerGates;
+  } catch (err) {
+    cachedPlayerGates = null;
+    return cachedPlayerGates;
+  }
+}
+
 async function loadData(env) {
   if (cachedData) return cachedData;
 
@@ -152,6 +192,40 @@ export default {
       cachedNpcGates = null;
       try {
         await loadNpcGates(env);
+        return Response.json({ ok: true }, { headers: cors });
+      } catch (err) {
+        return Response.json({ error: 'Reload failed: ' + err.message }, { status: 500, headers: cors });
+      }
+    }
+
+    // Admin endpoints: upload or reload PLAYER gates mapping in R2
+    if (url.pathname === '/api/admin/upload-player-gates' && request.method === 'POST') {
+      const token = request.headers.get('x-admin-token');
+      if (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) {
+        return Response.json({ error: 'Forbidden' }, { status: 403, headers: cors });
+      }
+
+      const body = await request.json().catch(() => null);
+      if (!body) return Response.json({ error: 'Missing body' }, { status: 400, headers: cors });
+
+      try {
+        await env.R2_BUCKET.put('player_gates.json', JSON.stringify(body));
+        cachedPlayerGates = null;
+        await loadPlayerGatesR2(env);
+        return Response.json({ ok: true }, { headers: cors });
+      } catch (err) {
+        return Response.json({ error: 'R2 write failed: ' + err.message }, { status: 500, headers: cors });
+      }
+    }
+
+    if (url.pathname === '/api/admin/reload-player-gates' && request.method === 'POST') {
+      const token = request.headers.get('x-admin-token');
+      if (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) {
+        return Response.json({ error: 'Forbidden' }, { status: 403, headers: cors });
+      }
+      cachedPlayerGates = null;
+      try {
+        await loadPlayerGatesR2(env);
         return Response.json({ ok: true }, { headers: cors });
       } catch (err) {
         return Response.json({ error: 'Reload failed: ' + err.message }, { status: 500, headers: cors });
@@ -282,14 +356,45 @@ export default {
             if (Array.isArray(it) && it.length >= 2) { a = it[0]; b = it[1]; }
             else if (it && typeof it === 'object' && 'from' in it && 'to' in it) { a = it.from; b = it.to; }
             if (a == null || b == null) continue;
-            tmp[a] = tmp[a] || [];
-            tmp[a].push(b);
-            tmp[b] = tmp[b] || [];
-            tmp[b].push(a);
+            const sa = String(a);
+            const sb = String(b);
+            tmp[sa] = tmp[sa] || [];
+            if (tmp[sa].indexOf(sb) === -1) tmp[sa].push(sb);
+            tmp[sb] = tmp[sb] || [];
+            if (tmp[sb].indexOf(sa) === -1) tmp[sb].push(sa);
           }
           playerGates = tmp;
-        } else if (raw && typeof raw === 'object') playerGates = raw;
-      } else if (env.PLAYER_GATE_API) {
+        } else if (raw && typeof raw === 'object') {
+          // Normalize object keys/values to strings
+          const tmp = Object.create(null);
+          for (const k of Object.keys(raw)) {
+            const vals = Array.isArray(raw[k]) ? raw[k] : [];
+            const sk = String(k);
+            tmp[sk] = tmp[sk] || [];
+            for (const v of vals) {
+              const sv = String(v);
+              if (tmp[sk].indexOf(sv) === -1) tmp[sk].push(sv);
+              tmp[sv] = tmp[sv] || [];
+              if (tmp[sv].indexOf(sk) === -1) tmp[sv].push(sk);
+            }
+          }
+          playerGates = tmp;
+        }
+      } else {
+        // Prefer R2-stored mapping when available (uploaded via admin endpoint).
+        let resolvedFromR2 = false;
+        try {
+          const r2map = await loadPlayerGatesR2(env).catch(() => null);
+          if (r2map && typeof r2map === 'object' && Object.keys(r2map).length) {
+            playerGates = r2map;
+            resolvedFromR2 = true;
+            playerGateDiagnostics.notes.push('Loaded player gates from R2');
+          }
+        } catch (e) {
+          // ignore R2 load failures and fall back to API if configured
+        }
+
+        if (!resolvedFromR2 && env.PLAYER_GATE_API) {
         // Protect against extremely large route requests
         const PLAYER_GATE_MAX_SYSTEMS = Number(env.PLAYER_GATE_MAX_SYSTEMS) || 100;
         if (names.length > PLAYER_GATE_MAX_SYSTEMS) {
@@ -368,20 +473,69 @@ export default {
           const asmResults = await mapWithConcurrency(uniqueGateIds, fetchAsm, PLAYER_GATE_CONCURRENCY);
 
           // helper: resolve destination system id with depth limit and visited set
-          const resolveDestSystem = async (asmJson, visited = new Set(), depth = 0) => {
-            if (!asmJson || depth > 6) return null;
-            if (visited.has(asmJson.id || asmJson)) return null;
-            visited.add(asmJson.id || asmJson);
-            if (asmJson.gate && Array.isArray(asmJson.gate.inRange) && asmJson.gate.inRange.length) {
-              const r = asmJson.gate.inRange[0];
-              return (r && r.solarSystem && r.solarSystem.id) ? r.solarSystem.id : (r && r.solarSystemId) ? r.solarSystemId : null;
+          const resolveDestSystem = async (asmJsonOrId, visited = new Set(), depth = 0) => {
+            if (!asmJsonOrId || depth > 8) return null;
+            // normalize to assembly JSON if an id was passed
+            let asmJson = null;
+            try {
+              if (typeof asmJsonOrId === 'string' || typeof asmJsonOrId === 'number') {
+                const aid = String(asmJsonOrId);
+                if (visited.has(aid)) return null;
+                visited.add(aid);
+                // try fetch as assembly first
+                asmJson = await fetchAsm(aid).catch(() => null);
+                // if fetchAsm didn't return an assembly, try fetching as a system id
+                if (!asmJson) {
+                  const sys = await fetchSys(aid).catch(() => null);
+                  if (sys && sys.id) return String(sys.id);
+                  return null;
+                }
+              } else {
+                const key = asmJsonOrId.id || asmJsonOrId;
+                if (visited.has(key)) return null;
+                visited.add(key);
+                asmJson = asmJsonOrId;
+              }
+            } catch (err) {
+              return null;
             }
-            if (asmJson.gate && asmJson.gate.destinationId) {
-              const destId = String(asmJson.gate.destinationId);
-              const destAsm = await fetchAsm(destId).catch(() => null);
-              if (!destAsm) return null;
-              return await resolveDestSystem(destAsm, visited, depth + 1);
+
+            try {
+              // if inRange contains direct system references, prefer those
+              if (asmJson.gate && Array.isArray(asmJson.gate.inRange) && asmJson.gate.inRange.length) {
+                for (const r of asmJson.gate.inRange) {
+                  if (!r) continue;
+                  if (r.solarSystem && r.solarSystem.id) return String(r.solarSystem.id);
+                  if (r.solarSystemId) return String(r.solarSystemId);
+                  // some APIs may embed assembly references inside inRange — try to resolve
+                  if (r.smartAssemblyId) {
+                    const nested = await fetchAsm(String(r.smartAssemblyId)).catch(() => null);
+                    if (nested) {
+                      const got = await resolveDestSystem(nested, visited, depth + 1);
+                      if (got) return String(got);
+                    }
+                  }
+                }
+              }
+
+              // if this assembly points to a destinationId, that may be a system id or another assembly
+              if (asmJson.gate && asmJson.gate.destinationId) {
+                const destId = String(asmJson.gate.destinationId);
+                // try as system first
+                const maybeSys = await fetchSys(destId).catch(() => null);
+                if (maybeSys && maybeSys.id) return String(maybeSys.id);
+                // else try as assembly id
+                const destAsm = await fetchAsm(destId).catch(() => null);
+                if (destAsm) {
+                  const got = await resolveDestSystem(destAsm, visited, depth + 1);
+                  if (got) return String(got);
+                }
+              }
+            } catch (err) {
+              // record diagnostic but don't throw
+              playerGateDiagnostics.notes.push(`resolveDestSystem error: ${String(err && err.message ? err.message : err)}`);
             }
+
             return null;
           };
 
@@ -404,11 +558,17 @@ export default {
             }
           }
 
-          if (Object.keys(tmp).length) playerGates = tmp;
+          if (Object.keys(tmp).length) {
+            playerGates = tmp;
+            playerGateDiagnostics.found = Object.keys(tmp).length;
+          }
         } catch (err) {
           playerGates = {};
           playerGateDiagnostics.notes.push(String(err && err.message ? err.message : err));
         }
+      } else {
+        // No player gate API configured and no mapping provided by client — record diagnostic
+        playerGateDiagnostics.notes.push('PLAYER_GATE_API not configured; server-side player gate resolution skipped');
       }
 
       // Hajó paraméterek (default értékekkel)
@@ -457,6 +617,15 @@ export default {
             jumpHeatGen = 0;
             totalAfter = lowHeat;
             canJumpThis = true;
+            // attempt to compute distance for metrics if coords exist
+            if (entry.length >= 11 && prevEntry.length >= 11 && isFinite(entry[8]) && isFinite(prevEntry[8])) {
+              const dx = entry[8] - prevEntry[8];
+              const dy = entry[9] - prevEntry[9];
+              const dz = entry[10] - prevEntry[10];
+              const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
+              const distLY = distM / METERS_PER_LY;
+              totalLY += distLY;
+            }
           } else {
               // Ensure coordinates are present
               if (entry.length >= 11 && prevEntry.length >= 11 && isFinite(entry[8]) && isFinite(prevEntry[8])) {
