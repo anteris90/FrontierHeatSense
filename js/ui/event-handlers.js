@@ -26,6 +26,21 @@ function bindSearchButton(onSearch) {
 }
 
 /**
+ * Bind reverse route button click handler
+ * 
+ * @param {function} onReverse - Callback to execute on reverse
+ * @returns {boolean} Success
+ */
+function bindReverseButton(onReverse) {
+  const btnEl = document.getElementById('reverseBtn');
+  if (!btnEl) return false;
+  
+  btnEl.removeEventListener('click', onReverse);
+  btnEl.addEventListener('click', onReverse);
+  return true;
+}
+
+/**
  * Bind paste handler for system input
  * Handles: plain text, HTML anchors (EF-Map format), mixed
  * 
@@ -181,6 +196,7 @@ function updateStatusMessage(message) {
 
 export {
   bindSearchButton,
+  bindReverseButton,
   bindPasteHandler,
   bindKeyboardShortcuts,
   bindShipSelect,

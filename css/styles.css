@@ -108,10 +108,44 @@ textarea {
   border-radius:10px;cursor:pointer;transition:transform 0.18s,box-shadow 0.18s,opacity 0.18s;
   box-shadow:0 4px 18px rgba(0,0,0,0.45);
 }
+.btn-secondary {
+  width:auto;margin-left:12px;
+  background:linear-gradient(135deg,#6a4a8a 0%,#4a2a6a 100%);
+  font-size:1em;padding:12px 18px;
+  border:1.5px solid rgba(150,100,200,0.4);
+  box-shadow:0 4px 12px rgba(100,60,150,0.25);
+  transition:transform 0.18s,box-shadow 0.18s,background 0.18s;
+}
+.btn-secondary:hover:not(:disabled) {
+  background:linear-gradient(135deg,#7a5a9a 0%,#5a3a7a 100%);
+  border-color:rgba(170,120,220,0.6);
+  box-shadow:0 6px 20px rgba(120,80,180,0.4);
+  transform:translateY(-1px);
+}
 .btn:hover:not(:disabled) {transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,0.55);opacity:0.98}
 .btn:disabled {opacity:0.45;cursor:not-allowed}
 .btn:focus-visible, textarea:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible {
   outline:none;box-shadow:var(--focus)
+}
+.button-group {
+  display:flex;gap:12px;flex-wrap:wrap;margin-top:2px;
+}
+.button-group .btn {
+  width:auto;flex:1 1 auto;min-width:140px;
+}
+.button-group .btn-secondary {
+  margin-left:0;flex:0 1 auto;
+}
+@media (max-width:600px) {
+  .button-group {
+    flex-direction:column;gap:10px;
+  }
+  .button-group .btn {
+    width:100%;min-width:unset;
+  }
+  .button-group .btn-secondary {
+    width:100%;
+  }
 }
 .result {
   background:transparent;border:none;
