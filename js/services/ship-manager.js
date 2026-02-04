@@ -107,8 +107,9 @@ function calculateSkillBonus(skillLevel) {
 function getShipParameters(skillLevel, totalHullMass) {
   if (!selectedShip) return null;
   
-  const skill = Math.max(0, Math.min(100, Number(skillLevel) || 0));
-  const mass = Math.max(selectedShip.hullMass, Number(totalHullMass) || selectedShip.hullMass);
+  // Get values from DOM if not provided
+  const skill = skillLevel !== undefined ? Math.max(0, Math.min(100, Number(skillLevel) || 0)) : Number(document.getElementById('skillSlider')?.value) || 0;
+  const mass = totalHullMass !== undefined ? Math.max(selectedShip.hullMass, Number(totalHullMass) || selectedShip.hullMass) : Number(document.getElementById('totalHullMass')?.value) || selectedShip.hullMass;
   
   return {
     hullMass: selectedShip.hullMass,

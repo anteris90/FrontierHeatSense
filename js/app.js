@@ -168,9 +168,20 @@ async function searchSystems() {
       if (results.length > 1) {
         const body = {
           names: results.map(r => r.name),
-          ship: hasShipSelected() ? getShipParameters() : null,
           playerGates: window.PLAYER_GATES || null
         };
+        
+        // Add ship data if selected
+        if (hasShipSelected()) {
+          const shipParams = getShipParameters();
+          if (shipParams) {
+            body.totalMass = shipParams.totalHullMass;
+            body.hullMass = shipParams.hullMass;
+            body.baseC = shipParams.baseC;
+            body.skillLevel = shipParams.skillLevel;
+          }
+        }
+        
         const routeResp = await fetchRoute(body);
         routeJumps = routeResp.route || [];
       }
@@ -337,12 +348,21 @@ window.renderRouteJumps = (results) => displayMultipleResults(results);
 async function recalculateRoute() {
   if (!lastRouteResults || lastRouteResults.length <= 1) return;
 
-  const shipParams = getShipParameters();
   const body = {
     names: lastRouteResults.map(r => r.name),
-    ship: shipParams,
     playerGates: window.PLAYER_GATES || null
   };
+
+  // Add ship data if selected
+  if (hasShipSelected()) {
+    const shipParams = getShipParameters();
+    if (shipParams) {
+      body.totalMass = shipParams.totalHullMass;
+      body.hullMass = shipParams.hullMass;
+      body.baseC = shipParams.baseC;
+      body.skillLevel = shipParams.skillLevel;
+    }
+  }
 
   try {
     const routeResp = await fetchRoute(body);
