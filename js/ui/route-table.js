@@ -165,9 +165,14 @@ function renderRouteTable(results, routeJumps, hasShipData) {
 function mapRouteJumpsByName(routeJumps) {
   const map = {};
   if (Array.isArray(routeJumps)) {
-    routeJumps.forEach(j => {
-      if (j && j.name) map[j.name] = j;
-    });
+    // Create departure-based mapping: map[systemName] = jump data for leaving that system
+    for (let i = 0; i < routeJumps.length - 1; i++) {
+      const currentSystem = routeJumps[i];
+      const nextJump = routeJumps[i + 1];
+      if (currentSystem && currentSystem.name && nextJump) {
+        map[currentSystem.name] = nextJump;
+      }
+    }
   }
   return map;
 }
