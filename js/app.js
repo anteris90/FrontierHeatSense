@@ -24,7 +24,7 @@
 // ============================================
 
 import { normalizeSystemName, parseSystemInput } from './core/normalization.js';
-import { calculateDistanceLY, calculateRouteJumps, mapRouteJumpsBySystem } from './core/calculations.js';
+import { calculateDistanceLY, calculateRouteJumps } from './core/calculations.js';
 import { fetchSingleSystem, fetchBatchSystems, fetchRoute, API_BASE, API_BATCH } from './core/api-client.js';
 
 import { selectShip, getShips, hasShipSelected, calculateSkillBonus, calculateEffectiveC, getShipParameters, loadShips } from './services/ship-manager.js';
@@ -40,9 +40,11 @@ import { populateShipSelect, updateShipDisplay, updateEffectiveCDisplay, updateS
 // ============================================
 
 let lastRouteResults = null;
+let lastRouteJumps = [];
 
 // Expose for backward compatibility and debugging
 window.lastRouteResults = lastRouteResults;
+window.lastRouteJumps = lastRouteJumps;
 
 // ============================================
 // Initialization
@@ -161,9 +163,23 @@ async function searchSystems() {
     if (results.length === 1 && !results[0].error) {
       displayResult(results[0].system, results[0].model);
     } else {
+      // Calculate route for multiple systems
+      let routeJumps = [];
+      if (results.length > 1) {
+        const body = {
+          names: results.map(r => r.name),
+          ship: hasShipSelected() ? getShipParameters() : null,
+          playerGates: window.PLAYER_GATES || null
+        };
+        const routeResp = await fetchRoute(body);
+        routeJumps = routeResp.route || [];
+      }
+
       lastRouteResults = results;
+      lastRouteJumps = routeJumps;
       window.lastRouteResults = results;
-      await displayMultipleResults(results);
+      window.lastRouteJumps = routeJumps;
+      displayMultipleResults(results, routeJumps, hasShipSelected());
     }
     
     updateStatusMessage(`Results ready for ${results.length} system(s).`);
@@ -180,7 +196,7 @@ async function searchSystems() {
  * Display multiple systems in route table format
  * Coordinates with server for route calculation and player gate resolution
  */
-async function displayMultipleResults(results) {
+async function displayMultipleResults(results, routeJumps, hasShipData) {
   const resultDiv = document.getElementById('result');
   const srStatus = document.getElementById('srStatus');
 
@@ -192,172 +208,21 @@ async function displayMultipleResults(results) {
   };
 
   const systems = results.filter(r => !r.error).map(r => r.system);
-  let routeJumps = [];
 
-  // Try server-side route calculation
-  try {
-    const namesForApi = systems.map(s => normalizeSystemName(s.name));
-    const body = { names: namesForApi };
-
-    // Preflight: attempt player gate resolution if configured
-    try {
-      if (!window.PLAYER_GATES && typeof window.loadPlayerGates === 'function' && (window.USE_LOCAL_SYSTEM_DATA || window.PLAYER_GATE_API)) {
-        updateStatusMessage('Resolving player gates (client preflight)...');
-        updatePlayerGateIndicator();
-        
-        const namesForResolve = Array.isArray(window.__lastParsedSystemNames) && window.__lastParsedSystemNames.length 
-          ? window.__lastParsedSystemNames 
-          : namesForApi;
-        
-        try {
-          const resolved = await window.loadPlayerGates({ names: namesForResolve });
-          if (resolved && Object.keys(resolved).length) {
-            window.PLAYER_GATES = resolved;
-          }
-        } catch (e) {
-          console.warn('Preflight player gate resolution failed:', e && e.message);
-        }
-        updateStatusMessage('');
-        updatePlayerGateIndicator();
-      }
-    } catch (e) {
-      console.warn('Player gate preflight error:', e && e.message);
-    }
-
-    // Add parsed IDs if available (from EF-Map anchors)
-    let parsedIds = Array.isArray(window.__lastParsedSystemIds) ? window.__lastParsedSystemIds.slice() : [];
-    
-    // Fallback to resolved system IDs
-    if ((!parsedIds || parsedIds.length < 2) && Array.isArray(systems) && systems.length >= 2) {
-      const sysIds = systems.map(s => s.id).filter(Boolean).map(String);
-      if (sysIds.length >= 2) parsedIds = sysIds;
-    }
-
-    // Build inferred player gates from parsed IDs
-    if (Array.isArray(parsedIds) && parsedIds.length >= 2) {
-      const inferred = Object.create(null);
-      for (let i = 0; i < Math.min(parsedIds.length, namesForApi.length) - 1; i++) {
-        const a = parsedIds[i];
-        const b = parsedIds[i + 1];
-        if (a && b) {
-          const sa = String(a);
-          const sb = String(b);
-          inferred[sa] = inferred[sa] || [];
-          if (inferred[sa].indexOf(sb) === -1) inferred[sa].push(sb);
-        }
-      }
-      if (Object.keys(inferred).length) {
-        body.playerGates = inferred;
-      }
-    }
-
-    // Add ship data if available
-    if (hasShipSelected()) {
-      const skillLevel = Number(document.getElementById('skillSlider')?.value) || 0;
-      const totalMass = Number(document.getElementById('totalHullMass')?.value);
-      const shipParams = getShipParameters(skillLevel, totalMass);
-      
-      if (shipParams) {
-        body.totalMass = shipParams.totalHullMass;
-        body.hullMass = shipParams.hullMass;
-        body.baseC = shipParams.baseC;
-        body.skillLevel = skillParams.skillLevel;
-      }
-    }
-
-    // Include cached player gates if available
-    if (window.PLAYER_GATES) {
-      body.playerGates = window.PLAYER_GATES;
-    }
-
-    // Request route from server
-    const resp = await fetchRoute(body);
-    
-    // Expose diagnostics globally
-    window.__lastPlayerGateDiagnostics = resp.playerGateDiagnostics || null;
-
-    if (Array.isArray(resp.route)) {
-      const serverMap = new Map();
-      for (const e of resp.route) {
-        serverMap.set(normalizeSystemName(String(e.name)), e);
-      }
-
-      // Build jump entries
-      for (let i = 0; i < systems.length - 1; i++) {
-        const from = systems[i];
-        const to = systems[i + 1];
-        const normTo = normalizeSystemName(to.name);
-        const serverEntry = serverMap.get(normTo) || {};
-        const distanceLY = calculateDistanceLY(from, to);
-
-        routeJumps.push({
-          from: from.name,
-          to: to.name,
-          distanceLY,
-          lowHeat: from.coldest_point.heat,
-          jumpHeat: hasShipSelected() && serverEntry.jump_heat_gen != null ? Number(serverEntry.jump_heat_gen) : null,
-          totalAfterJump: hasShipSelected() && serverEntry.total_after_jump != null ? Number(serverEntry.total_after_jump) : null,
-          warning: from.coldest_point.heat > 90,
-          canJump: hasShipSelected() && serverEntry.can_jump != null ? Boolean(serverEntry.can_jump) : null,
-          gate: serverEntry.gate || null
-        });
-      }
-
-      // Client-side fallback for gate detection
-      try {
-        const inferred = window.__lastInferredPlayerGates || window.PLAYER_GATES || null;
-        if (inferred && typeof inferred === 'object') {
-          for (let i = 0; i < routeJumps.length; i++) {
-            const fromSys = systems[i];
-            const toSys = systems[i + 1];
-            if (!fromSys || !toSys) continue;
-
-            const fromId = fromSys.id != null ? String(fromSys.id) : null;
-            const toId = toSys.id != null ? String(toSys.id) : null;
-            const fromName = normalizeSystemName(fromSys.name || '');
-            const toName = normalizeSystemName(toSys.name || '');
-
-            const candidates = [fromId, fromName, fromSys.name];
-            let matched = false;
-
-            for (const key of candidates) {
-              if (!key) continue;
-              const list = inferred[key] || inferred[String(key)];
-              if (!list || !Array.isArray(list)) continue;
-
-              for (const item of list) {
-                const s = item == null ? null : String(item);
-                if (!s) continue;
-                if ((toId && s === toId) || (toName && s === toName) || s === String(Number(toId))) {
-                  matched = true;
-                  break;
-                }
-              }
-              if (matched) break;
-            }
-
-            if (matched) {
-              routeJumps[i].gate = 'player';
-              routeJumps[i].jumpHeat = null;
-              routeJumps[i].totalAfterJump = routeJumps[i].lowHeat || null;
-              routeJumps[i].canJump = true;
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('Player gate fallback failed:', e && e.message);
-      }
-    }
-  } catch (err) {
-    console.warn('Route request failed:', err && err.message);
-    // Continue with client-side calculation if available
-  }
-
-  // Render results
-  const html = renderRouteTable(results, routeJumps, hasShipSelected());
+  // Render route table
+  const html = renderRouteTable(results, routeJumps, hasShipData);
   resultDiv.innerHTML = html;
   resultDiv.style.display = 'block';
-  resultDiv.focus();
+
+  // Update status
+  const validCount = systems.length;
+  if (validCount > 1) {
+    srStatus.textContent = `Route: ${validCount} systems, ${routeJumps.length} jumps`;
+  } else {
+    srStatus.textContent = `${validCount} system(s) found`;
+  }
+
+  updatePlayerGateIndicator();
 }
 
 // ============================================
@@ -382,7 +247,7 @@ function handleShipSelection(shipName) {
 
   // Recalculate route if exists
   if (lastRouteResults) {
-    displayMultipleResults(lastRouteResults);
+    recalculateRoute();
   }
 }
 
@@ -397,14 +262,14 @@ function handleSkillChange(skillLevel) {
 
   // Recalculate route if exists
   if (lastRouteResults) {
-    displayMultipleResults(lastRouteResults);
+    recalculateRoute();
   }
 }
 
 function handleMassChange() {
   // Recalculate route if exists
   if (lastRouteResults) {
-    displayMultipleResults(lastRouteResults);
+    recalculateRoute();
   }
 }
 
@@ -468,7 +333,28 @@ function updatePlayerGateIndicator() {
 window.updatePlayerGateIndicator = updatePlayerGateIndicator;
 window.loadPlayerGates = loadPlayerGates;
 window.renderRouteJumps = (results) => displayMultipleResults(results);
-window.recalculateRoute = () => { if (lastRouteResults) displayMultipleResults(lastRouteResults); };
+// Recalculate route with current ship selection
+async function recalculateRoute() {
+  if (!lastRouteResults || lastRouteResults.length <= 1) return;
+
+  const shipParams = getShipParameters();
+  const body = {
+    names: lastRouteResults.map(r => r.name),
+    ship: shipParams,
+    playerGates: window.PLAYER_GATES || null
+  };
+
+  try {
+    const routeResp = await fetchRoute(body);
+    lastRouteJumps = routeResp.route || [];
+    window.lastRouteJumps = lastRouteJumps;
+    displayMultipleResults(lastRouteResults, lastRouteJumps, true);
+  } catch (err) {
+    console.warn('Recalculate route failed:', err);
+  }
+}
+
+window.recalculateRoute = recalculateRoute;
 
 // ============================================
 // Event Binding & Initialization
