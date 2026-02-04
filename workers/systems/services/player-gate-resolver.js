@@ -37,7 +37,7 @@ async function resolvePlayerGatesFromApi(names, D, env, diagnostics = {}) {
   }
 
   // Configuration from environment variables
-  const PLAYER_GATE_MAX_SYSTEMS = Number(env.PLAYER_GATE_MAX_SYSTEMS) || 100;
+  const PLAYER_GATE_MAX_SYSTEMS = Number(env.PLAYER_GATE_MAX_SYSTEMS) || 500;
   const PLAYER_GATE_CONCURRENCY = Number(env.PLAYER_GATE_CONCURRENCY) || 8;
   const PLAYER_GATE_RETRIES = Number(env.PLAYER_GATE_RETRIES) || 3;
   const PLAYER_GATE_BASE_BACKOFF_MS = Number(env.PLAYER_GATE_BASE_BACKOFF_MS) || 200;
