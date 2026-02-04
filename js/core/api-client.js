@@ -226,6 +226,7 @@ async function fetchRoute(body) {
   
   return { 
     route: route,
+    total_distance_ly: route.reduce((sum, jump) => sum + (jump.distanceLY || 0), 0),
     model: 'local-mock'
   };
 }

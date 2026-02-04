@@ -165,6 +165,7 @@ async function searchSystems() {
     } else {
       // Calculate route for multiple systems
       let routeJumps = [];
+      let routeResp = null;
       if (results.length > 1) {
         // Load player gates for route calculation
         await loadPlayerGates({ names: results.map(r => r.name) });
@@ -186,7 +187,7 @@ async function searchSystems() {
           }
         }
         
-        const routeResp = await fetchRoute(body);
+        routeResp = await fetchRoute(body);
         routeJumps = routeResp.route || [];
       }
 
@@ -194,7 +195,7 @@ async function searchSystems() {
       lastRouteJumps = routeJumps;
       window.lastRouteResults = results;
       window.lastRouteJumps = routeJumps;
-      displayMultipleResults(results, routeJumps, hasShipSelected());
+      displayMultipleResults(results, routeJumps, hasShipSelected(), routeResp?.total_distance_ly || null);
     }
     
     updateStatusMessage(`Results ready for ${results.length} system(s).`);
@@ -211,7 +212,7 @@ async function searchSystems() {
  * Display multiple systems in route table format
  * Coordinates with server for route calculation and player gate resolution
  */
-async function displayMultipleResults(results, routeJumps, hasShipData) {
+async function displayMultipleResults(results, routeJumps, hasShipData, totalDistanceLY) {
   const resultDiv = document.getElementById('result');
   const srStatus = document.getElementById('srStatus');
 
@@ -225,7 +226,7 @@ async function displayMultipleResults(results, routeJumps, hasShipData) {
   const systems = results.filter(r => !r.error).map(r => r.system);
 
   // Render route table
-  const html = renderRouteTable(results, routeJumps, hasShipData);
+  const html = renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY);
   resultDiv.innerHTML = html;
   resultDiv.style.display = 'block';
 
@@ -378,7 +379,7 @@ async function recalculateRoute() {
     const routeResp = await fetchRoute(body);
     lastRouteJumps = routeResp.route || [];
     window.lastRouteJumps = lastRouteJumps;
-    displayMultipleResults(lastRouteResults, lastRouteJumps, hasShipSelected());
+    displayMultipleResults(lastRouteResults, lastRouteJumps, hasShipSelected(), routeResp.total_distance_ly);
   } catch (err) {
     console.warn('Recalculate route failed:', err);
   }

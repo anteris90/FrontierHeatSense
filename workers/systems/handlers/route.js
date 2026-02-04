@@ -219,7 +219,7 @@ async function handleRoute(request, env, cors) {
             totalLY += distLY;
             
             jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
-            totalAfter = lowHeat + jumpHeatGen;
+            totalAfter = prevEntry[6] + jumpHeatGen;
             canJumpThis = Number.isFinite(totalAfter) ? (totalAfter <= 150) : null;
             
             if (canJumpThis === false) canComplete = false;

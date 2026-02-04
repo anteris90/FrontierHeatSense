@@ -17,9 +17,10 @@
  * @param {array} results - Search results with system data
  * @param {array} routeJumps - Jump analysis from server
  * @param {boolean} hasShipData - Whether ship is selected
+ * @param {number} totalDistanceLY - Total route distance in light years
  * @returns {string} HTML table
  */
-function renderRouteTable(results, routeJumps, hasShipData) {
+function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
   const statusIcon = {
     SAFE: '✅',
     MODERATE: '⚠️',
@@ -46,6 +47,9 @@ function renderRouteTable(results, routeJumps, hasShipData) {
       ${successCount} / ${results.length} systems found
       ${trapCount > 0
         ? ` | <span style="color:#ff6666">⚠️ ${trapCount} TRAP(s) detected!</span>`
+        : ''}
+      ${totalDistanceLY != null
+        ? ` | <span style="color:#ffaa77">📏 Total Distance: ${totalDistanceLY.toFixed(2)} LY</span>`
         : ''}
     </p>
 
