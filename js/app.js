@@ -41,7 +41,7 @@ try {
   - `METERS_PER_LY` is used to convert API coordinates (meters) → light-years
   ========================================== */
 // API base can be overridden in dev console: `window.HEATSENSE_API = 'https://...'`
-const API_BASE = window.HEATSENSE_API || 'https://systems-test.heatsense.workers.dev';
+const API_BASE = window.HEATSENSE_API || 'https://systems.heatsense.workers.dev';
 const API_SINGLE = `${API_BASE}/api/system`;
 const API_BATCH = `${API_BASE}/api/systems`;
 
