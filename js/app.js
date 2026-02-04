@@ -262,7 +262,7 @@ function handleShipSelection(shipName) {
 
   // Recalculate route if exists
   if (lastRouteResults) {
-    recalculateRoute();
+    recalculateRoute().catch(err => console.warn('Ship selection recalculate failed:', err));
   }
 }
 
@@ -352,6 +352,8 @@ window.renderRouteJumps = (results) => displayMultipleResults(results);
 async function recalculateRoute() {
   if (!lastRouteResults || lastRouteResults.length <= 1) return;
 
+  console.log('Recalculating route with ship data...');
+
   // Load player gates for route calculation
   await loadPlayerGates({ names: lastRouteResults.map(r => r.name) });
 
@@ -368,13 +370,16 @@ async function recalculateRoute() {
       body.hullMass = shipParams.hullMass;
       body.baseC = shipParams.baseC;
       body.skillLevel = shipParams.skillLevel;
+      console.log('Added ship params:', shipParams);
     }
   }
 
   try {
+    console.log('Making route API call...');
     const routeResp = await fetchRoute(body);
     lastRouteJumps = routeResp.route || [];
     window.lastRouteJumps = lastRouteJumps;
+    console.log('Route recalculated:', lastRouteJumps);
     displayMultipleResults(lastRouteResults, lastRouteJumps, hasShipSelected());
   } catch (err) {
     console.warn('Recalculate route failed:', err);
