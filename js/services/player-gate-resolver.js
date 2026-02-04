@@ -12,6 +12,8 @@
  * Also exposes window.loadPlayerGates() for backward compatibility
  */
 
+import { API_BASE } from '../core/api-client.js';
+
 /**
  * Fetch with retry and exponential backoff
  * 
@@ -66,7 +68,7 @@ async function loadPlayerGates(opts = {}) {
 
   // Try backend shortcut first (fast, cached in R2)
   try {
-    const bp = await fetch('/api/player-gates', { headers });
+    const bp = await fetch(`${API_BASE}/api/player-gates`, { headers });
     if (bp && bp.ok) {
       const map = await bp.json().catch(() => null);
       window.PLAYER_GATES = map || {};
