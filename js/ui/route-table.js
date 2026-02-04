@@ -128,7 +128,7 @@ function renderRouteTable(results, routeJumps, hasShipData) {
       <tr>
         <td data-label="System"><strong>${sys.name}</strong></td>
 
-        <td data-label="Distance (LY)">${isGateJump ? 'GATE' : (jump?.distance_ly != null ? jump.distance_ly.toFixed(2) : '—')}</td>
+        <td data-label="Distance (LY)">${jump?.distance_ly != null ? jump.distance_ly.toFixed(2) : '—'}</td>
 
         <td data-label="Heat" class="heat-cell" style="color:${
           sys.coldest_point.heat >= 70

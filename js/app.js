@@ -352,6 +352,9 @@ window.renderRouteJumps = (results) => displayMultipleResults(results);
 async function recalculateRoute() {
   if (!lastRouteResults || lastRouteResults.length <= 1) return;
 
+  // Load player gates for route calculation
+  await loadPlayerGates({ names: lastRouteResults.map(r => r.name) });
+
   const body = {
     names: lastRouteResults.map(r => r.name),
     playerGates: window.PLAYER_GATES || null
