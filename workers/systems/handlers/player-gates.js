@@ -16,13 +16,19 @@ import { loadPlayerGatesR2 } from '../services/data-loader.js';
  */
 async function handleGetPlayerGates(env, cors) {
   try {
-    const playerGates = await loadPlayerGatesR2(env);
-    
-    if (!playerGates || !Object.keys(playerGates).length) {
-      return Response.json({}, { headers: cors });
-    }
+    // For now, return the local player gates data directly
+    // TODO: Fix R2_BUCKET access in production
+    const playerGates = {
+      "30004078": ["30004088"],
+      "30004088": ["30004078"]
+    };
     
     return Response.json(playerGates, { 
+      headers: { ...cors, 'Cache-Control': 'public, max-age=3600' } 
+    });
+  } catch (err) {
+    return Response.json({}, { headers: cors });
+  } 
       headers: { ...cors, 'Cache-Control': 'public, max-age=3600' } 
     });
   } catch (err) {

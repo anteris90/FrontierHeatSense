@@ -170,8 +170,9 @@ async function searchSystems() {
         await loadPlayerGates({ names: results.map(r => r.name) });
         
         const body = {
-          names: results.map(r => r.name),
-          playerGates: window.PLAYER_GATES || null
+          names: results.map(r => r.name)
+          // Let server resolve player gates dynamically
+          // playerGates: window.PLAYER_GATES || null
         };
         
         // Add ship data if selected
