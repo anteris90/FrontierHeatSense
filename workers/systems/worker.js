@@ -579,9 +579,10 @@ export default {
           playerGates = {};
           playerGateDiagnostics.notes.push(String(err && err.message ? err.message : err));
         }
-      } else {
-        // No player gate API configured and no mapping provided by client — record diagnostic
-        playerGateDiagnostics.notes.push('PLAYER_GATE_API not configured; server-side player gate resolution skipped');
+        } else {
+          // No player gate API configured and no mapping provided by client — record diagnostic
+          playerGateDiagnostics.notes.push('PLAYER_GATE_API not configured; server-side player gate resolution skipped');
+        }
       }
 
       // Hajó paraméterek (default értékekkel)
