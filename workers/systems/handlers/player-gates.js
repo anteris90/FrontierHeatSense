@@ -28,11 +28,6 @@ async function handleGetPlayerGates(env, cors) {
     });
   } catch (err) {
     return Response.json({}, { headers: cors });
-  } 
-      headers: { ...cors, 'Cache-Control': 'public, max-age=3600' } 
-    });
-  } catch (err) {
-    return Response.json({}, { headers: cors });
   }
 }
 

@@ -118,6 +118,37 @@ async function handleBatchSystems(request, env, cors) {
 }
 
 /**
+ * GET /api/highheat
+ * Get all systems with heat >= 85 (DANGER and TRAP systems)
+ */
+async function handleHighHeat(env, cors) {
+  const D = await loadData(env);
+  const out = [];
+
+  for (const name in D) {
+    const e = D[name];
+    const heat = Number(e[6]);   // heat value
+
+    if (heat >= 85) {   // 🔥 DANGER+
+      out.push({
+        name,
+        star: e[1],
+        temp: e[2],
+        au: e[4],
+        ls: e[5],
+        heat,
+        status: heat >= 90 ? 'TRAP' : 'DANGER'
+      });
+    }
+  }
+
+  // Sort by heat DESC
+  out.sort((a, b) => b.heat - a.heat);
+
+  return Response.json(out, { headers: cors });
+}
+
+/**
  * Route system requests to appropriate handler
  */
 async function handleSystems(pathname, request, env, cors) {
@@ -129,6 +160,10 @@ async function handleSystems(pathname, request, env, cors) {
   
   if (pathname === '/api/systems' && request.method === 'POST') {
     return await handleBatchSystems(request, env, cors);
+  }
+  
+  if (pathname === '/api/highheat' && request.method === 'GET') {
+    return await handleHighHeat(env, cors);
   }
   
   return null; // Not a system endpoint
