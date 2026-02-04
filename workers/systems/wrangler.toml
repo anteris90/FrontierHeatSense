@@ -1,9 +1,12 @@
-name = "systems-test"
+name = "systems"
 main = "worker.js"
 compatibility_date = "2026-01-29"
 
 [observability]
 enabled = true
+
+[vars]
+PLAYER_GATE_API = "https://world-api-stillness.live.tech.evefrontier.com/v2"
 
 [[r2_buckets]]
 binding = "R2_BUCKET"

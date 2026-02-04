@@ -139,6 +139,9 @@ textarea {
 .route-table td {
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
+.route-table td[data-label="Jump"] {
+  overflow:visible;text-overflow:clip
+}
 @media (max-width: 1100px) {
   .route-table {
     font-size:0.85em
@@ -413,4 +416,15 @@ footer a:hover {text-decoration:underline}
   background: rgba(0,0,0,0.3);
   border-radius: 6px;
   margin-top: 4px;
+}
+
+/* Mobile adjustments: reduce heavy shadows and increase touch targets */
+@media (pointer: coarse) and (max-width: 800px) {
+  .danger-link-box { box-shadow: 0 0 8px rgba(255,100,50,0.25); }
+
+  .btn, button, .link-button { padding: 14px 18px; min-height: 44px; }
+
+  .route-table td, .route-table th { padding: 12px 10px; }
+
+  .control-label, .ship-selector-compact { font-size: 1.05rem; }
 }

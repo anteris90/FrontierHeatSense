@@ -28,6 +28,9 @@ roadmap/
 deploy.sh
 index_backup.html
 
+# Refactoring documentation (branch-specific)
+Docs/refactor/
+
 # Editor metadata
 *.sublime-workspace
 *.sublime-project
