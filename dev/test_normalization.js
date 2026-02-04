@@ -26,7 +26,7 @@ function parseSystemInput(input) {
   text = text.normalize('NFKD').replace(/\p{M}/gu, '');
   text = text.replace(/[\u2012\u2013\u2014\u2015\u2212]/g, '-');
 
-  const regex = /\b[A-Z0-9]{2,4}-[A-Z0-9]{2,4}\b/gi;
+  const regex = /\b[A-Z0-9]+(?:[-:.|][A-Z0-9]+)+\b/gi;
   const matches = text.match(regex) || [];
   const systems = [];
   for (const m of matches) {

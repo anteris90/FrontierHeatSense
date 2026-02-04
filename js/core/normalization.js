@@ -75,7 +75,7 @@ function parseSystemInput(input) {
   const temp = document.createElement('div');
   temp.innerHTML = input || '';
 
-  const nameRegex = /\b(?:[A-Z0-9]{1,4}[-:|][A-Z0-9]{1,4}|[A-Z0-9]*[A-Z][A-Z0-9]*(?:\.[A-Z0-9]+)+)\b/gi;
+  const nameRegex = /\b[A-Z0-9]+(?:[-:.|][A-Z0-9]+)+\b/gi;
   const results = [];
 
   /**
