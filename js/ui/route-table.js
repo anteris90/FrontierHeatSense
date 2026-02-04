@@ -166,7 +166,7 @@ function mapRouteJumpsByName(routeJumps) {
   const map = {};
   if (Array.isArray(routeJumps)) {
     routeJumps.forEach(j => {
-      if (j && j.from) map[j.from] = j;
+      if (j && j.name) map[j.name] = j;
     });
   }
   return map;
