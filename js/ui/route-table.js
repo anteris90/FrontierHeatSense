@@ -120,14 +120,14 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
     // Check if gate jump
     const isGateJump = !!(jump && (String(jump.gate).toLowerCase() === 'npc' || String(jump.gate).toLowerCase() === 'player'));
     if (isGateJump) {
-      jumpStatus = (jump.gate === 'npc') ? 'GATE (NPC)' : 'GATE (PLAYER)';
+      jumpStatus = (jump.gate === 'npc') ? 'GATE (NPC)' : 'GATE (SMART)';
       jumpColor = '#66CCFF';
     }
 
-    // Warning for player gates
+    // Warning for smart gates
     let gateWarningHtml = '';
     if (isGateJump && jump && jump.gate === 'player') {
-      gateWarningHtml = ' <span title="Player gate — availability may vary (owner-controlled)" style="color:#ffcc00">⚠️</span>';
+      gateWarningHtml = ' <span title="Smart gate — availability may vary (owner-controlled)" style="color:#ffcc00">⚠️</span>';
     }
 
     html += `
