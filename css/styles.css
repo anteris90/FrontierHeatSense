@@ -139,6 +139,9 @@ textarea {
 .route-table td {
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
+.route-table td[data-label="Jump"] {
+  overflow:visible;text-overflow:clip
+}
 @media (max-width: 1100px) {
   .route-table {
     font-size:0.85em
