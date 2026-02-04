@@ -347,10 +347,9 @@ function updatePlayerGateIndicator() {
 // Expose globally for use
 window.updatePlayerGateIndicator = updatePlayerGateIndicator;
 window.loadPlayerGates = loadPlayerGates;
-window.renderRouteJumps = (results) => {
-  if (lastRouteJumps && lastRouteResults) {
-    displayMultipleResults(lastRouteResults, lastRouteJumps, hasShipSelected());
-  }
+window.renderRouteJumps = () => {
+  // Disabled - let recalculateRoute handle the full update
+  // This prevents race conditions when ship is selected
 };
 // Recalculate route with current ship selection
 async function recalculateRoute() {
