@@ -260,9 +260,9 @@ function handleShipSelection(shipName) {
     hideShipDetails();
   }
 
-  // Use cached route recalculation if we have existing results
+  // Trigger full refresh if we have existing results
   if (lastRouteResults && lastRouteResults.length > 1) {
-    recalculateRoute().catch(err => console.warn('Ship selection recalculate failed:', err));
+    searchSystems().catch(err => console.warn('Ship selection refresh failed:', err));
   }
 }
 
@@ -275,16 +275,16 @@ function handleSkillChange(skillLevel) {
   updateSkillDisplay(skillLevel, bonus);
   updateEffectiveCDisplay(effectiveC);
 
-  // Recalculate route if exists (cached)
-  if (lastRouteResults && lastRouteResults.length > 1) {
-    recalculateRoute().catch(err => console.warn('Skill change recalculate failed:', err));
+  // Recalculate route if exists
+  if (lastRouteResults) {
+    recalculateRoute();
   }
 }
 
 function handleMassChange() {
-  // Recalculate route if exists (cached)
-  if (lastRouteResults && lastRouteResults.length > 1) {
-    recalculateRoute().catch(err => console.warn('Mass change recalculate failed:', err));
+  // Recalculate route if exists
+  if (lastRouteResults) {
+    recalculateRoute();
   }
 }
 
@@ -347,10 +347,9 @@ function updatePlayerGateIndicator() {
 // Expose globally for use
 window.updatePlayerGateIndicator = updatePlayerGateIndicator;
 window.loadPlayerGates = loadPlayerGates;
-window.renderRouteJumps = (results) => {
-  if (lastRouteJumps && lastRouteResults) {
-    displayMultipleResults(lastRouteResults, lastRouteJumps, hasShipSelected());
-  }
+window.renderRouteJumps = () => {
+  // Disabled - let recalculateRoute handle the full update
+  // This prevents race conditions when ship is selected
 };
 // Recalculate route with current ship selection
 async function recalculateRoute() {
