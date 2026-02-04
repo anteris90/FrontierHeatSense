@@ -1,16 +1,4 @@
-/**
- * ui/renderer.js
- * 
- * Render results to DOM.
- * Handles both single system views and route analysis tables.
- * 
- * Responsibilities:
- * - Single system display
- * - Multiple systems route table
- * - Error messages
- * - Jump analysis table
- * - Player gate indicators
- */
+import { renderRouteTable } from './route-table.js';
 
 /**
  * Display single system details
@@ -84,6 +72,29 @@ function displayResult(system, model) {
 }
 
 /**
+ * Display multiple systems route table
+ * 
+ * @param {array} results - Search results with system data
+ * @param {array} routeJumps - Jump analysis from server
+ * @param {boolean} hasShipData - Whether ship is selected
+ * @param {number} totalDistanceLY - Total route distance in light years
+ */
+function displayMultipleResults(results, routeJumps, hasShipData, totalDistanceLY) {
+  try {
+    const resultDiv = document.getElementById('result');
+    const errorDiv = document.getElementById('error');
+    
+    errorDiv.style.display = 'none';
+    resultDiv.innerHTML = renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY);
+    resultDiv.style.display = 'block';
+    resultDiv.focus();
+  } catch (err) {
+    console.error('Error displaying multiple results:', err);
+    showError('Failed to display results: ' + err.message);
+  }
+}
+
+/**
  * Display error message
  * 
  * @param {string} message - Error message
@@ -110,4 +121,4 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
-export { displayResult, showError, escapeHtml };
+export { displayResult, displayMultipleResults, showError, escapeHtml };

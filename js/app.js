@@ -30,8 +30,8 @@ import { fetchSingleSystem, fetchBatchSystems, fetchRoute, API_BASE, API_BATCH }
 import { selectShip, getShips, hasShipSelected, calculateSkillBonus, calculateEffectiveC, getShipParameters, loadShips } from './services/ship-manager.js';
 import { loadPlayerGates } from './services/player-gate-resolver.js';
 
-import { displayResult, showError } from './ui/renderer.js';
-import { renderRouteTable, mapRouteJumpsByName } from './ui/route-table.js';
+import { displayResult, displayMultipleResults, showError } from './ui/renderer.js';
+import { mapRouteJumpsByName } from './ui/route-table.js';
 import { bindSearchButton, bindPasteHandler, bindKeyboardShortcuts, bindShipSelect, bindSkillSlider, bindTotalMassInput, updateSearchButton, setResultsVisible, setErrorVisible, updateStatusMessage } from './ui/event-handlers.js';
 import { populateShipSelect, updateShipDisplay, updateEffectiveCDisplay, updateSkillDisplay, resetSkillSlider, hideShipDetails } from './ui/ship-ui.js';
 
@@ -114,8 +114,8 @@ async function searchSystems() {
       for (const name of systemNames) {
         const s = systemMap.get(normalizeSystemName(name));
 
-        if (!s) {
-          results.push({ name, error: 'System not found' });
+        if (!s || s.error) {
+          results.push({ name, error: s?.error || 'System not found' });
           continue;
         }
 
@@ -206,39 +206,7 @@ async function searchSystems() {
   } finally {
     updateSearchButton(false, 'Check Heat');
   }
-}
 
-/**
- * Display multiple systems in route table format
- * Coordinates with server for route calculation and player gate resolution
- */
-async function displayMultipleResults(results, routeJumps, hasShipData, totalDistanceLY) {
-  const resultDiv = document.getElementById('result');
-  const srStatus = document.getElementById('srStatus');
-
-  const statusIcon = {
-    SAFE: '✅',
-    MODERATE: '⚠️',
-    DANGEROUS: '🔥',
-    CRITICAL: '☠️'
-  };
-
-  const systems = results.filter(r => !r.error).map(r => r.system);
-
-  // Render route table
-  const html = renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY);
-  resultDiv.innerHTML = html;
-  resultDiv.style.display = 'block';
-
-  // Update status
-  const validCount = systems.length;
-  if (validCount > 1) {
-    srStatus.textContent = `Route: ${validCount} systems, ${routeJumps.length} jumps`;
-  } else {
-    srStatus.textContent = `${validCount} system(s) found`;
-  }
-
-  updatePlayerGateIndicator();
 }
 
 // ============================================

@@ -37,14 +37,17 @@ function normalizeSystemName(name) {
   // Normalize different dash characters to ASCII hyphen
   s = s.replace(/[\u2012\u2013\u2014\u2015\u2212]/g, '-');
   
-  // Remove HTML-ish garbage, keep letters, numbers, hyphen
-  s = s.replace(/[^\p{L}\p{N}\-\s]/gu, ' ');
+  // Remove HTML-ish garbage, keep letters, numbers, hyphen, pipe, colon, dot
+  s = s.replace(/[^\p{L}\p{N}\-\s:|\\.]/gu, ' ');
   
   // Collapse whitespace, trim, uppercase
   s = s.replace(/\s+/g, ' ').trim().toUpperCase();
   
-  // Tighten spaces around hyphen
-  s = s.replace(/\s*-\s*/g, '-');
+  // Convert spaces to pipes when they appear to be separators between short system name parts
+  s = s.replace(/(\b[A-Z0-9]{2,4})\s([A-Z0-9]{2,4}\b)/g, (match, p1, p2) => p1 + '|' + p2);
+  
+  // Tighten spaces around separators (hyphen, pipe, colon, dot)
+  s = s.replace(/\s*([-:|\\.])\s*/g, (match, sep) => sep);
   
   return s;
 }
@@ -72,7 +75,7 @@ function parseSystemInput(input) {
   const temp = document.createElement('div');
   temp.innerHTML = input || '';
 
-  const nameRegex = /\b[A-Z0-9.:|]{1,6}[-:|][A-Z0-9.:|]{1,6}\b/gi;
+  const nameRegex = /\b(?:[A-Z0-9]{1,4}[-:|][A-Z0-9]{1,4}|[A-Z0-9]*[A-Z][A-Z0-9]*(?:\.[A-Z0-9]+)+)\b/gi;
   const results = [];
 
   /**
@@ -82,6 +85,10 @@ function parseSystemInput(input) {
    */
   function pushNameRaw(text, id = null) {
     if (!text) return;
+    
+    // Skip text that looks like route descriptions (contains arrows or route indicators)
+    if (text.includes('→') || text.includes('Gate:') || text.includes('Jump:')) return;
+    
     const matches = String(text).match(nameRegex);
     if (!matches) return;
     for (const m of matches) {

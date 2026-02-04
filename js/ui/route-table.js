@@ -94,8 +94,10 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
 
     // Normal system row
     const sys = result.system;
+    if (!sys) continue; // Safety check
+    
     const jump = jumpMap[sys.name];
-    const isTrap = sys.coldest_point.heat >= 85 || sys.status === 'CRITICAL';
+    const isTrap = (sys.coldest_point?.heat >= 85) || sys.status === 'CRITICAL';
     const statusEmoji = statusIcon[sys.status] || 'ℹ️';
 
     // Determine jump status
@@ -130,19 +132,13 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
 
     html += `
       <tr>
-        <td data-label="System"><strong>${sys.name}</strong></td>
+        <td data-label="System"><strong>${sys.name || 'Unknown'}</strong></td>
 
         <td data-label="Distance (LY)">${jump?.distance_ly != null ? jump.distance_ly.toFixed(2) : '—'}</td>
 
         <td data-label="Heat" class="heat-cell" style="color:${
-          sys.coldest_point.heat >= 70
-            ? '#ff6666'
-            : sys.coldest_point.heat >= 30
-              ? '#ffaa66'
-              : '#aaffaa'
-        }">
-          ${sys.coldest_point.heat.toFixed(1)}
-        </td>
+          (sys.coldest_point?.heat >= 70) ? '#ff6666' : (sys.coldest_point?.heat >= 50) ? '#ffaa66' : '#7CFF7C'
+        }">${sys.coldest_point?.heat?.toFixed(1) || '—'}</td>
         <td data-label="Jump Heat">${!hasShipData ? 'N/A' : ((jump && jump.gate) ? 'N/A' : (jump?.jump_heat_gen != null ? jump.jump_heat_gen.toFixed(2) : 'N/A'))}</td>
         <td data-label="Post‑Jump Heat">${!hasShipData ? 'N/A' : ((jump && jump.gate) ? (jump?.low_heat != null ? jump.low_heat.toFixed(2) : 'N/A') : (jump?.total_after_jump != null ? jump.total_after_jump.toFixed(2) : 'N/A'))}</td>
 
