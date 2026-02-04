@@ -166,6 +166,9 @@ async function searchSystems() {
       // Calculate route for multiple systems
       let routeJumps = [];
       if (results.length > 1) {
+        // Load player gates for route calculation
+        await loadPlayerGates({ names: results.map(r => r.name) });
+        
         const body = {
           names: results.map(r => r.name),
           playerGates: window.PLAYER_GATES || null
@@ -381,6 +384,9 @@ window.recalculateRoute = recalculateRoute;
 // ============================================
 
 function initialize() {
+  // Enable local system data for development
+  window.USE_LOCAL_SYSTEM_DATA = true;
+
   // Bind search
   bindSearchButton(searchSystems);
 

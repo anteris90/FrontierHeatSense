@@ -91,6 +91,17 @@ async function loadPlayerGates(opts = {}) {
       const map = await localGates.json().catch(() => null);
       window.PLAYER_GATES = map || {};
       
+      // Also load NPC gates
+      try {
+        const npcGates = await fetch('/workers/systems/npc_gates.json');
+        if (npcGates && npcGates.ok) {
+          const npcMap = await npcGates.json().catch(() => null);
+          window.NPC_GATES = npcMap || {};
+        }
+      } catch (e) {
+        // NPC gates load failed
+      }
+      
       // Update UI
       if (window.lastRouteResults && window.renderRouteJumps) {
         window.renderRouteJumps(window.lastRouteResults);
@@ -106,6 +117,17 @@ async function loadPlayerGates(opts = {}) {
     }
   } catch (e) {
     // Local fallback failed, continue to API
+  }
+
+  // Also load NPC gates for API case
+  try {
+    const npcGates = await fetch('/workers/systems/npc_gates.json');
+    if (npcGates && npcGates.ok) {
+      const map = await npcGates.json().catch(() => null);
+      window.NPC_GATES = map || {};
+    }
+  } catch (e) {
+    // NPC gates load failed
   }
 
   if (!playerGateApi) {
