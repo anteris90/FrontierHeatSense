@@ -13,7 +13,7 @@
 /**
  * API configuration (can be overridden via window.HEATSENSE_API)
  */
-const API_BASE = window.HEATSENSE_API || 'https://systems-test.anteris90.workers.dev';
+const API_BASE = window.HEATSENSE_API || 'https://systems.heatsense.workers.dev';
 const API_SINGLE = `${API_BASE}/api/system`;
 const API_BATCH = `${API_BASE}/api/systems`;
 const API_ROUTE = `${API_BASE}/api/route`;
