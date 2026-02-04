@@ -101,7 +101,7 @@ async function handleBatchSystems(request, env, cors) {
   }
 
   const response = new Response(
-    JSON.stringify({ systems: results }),
+    JSON.stringify({ systems: results, model: 'cloudflare-worker' }),
     {
       headers: {
         "Content-Type": "application/json",

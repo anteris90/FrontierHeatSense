@@ -53,8 +53,11 @@ async function fetchSingleSystem(normalizedName) {
 async function fetchBatchSystems(normalizedNames) {
   // Try Cloudflare Worker API first
   try {
-    const url = `${API_BATCH}?${normalizedNames.map(name => `names=${encodeURIComponent(name)}`).join('&')}`;
-    const response = await fetch(url);
+    const response = await fetch(API_BATCH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ names: normalizedNames })
+    });
     
     if (response.ok) {
       const data = await response.json();
