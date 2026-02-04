@@ -176,6 +176,7 @@ async function handleRoute(request, env, cors) {
       let totalAfter = lowHeat;
       let canJumpThis = true;
       let gateType = null;
+      let distLY = null;
       
       // Calculate jump to this system (if not first system)
       if (i > 0) {
@@ -203,7 +204,7 @@ async function handleRoute(request, env, cors) {
             const dy = entry[9] - prevEntry[9];
             const dz = entry[10] - prevEntry[10];
             const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
-            const distLY = distM / METERS_PER_LY;
+            distLY = distM / METERS_PER_LY;
             totalLY += distLY;
           }
         } else {
@@ -214,7 +215,7 @@ async function handleRoute(request, env, cors) {
             const dy = entry[9] - prevEntry[9];
             const dz = entry[10] - prevEntry[10];
             const distM = Math.sqrt(dx*dx + dy*dy + dz*dz);
-            const distLY = distM / METERS_PER_LY;
+            distLY = distM / METERS_PER_LY;
             totalLY += distLY;
             
             jumpHeatGen = (3 * totalMass * distLY) / (effectiveC * hullMass);
@@ -238,6 +239,7 @@ async function handleRoute(request, env, cors) {
         id: entry[0],
         low_heat: Number(lowHeat),
         status: STATUS_MAP[st] || 'UNKNOWN',
+        distance_ly: (distLY != null) ? Number(distLY) : null,
         jump_heat_gen: (jumpHeatGen == null) ? null : Number(jumpHeatGen),
         total_after_jump: (totalAfter == null) ? null : Number(totalAfter),
         can_jump: (canJumpThis == null) ? null : Boolean(canJumpThis),

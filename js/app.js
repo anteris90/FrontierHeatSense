@@ -371,7 +371,7 @@ async function recalculateRoute() {
     const routeResp = await fetchRoute(body);
     lastRouteJumps = routeResp.route || [];
     window.lastRouteJumps = lastRouteJumps;
-    displayMultipleResults(lastRouteResults, lastRouteJumps, true);
+    displayMultipleResults(lastRouteResults, lastRouteJumps, hasShipSelected());
   } catch (err) {
     console.warn('Recalculate route failed:', err);
   }
