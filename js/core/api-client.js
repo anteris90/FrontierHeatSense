@@ -56,6 +56,9 @@ async function fetchBatchSystems(normalizedNames) {
     const response = await fetch('/workers/systems/data.json');
     const data = await response.json();
     
+    // Status mapping from server
+    const STATUS_MAP = { 'S': 'SAFE', 'M': 'MODERATE', 'D': 'DANGEROUS', 'C': 'CRITICAL' };
+    
     const systems = [];
     for (const name of normalizedNames) {
       if (data[name]) {
@@ -66,7 +69,7 @@ async function fetchBatchSystems(normalizedNames) {
           class: starClass,
           temp: temp,
           radius_km: radiusKm,
-          status: status,
+          status: STATUS_MAP[status] || status, // Map status to full word
           coords: null,
           coldest: {
             au: coldestAu,
@@ -119,27 +122,63 @@ async function fetchBatchSystems(normalizedNames) {
  */
 async function fetchRoute(body) {
   // Mock route data for local testing
-  const { names, totalMass, hullMass, baseC, skillLevel } = body;
+  const { names, totalMass, hullMass, baseC, skillLevel, playerGates } = body;
   const route = [];
+  
+  // Load system data to get IDs
+  let systemData = {};
+  try {
+    const response = await fetch('/workers/systems/data.json');
+    if (response.ok) {
+      systemData = await response.json();
+    }
+  } catch (e) {
+    // Ignore, continue without gate detection
+  }
   
   for (let i = 0; i < names.length - 1; i++) {
     const from = names[i];
     const to = names[i + 1];
     const distanceLY = Math.random() * 10 + 1;
     
+    // Check for player gate
+    let isGate = false;
+    if (playerGates && systemData[from] && systemData[to]) {
+      const fromId = String(systemData[from][0]);
+      const toId = String(systemData[to][0]);
+      if (playerGates[fromId] && playerGates[fromId].includes(toId)) {
+        isGate = true;
+      }
+    }
+    
     let jumpHeat = null;
-    if (totalMass && hullMass && baseC && skillLevel !== undefined) {
+    let totalAfterJump = null;
+    let canJump = null;
+    let gate = null;
+    
+    if (isGate) {
+      // Gate jump - no heat calculation, just low heat
+      gate = 'player';
+      // For gates, show some low heat value
+      jumpHeat = null; // N/A for gates
+      totalAfterJump = null;
+      canJump = true; // Gates are always feasible
+    } else if (totalMass && hullMass && baseC && skillLevel !== undefined) {
+      // Normal jump
       const effectiveC = baseC * (1 + skillLevel * 0.02);
       jumpHeat = (3 * totalMass * distanceLY) / (effectiveC * hullMass);
+      totalAfterJump = jumpHeat ? jumpHeat + 50 : null;
+      canJump = jumpHeat ? jumpHeat < 150 : null;
     }
     
     route.push({
+      from: from,
       name: to,
-      distance_ly: distanceLY,
-      jump_heat_gen: jumpHeat,
-      total_after_jump: jumpHeat ? jumpHeat + 50 : null,
-      can_jump: jumpHeat ? jumpHeat < 150 : null,
-      gate: null
+      distanceLY: distanceLY,
+      jumpHeat: jumpHeat,
+      totalAfterJump: totalAfterJump,
+      canJump: canJump,
+      gate: gate
     });
   }
   

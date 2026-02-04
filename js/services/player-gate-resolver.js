@@ -81,7 +81,31 @@ async function loadPlayerGates(opts = {}) {
       return window.PLAYER_GATES;
     }
   } catch (e) {
-    // Backend unavailable, continue to API
+    // Backend unavailable, continue to local fallback
+  }
+
+  // Local fallback for testing
+  try {
+    const localGates = await fetch('/workers/systems/player_gates.json');
+    if (localGates && localGates.ok) {
+      const map = await localGates.json().catch(() => null);
+      window.PLAYER_GATES = map || {};
+      
+      // Update UI
+      if (window.lastRouteResults && window.renderRouteJumps) {
+        window.renderRouteJumps(window.lastRouteResults);
+      } else if (window.recalculateRoute) {
+        window.recalculateRoute();
+      }
+      
+      if (typeof window.updatePlayerGateIndicator === 'function') {
+        try { window.updatePlayerGateIndicator(); } catch (e) {}
+      }
+      
+      return window.PLAYER_GATES;
+    }
+  } catch (e) {
+    // Local fallback failed, continue to API
   }
 
   if (!playerGateApi) {
