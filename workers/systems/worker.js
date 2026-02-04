@@ -446,7 +446,7 @@ export default {
 
           const fetchSys = async (sid) => {
             if (sysCache[sid]) return sysCache[sid];
-            const sysUrl = `${base}/v2/solarsystems/${sid}?format=json`;
+            const sysUrl = `${base}/solarsystems/${sid}`;
             const j = await safeFetch(sysUrl);
             sysCache[sid] = j;
             return j;
@@ -454,7 +454,7 @@ export default {
 
           const fetchAsm = async (aid) => {
             if (asmCache[aid]) return asmCache[aid];
-            const url = `${base}/v2/smartassemblies/${encodeURIComponent(aid)}?format=json`;
+            const url = `${base}/smartassemblies/${encodeURIComponent(aid)}`;
             const j = await safeFetch(url);
             asmCache[aid] = j;
             return j;
