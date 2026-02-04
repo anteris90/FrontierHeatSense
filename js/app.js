@@ -32,7 +32,7 @@ import { loadPlayerGates } from './services/player-gate-resolver.js';
 
 import { displayResult, displayMultipleResults, showError } from './ui/renderer.js';
 import { mapRouteJumpsByName } from './ui/route-table.js';
-import { bindSearchButton, bindPasteHandler, bindKeyboardShortcuts, bindShipSelect, bindSkillSlider, bindTotalMassInput, updateSearchButton, setResultsVisible, setErrorVisible, updateStatusMessage } from './ui/event-handlers.js';
+import { bindSearchButton, bindReverseButton, bindPasteHandler, bindKeyboardShortcuts, bindShipSelect, bindSkillSlider, bindTotalMassInput, updateSearchButton, setResultsVisible, setErrorVisible, updateStatusMessage } from './ui/event-handlers.js';
 import { populateShipSelect, updateShipDisplay, updateEffectiveCDisplay, updateSkillDisplay, resetSkillSlider, hideShipDetails } from './ui/ship-ui.js';
 
 // ============================================
@@ -209,6 +209,31 @@ async function searchSystems() {
 
 }
 
+/**
+ * Reverse route order and recalculate
+ * Takes current input, reverses system order, updates input field, and searches
+ */
+function reverseRoute() {
+  const inputEl = document.getElementById('systemInput');
+  if (!inputEl) return;
+  
+  const currentInput = inputEl.value.trim();
+  if (!currentInput) return;
+  
+  // Parse current systems
+  const systemNames = parseSystemInput(currentInput);
+  if (systemNames.length <= 1) return; // Nothing to reverse
+  
+  // Reverse the order
+  const reversedNames = systemNames.reverse();
+  
+  // Update the input field with reversed systems
+  inputEl.value = reversedNames.join(', ');
+  
+  // Trigger search with reversed route
+  searchSystems().catch(err => console.warn('Reverse route search failed:', err));
+}
+
 // ============================================
 // Module: Ship Management
 // ============================================
@@ -365,6 +390,9 @@ function initialize() {
 
   // Bind search
   bindSearchButton(searchSystems);
+  
+  // Bind reverse route button
+  bindReverseButton(reverseRoute);
 
   // Bind paste handler
   bindPasteHandler((pasted) => {
