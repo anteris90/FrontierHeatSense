@@ -54,7 +54,7 @@ async function safeFetchJson(url, opts = {}, retries = 3, baseBackoff = 200, max
  * - token: Auth token for API
  * - systemIds: Numeric system IDs to resolve
  * - names: System names to resolve (via local /db/data.json)
- * - maxSystems: Max systems to process (default 50)
+ * - maxSystems: Max systems to process (default 500)
  * 
  * Results cached in window.PLAYER_GATES
  * 
@@ -179,7 +179,7 @@ async function loadPlayerGates(opts = {}) {
   }
 
   // Limit to prevent excessive client work
-  const MAX = opts.maxSystems || 50;
+  const MAX = opts.maxSystems || 500;
   if (systemIds.length > MAX) systemIds.length = MAX;
 
   const out = {};
