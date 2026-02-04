@@ -755,8 +755,6 @@ const trapCount = results.filter(
 
   // --- HTML header ---
   let html = `
-    ${inferredGatesToShow ? `<div style="margin:8px 0;padding:8px;border-radius:6px;background:#111;color:#afa;font-size:0.9em"><strong>Inferred playerGates:</strong><pre style="white-space:pre-wrap;margin:6px 0 0;padding:6px;background:#000;border-radius:4px;color:#cfc;">${escapeHtml(JSON.stringify(inferredGatesToShow, null, 2))}</pre></div>` : ''}
-    ${playerGateDiag ? `<div style="margin:8px 0;padding:8px;border-radius:6px;background:#111;color:#fcc;font-size:0.9em"><strong>Player Gate Diagnostics:</strong><pre style="white-space:pre-wrap;margin:6px 0 0;padding:6px;background:#000;border-radius:4px;color:#f88;">${escapeHtml(JSON.stringify(playerGateDiag, null, 2))}</pre></div>` : ''}
     ${
       !hasShipData
         ? `<div class="input-hint" style="margin:6px 0 10px">
