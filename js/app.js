@@ -260,9 +260,9 @@ function handleShipSelection(shipName) {
     hideShipDetails();
   }
 
-  // Recalculate route if exists
-  if (lastRouteResults) {
-    recalculateRoute().catch(err => console.warn('Ship selection recalculate failed:', err));
+  // Trigger full refresh if we have existing results
+  if (lastRouteResults && lastRouteResults.length > 1) {
+    searchSystems().catch(err => console.warn('Ship selection refresh failed:', err));
   }
 }
 
