@@ -13,7 +13,7 @@
 /**
  * API configuration (can be overridden via window.HEATSENSE_API)
  */
-const API_BASE = window.HEATSENSE_API || 'http://localhost:8787';
+const API_BASE = window.HEATSENSE_API || 'https://systems-test.anteris90.workers.dev';
 const API_SINGLE = `${API_BASE}/api/system`;
 const API_BATCH = `${API_BASE}/api/systems`;
 const API_ROUTE = `${API_BASE}/api/route`;
@@ -51,7 +51,20 @@ async function fetchSingleSystem(normalizedName) {
  * @returns {object} {systems: [{id, name, class, temp, ...}, ...], model}
  */
 async function fetchBatchSystems(normalizedNames) {
-  // Use local data for system lookups
+  // Try Cloudflare Worker API first
+  try {
+    const url = `${API_BATCH}?${normalizedNames.map(name => `names=${encodeURIComponent(name)}`).join('&')}`;
+    const response = await fetch(url);
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    }
+  } catch (err) {
+    console.warn('Cloudflare API failed, falling back to local data:', err);
+  }
+  
+  // Fallback to local data
   try {
     const response = await fetch('/workers/systems/data.json');
     const data = await response.json();
@@ -69,7 +82,7 @@ async function fetchBatchSystems(normalizedNames) {
           class: starClass,
           temp: temp,
           radius_km: radiusKm,
-          status: STATUS_MAP[status] || status, // Map status to full word
+          status: STATUS_MAP[status] || status,
           coords: null,
           coldest: {
             au: coldestAu,
@@ -121,7 +134,23 @@ async function fetchBatchSystems(normalizedNames) {
  * @returns {object} Route response data
  */
 async function fetchRoute(body) {
-  // Mock route data for local testing
+  // Try Cloudflare Worker API first
+  try {
+    const response = await fetch(API_ROUTE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    }
+  } catch (err) {
+    console.warn('Cloudflare route API failed, using local mock:', err);
+  }
+  
+  // Fallback to local mock
   const { names, totalMass, hullMass, baseC, skillLevel, playerGates } = body;
   const route = [];
   
