@@ -237,6 +237,19 @@ export default {
       return Response.json({ status: 'ok', model: V, mae: M }, { headers: cors });
     }
 
+    // Player gates endpoint – returns cached player gates from R2
+    if (url.pathname === '/api/player-gates' && request.method === 'GET') {
+      try {
+        const playerGates = await loadPlayerGatesR2(env);
+        if (!playerGates || !Object.keys(playerGates).length) {
+          return Response.json({}, { headers: cors });
+        }
+        return Response.json(playerGates, { headers: { ...cors, 'Cache-Control': 'public, max-age=3600' } });
+      } catch (err) {
+        return Response.json({}, { headers: cors });
+      }
+    }
+
     let D;
     try {
       D = await loadData(env);
