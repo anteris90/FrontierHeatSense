@@ -141,13 +141,24 @@ async function fetchRoute(body) {
     const to = names[i + 1];
     const distanceLY = Math.random() * 10 + 1;
     
-    // Check for player gate
+    // Check for gates (player or NPC)
     let isGate = false;
-    if (playerGates && systemData[from] && systemData[to]) {
+    let gateType = null;
+    
+    if (systemData[from] && systemData[to]) {
       const fromId = String(systemData[from][0]);
       const toId = String(systemData[to][0]);
-      if (playerGates[fromId] && playerGates[fromId].includes(toId)) {
+      
+      // Check player gates
+      if (playerGates && playerGates[fromId] && playerGates[fromId].includes(toId)) {
         isGate = true;
+        gateType = 'player';
+      }
+      
+      // Check NPC gates
+      if (!isGate && window.NPC_GATES && window.NPC_GATES[fromId] && window.NPC_GATES[fromId].includes(toId)) {
+        isGate = true;
+        gateType = 'npc';
       }
     }
     
@@ -157,9 +168,8 @@ async function fetchRoute(body) {
     let gate = null;
     
     if (isGate) {
-      // Gate jump - no heat calculation, just low heat
-      gate = 'player';
-      // For gates, show some low heat value
+      // Gate jump - no heat calculation
+      gate = gateType;
       jumpHeat = null; // N/A for gates
       totalAfterJump = null;
       canJump = true; // Gates are always feasible
