@@ -13,7 +13,7 @@
 /**
  * API configuration (can be overridden via window.HEATSENSE_API)
  */
-const API_BASE = window.HEATSENSE_API || 'https://systems.heatsense.workers.dev';
+const API_BASE = window.HEATSENSE_API || 'http://localhost:8787';
 const API_SINGLE = `${API_BASE}/api/system`;
 const API_BATCH = `${API_BASE}/api/systems`;
 const API_ROUTE = `${API_BASE}/api/route`;
@@ -51,17 +51,50 @@ async function fetchSingleSystem(normalizedName) {
  * @returns {object} {systems: [{id, name, class, temp, ...}, ...], model}
  */
 async function fetchBatchSystems(normalizedNames) {
-  const response = await fetch(API_BATCH, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ names: normalizedNames })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Batch error: ${response.status}`);
+  // Use local data for system lookups
+  try {
+    const response = await fetch('/workers/systems/data.json');
+    const data = await response.json();
+    
+    const systems = [];
+    for (const name of normalizedNames) {
+      if (data[name]) {
+        const [id, starClass, temp, radiusKm, coldestAu, coldestLs, coldestHeat, status] = data[name];
+        systems.push({
+          id: id,
+          name: name,
+          class: starClass,
+          temp: temp,
+          radius_km: radiusKm,
+          status: status,
+          coords: null,
+          coldest: {
+            au: coldestAu,
+            ls: coldestLs,
+            heat: coldestHeat
+          }
+        });
+      } else {
+        // System not found
+        systems.push({
+          id: null,
+          name: name,
+          class: null,
+          temp: null,
+          radius_km: null,
+          status: null,
+          coords: null,
+          coldest: null
+        });
+      }
+    }
+    
+    return { systems, model: 'local-data' };
+  } catch (err) {
+    console.warn('Local data fetch failed:', err);
+    // Return empty results
+    return { systems: [], model: 'error' };
   }
-
-  return await response.json();
 }
 
 /**
@@ -85,18 +118,35 @@ async function fetchBatchSystems(normalizedNames) {
  * @returns {object} Route response data
  */
 async function fetchRoute(body) {
-  const response = await fetch(API_ROUTE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.error || `Route request failed: ${response.status}`);
+  // Mock route data for local testing
+  const { names, totalMass, hullMass, baseC, skillLevel } = body;
+  const route = [];
+  
+  for (let i = 0; i < names.length - 1; i++) {
+    const from = names[i];
+    const to = names[i + 1];
+    const distanceLY = Math.random() * 10 + 1;
+    
+    let jumpHeat = null;
+    if (totalMass && hullMass && baseC && skillLevel !== undefined) {
+      const effectiveC = baseC * (1 + skillLevel * 0.02);
+      jumpHeat = (3 * totalMass * distanceLY) / (effectiveC * hullMass);
+    }
+    
+    route.push({
+      name: to,
+      distance_ly: distanceLY,
+      jump_heat_gen: jumpHeat,
+      total_after_jump: jumpHeat ? jumpHeat + 50 : null,
+      can_jump: jumpHeat ? jumpHeat < 150 : null,
+      gate: null
+    });
   }
-
-  return await response.json();
+  
+  return { 
+    route: route,
+    model: 'local-mock'
+  };
 }
 
 export {
