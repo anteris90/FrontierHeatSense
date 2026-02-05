@@ -546,220 +546,8 @@ async function resolvePlayerGatesFromApi(names, D, env, diagnostics = {}) {
 }
 __name(resolvePlayerGatesFromApi, "resolvePlayerGatesFromApi");
 
-// services/detour-planner.js
-var METERS_PER_LY = 946073e10;
-var DETOUR_HEAT_THRESHOLD = 140;
-var MAX_TOTAL_HEAT = 149;
-function calculateMaxJumpDistance(currentHeat, totalMass, effectiveC, hullMass, maxHeat = MAX_TOTAL_HEAT) {
-  if (currentHeat >= maxHeat) return 0;
-  const heatBudget = maxHeat - currentHeat;
-  return heatBudget * effectiveC * hullMass / (3 * totalMass);
-}
-__name(calculateMaxJumpDistance, "calculateMaxJumpDistance");
-function calculateDistance(sys1, sys2) {
-  if (sys1.length < 11 || sys2.length < 11) return null;
-  if (!isFinite(sys1[8]) || !isFinite(sys2[8])) return null;
-  const dx = sys1[8] - sys2[8];
-  const dy = sys1[9] - sys2[9];
-  const dz = sys1[10] - sys2[10];
-  const distM = Math.sqrt(dx * dx + dy * dy + dz * dz);
-  return distM / METERS_PER_LY;
-}
-__name(calculateDistance, "calculateDistance");
-function calculateJumpHeat(distanceLY, totalMass, effectiveC, hullMass) {
-  if (!distanceLY || !totalMass || !effectiveC || !hullMass) return null;
-  return 3 * totalMass * distanceLY / (effectiveC * hullMass);
-}
-__name(calculateJumpHeat, "calculateJumpHeat");
-function hasGateConnection(fromId, toId, npcGates, playerGates) {
-  const fromIdStr = String(fromId);
-  const toIdStr = String(toId);
-  const npcList = npcGates && npcGates[fromIdStr] ? npcGates[fromIdStr] : [];
-  const isNpcGate = Array.isArray(npcList) && npcList.indexOf(toIdStr) !== -1;
-  const playerList = playerGates && playerGates[fromIdStr] ? playerGates[fromIdStr] : [];
-  const isPlayerGate = Array.isArray(playerList) && playerList.indexOf(toIdStr) !== -1;
-  return isNpcGate || isPlayerGate ? isNpcGate ? "npc" : "player" : null;
-}
-__name(hasGateConnection, "hasGateConnection");
-function planDetour(failedIndex, routeData, D, npcGates, playerGates, shipParams) {
-  if (failedIndex < 1 || failedIndex >= routeData.length) return null;
-  const { totalMass, hullMass, effectiveC } = shipParams;
-  const prevSystem = routeData[failedIndex - 1];
-  const failedSystem = routeData[failedIndex];
-  const nextSystem = failedIndex + 1 < routeData.length ? routeData[failedIndex + 1] : null;
-  const prevEntry = D[prevSystem.name.toUpperCase().trim()];
-  const failedEntry = D[failedSystem.name.toUpperCase().trim()];
-  if (!prevEntry || !failedEntry) return null;
-  const maxJumpDistanceFromPrev = calculateMaxJumpDistance(
-    prevSystem.low_heat,
-    totalMass,
-    effectiveC,
-    hullMass,
-    DETOUR_HEAT_THRESHOLD
-  );
-  if (maxJumpDistanceFromPrev <= 0) {
-    return null;
-  }
-  const candidates = [];
-  for (const [systemName, systemEntry] of Object.entries(D)) {
-    const isInRoute = routeData.some((r) => r.name.toUpperCase().trim() === systemName);
-    if (isInRoute) continue;
-    const distFromPrev = calculateDistance(prevEntry, systemEntry);
-    if (!distFromPrev || distFromPrev > maxJumpDistanceFromPrev) continue;
-    const gate1 = hasGateConnection(prevEntry[0], systemEntry[0], npcGates, playerGates);
-    let jumpHeat1, totalHeat1;
-    if (gate1) {
-      jumpHeat1 = 0;
-      totalHeat1 = systemEntry[6];
-    } else {
-      jumpHeat1 = calculateJumpHeat(distFromPrev, totalMass, effectiveC, hullMass);
-      if (!jumpHeat1) continue;
-      totalHeat1 = prevSystem.low_heat + jumpHeat1;
-    }
-    if (totalHeat1 >= DETOUR_HEAT_THRESHOLD) continue;
-    let rejoinIndex = null;
-    let rejoinDistance = null;
-    let rejoinJumpHeat = null;
-    let rejoinTotalHeat = null;
-    let rejoinGate = null;
-    if (nextSystem) {
-      const nextEntry = D[nextSystem.name.toUpperCase().trim()];
-      if (nextEntry) {
-        rejoinDistance = calculateDistance(systemEntry, nextEntry);
-        rejoinGate = hasGateConnection(systemEntry[0], nextEntry[0], npcGates, playerGates);
-        if (rejoinGate) {
-          rejoinJumpHeat = 0;
-          rejoinTotalHeat = nextEntry[6];
-        } else if (rejoinDistance) {
-          rejoinJumpHeat = calculateJumpHeat(rejoinDistance, totalMass, effectiveC, hullMass);
-          if (rejoinJumpHeat) {
-            rejoinTotalHeat = systemEntry[6] + rejoinJumpHeat;
-          }
-        }
-        if (rejoinTotalHeat && rejoinTotalHeat < DETOUR_HEAT_THRESHOLD) {
-          rejoinIndex = failedIndex + 1;
-        }
-      }
-    }
-    if (!rejoinIndex && failedIndex + 2 < routeData.length) {
-      const nextNextSystem = routeData[failedIndex + 2];
-      const nextNextEntry = D[nextNextSystem.name.toUpperCase().trim()];
-      if (nextNextEntry) {
-        rejoinDistance = calculateDistance(systemEntry, nextNextEntry);
-        rejoinGate = hasGateConnection(systemEntry[0], nextNextEntry[0], npcGates, playerGates);
-        if (rejoinGate) {
-          rejoinJumpHeat = 0;
-          rejoinTotalHeat = nextNextEntry[6];
-        } else if (rejoinDistance) {
-          rejoinJumpHeat = calculateJumpHeat(rejoinDistance, totalMass, effectiveC, hullMass);
-          if (rejoinJumpHeat) {
-            rejoinTotalHeat = systemEntry[6] + rejoinJumpHeat;
-          }
-        }
-        if (rejoinTotalHeat && rejoinTotalHeat < DETOUR_HEAT_THRESHOLD) {
-          rejoinIndex = failedIndex + 2;
-        }
-      }
-    }
-    if (!rejoinIndex) continue;
-    candidates.push({
-      systemEntry,
-      systemName,
-      distFromPrev,
-      jumpHeat1,
-      totalHeat1,
-      gate1,
-      rejoinIndex,
-      rejoinDistance,
-      rejoinJumpHeat,
-      rejoinTotalHeat,
-      rejoinGate,
-      // Score: prefer shorter total detour distance
-      score: distFromPrev + (rejoinDistance || 0)
-    });
-  }
-  if (candidates.length === 0) return null;
-  candidates.sort((a, b) => a.score - b.score);
-  const best = candidates[0];
-  return {
-    detourSystemName: best.systemName,
-    detourSystemEntry: best.systemEntry,
-    insertAfterIndex: failedIndex - 1,
-    // Insert after previous system
-    rejoinAtIndex: best.rejoinIndex,
-    jumpToDetour: {
-      distance_ly: best.distFromPrev,
-      jump_heat_gen: best.jumpHeat1,
-      total_after_jump: best.totalHeat1,
-      gate: best.gate1
-    },
-    jumpFromDetour: {
-      distance_ly: best.rejoinDistance,
-      jump_heat_gen: best.rejoinJumpHeat,
-      total_after_jump: best.rejoinTotalHeat,
-      gate: best.rejoinGate
-    }
-  };
-}
-__name(planDetour, "planDetour");
-function applyDetours(routeData, D, npcGates, playerGates, shipParams) {
-  const STATUS_MAP3 = { "S": "SAFE", "M": "MODERATE", "D": "DANGEROUS", "C": "CRITICAL" };
-  const failures = [];
-  for (let i = 1; i < routeData.length; i++) {
-    const entry = routeData[i];
-    if (entry.can_jump === false && !entry.gate) {
-      failures.push(i);
-    }
-  }
-  if (failures.length === 0) return routeData;
-  const enhancedRoute = [...routeData];
-  let insertionOffset = 0;
-  for (const failedIndex of failures) {
-    const adjustedIndex = failedIndex + insertionOffset;
-    const detourPlan = planDetour(failedIndex, routeData, D, npcGates, playerGates, shipParams);
-    if (detourPlan) {
-      enhancedRoute[adjustedIndex]._excluded = true;
-      if (detourPlan.rejoinAtIndex > failedIndex + 1) {
-        for (let i = failedIndex + 1; i < detourPlan.rejoinAtIndex; i++) {
-          enhancedRoute[i + insertionOffset]._excluded = true;
-        }
-      }
-      const detourEntry = detourPlan.detourSystemEntry;
-      const detourSystem = {
-        name: detourPlan.detourSystemName,
-        id: detourEntry[0],
-        low_heat: Number(detourEntry[6]),
-        status: STATUS_MAP3[detourEntry[7]] || "UNKNOWN",
-        distance_ly: detourPlan.jumpToDetour.distance_ly,
-        jump_heat_gen: detourPlan.jumpToDetour.jump_heat_gen,
-        total_after_jump: detourPlan.jumpToDetour.total_after_jump,
-        can_jump: true,
-        gate: detourPlan.jumpToDetour.gate,
-        _detour: true,
-        _detourRejoinDistance: detourPlan.jumpFromDetour.distance_ly,
-        _detourRejoinHeat: detourPlan.jumpFromDetour.jump_heat_gen,
-        _detourRejoinGate: detourPlan.jumpFromDetour.gate
-      };
-      enhancedRoute.splice(adjustedIndex, 0, detourSystem);
-      insertionOffset++;
-      const rejoinIndex = detourPlan.rejoinAtIndex + insertionOffset;
-      if (rejoinIndex < enhancedRoute.length) {
-        enhancedRoute[rejoinIndex].distance_ly = detourPlan.jumpFromDetour.distance_ly;
-        enhancedRoute[rejoinIndex].jump_heat_gen = detourPlan.jumpFromDetour.jump_heat_gen;
-        enhancedRoute[rejoinIndex].total_after_jump = detourPlan.jumpFromDetour.total_after_jump;
-        enhancedRoute[rejoinIndex].can_jump = detourPlan.jumpFromDetour.total_after_jump < DETOUR_HEAT_THRESHOLD;
-        enhancedRoute[rejoinIndex].gate = detourPlan.jumpFromDetour.gate;
-      }
-    } else {
-      enhancedRoute[adjustedIndex]._noDetourAvailable = true;
-    }
-  }
-  return enhancedRoute;
-}
-__name(applyDetours, "applyDetours");
-
 // handlers/route.js
-var METERS_PER_LY2 = 946073e10;
+var METERS_PER_LY = 946073e10;
 var STATUS_MAP2 = { "S": "SAFE", "M": "MODERATE", "D": "DANGEROUS", "C": "CRITICAL" };
 function normalizePlayerGatesInput(raw) {
   const playerGates = {};
@@ -859,7 +647,7 @@ async function handleRoute(request, env, cors) {
     const baseC = body.baseC || 2.5;
     const skillLevel = body.skillLevel || 0;
     const effectiveC = baseC * (1 + skillLevel * 0.02);
-    let routeData = [];
+    const routeData = [];
     let totalLY = 0;
     let canComplete = true;
     let prevEntry = null;
@@ -894,7 +682,7 @@ async function handleRoute(request, env, cors) {
             const dy = entry[9] - prevEntry[9];
             const dz = entry[10] - prevEntry[10];
             const distM = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            distLY = distM / METERS_PER_LY2;
+            distLY = distM / METERS_PER_LY;
             totalLY += distLY;
           }
         } else {
@@ -903,7 +691,7 @@ async function handleRoute(request, env, cors) {
             const dy = entry[9] - prevEntry[9];
             const dz = entry[10] - prevEntry[10];
             const distM = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            distLY = distM / METERS_PER_LY2;
+            distLY = distM / METERS_PER_LY;
             totalLY += distLY;
             jumpHeatGen = 3 * totalMass * distLY / (effectiveC * hullMass);
             totalAfter = prevEntry[6] + jumpHeatGen;
@@ -930,21 +718,6 @@ async function handleRoute(request, env, cors) {
         // 'npc' | 'player' | null
       });
       prevEntry = entry;
-    }
-    if (totalMass && hullMass && baseC != null) {
-      const shipParams = { totalMass, hullMass, effectiveC };
-      routeData = applyDetours(routeData, D, npcGates, playerGates, shipParams);
-      totalLY = 0;
-      canComplete = true;
-      for (let i = 1; i < routeData.length; i++) {
-        const entry = routeData[i];
-        if (entry.distance_ly != null && !entry.gate) {
-          totalLY += entry.distance_ly;
-        }
-        if (entry.can_jump === false && !entry._excluded) {
-          canComplete = false;
-        }
-      }
     }
     const respBody = {
       route: routeData,

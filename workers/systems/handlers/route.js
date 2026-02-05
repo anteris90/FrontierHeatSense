@@ -17,7 +17,6 @@
 
 import { loadData, loadNpcGates, loadPlayerGatesR2 } from '../services/data-loader.js';
 import { resolvePlayerGatesFromApi } from '../services/player-gate-resolver.js';
-import { applyDetours } from '../services/detour-planner.js';
 
 const METERS_PER_LY = 9.46073e15;
 const STATUS_MAP = { 'S': 'SAFE', 'M': 'MODERATE', 'D': 'DANGEROUS', 'C': 'CRITICAL' };
@@ -156,7 +155,7 @@ async function handleRoute(request, env, cors) {
     const effectiveC = baseC * (1 + skillLevel * 0.02);
     
     // Build route data
-    let routeData = [];
+    const routeData = [];
     let totalLY = 0;
     let canComplete = true;
     let prevEntry = null;
@@ -248,25 +247,6 @@ async function handleRoute(request, env, cors) {
       });
       
       prevEntry = entry;
-    }
-    
-    // Apply detour planning for failed jumps (if ship data provided)
-    if (totalMass && hullMass && baseC != null) {
-      const shipParams = { totalMass, hullMass, effectiveC };
-      routeData = applyDetours(routeData, D, npcGates, playerGates, shipParams);
-      
-      // Recalculate metrics after detours
-      totalLY = 0;
-      canComplete = true;
-      for (let i = 1; i < routeData.length; i++) {
-        const entry = routeData[i];
-        if (entry.distance_ly != null && !entry.gate) {
-          totalLY += entry.distance_ly;
-        }
-        if (entry.can_jump === false && !entry._excluded) {
-          canComplete = false;
-        }
-      }
     }
     
     const respBody = {
