@@ -546,6 +546,120 @@ async function resolvePlayerGatesFromApi(names, D, env, diagnostics = {}) {
 }
 __name(resolvePlayerGatesFromApi, "resolvePlayerGatesFromApi");
 
+// services/detour-planner.js
+function calculateMaxJumpDistance(currentHeat, shipParams) {
+  const { totalMass, hullMass, effectiveC } = shipParams;
+  const maxHeat = 149;
+  const heatBudget = maxHeat - currentHeat;
+  if (heatBudget <= 0) return 0;
+  return heatBudget * effectiveC * hullMass / (3 * totalMass);
+}
+__name(calculateMaxJumpDistance, "calculateMaxJumpDistance");
+function calculateJumpHeat(distanceLY, shipParams) {
+  const { totalMass, hullMass, effectiveC } = shipParams;
+  return 3 * totalMass * distanceLY / (effectiveC * hullMass);
+}
+__name(calculateJumpHeat, "calculateJumpHeat");
+function calculateDistance(sys1, sys2) {
+  const dx = sys1.x - sys2.x;
+  const dy = sys1.y - sys2.y;
+  const dz = sys1.z - sys2.z;
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+__name(calculateDistance, "calculateDistance");
+function planDetour(fromSystem, toSystem, destSystem, currentHeat, shipParams, systemDatabase) {
+  const maxJumpDist = calculateMaxJumpDistance(currentHeat, shipParams);
+  if (maxJumpDist <= 0) {
+    return null;
+  }
+  const distToFailed = calculateDistance(fromSystem, toSystem);
+  const distFailedToDest = calculateDistance(toSystem, destSystem);
+  let bestDetour = null;
+  let bestScore = Infinity;
+  const maxDetourHeat = 140;
+  for (const [, candidate] of Object.entries(systemDatabase)) {
+    if (candidate.id === fromSystem.id || candidate.id === toSystem.id || candidate.id === destSystem.id) {
+      continue;
+    }
+    const distToCandidate = calculateDistance(fromSystem, candidate);
+    if (distToCandidate > maxJumpDist) {
+      continue;
+    }
+    const heatToCandidate = calculateJumpHeat(distToCandidate, shipParams);
+    if (currentHeat + heatToCandidate > maxDetourHeat) {
+      continue;
+    }
+    const distCandidateToDest = calculateDistance(candidate, destSystem);
+    if (distCandidateToDest >= distFailedToDest) {
+      continue;
+    }
+    const detourDistance = distToCandidate + distCandidateToDest;
+    const directDistance = distToFailed + distFailedToDest;
+    const score = detourDistance / directDistance;
+    if (score < bestScore) {
+      bestScore = score;
+      bestDetour = {
+        system: candidate,
+        distance: distToCandidate,
+        heat: heatToCandidate,
+        score
+      };
+    }
+  }
+  return bestDetour;
+}
+__name(planDetour, "planDetour");
+function applyDetours(routeJumps, routeData, shipParams, systemDatabase) {
+  if (!routeJumps || routeJumps.length === 0) {
+    return routeData;
+  }
+  const result = [];
+  let accumulatedHeat = 0;
+  for (let i = 0; i < routeJumps.length; i++) {
+    const jump = routeJumps[i];
+    const currentSystem = routeData[i];
+    const nextSystem = routeData[i + 1];
+    result.push(currentSystem);
+    if (jump.heatGenerated > 149) {
+      const finalDestination = routeData[routeData.length - 1];
+      const detour = planDetour(
+        currentSystem.system,
+        nextSystem.system,
+        finalDestination.system,
+        accumulatedHeat,
+        shipParams,
+        systemDatabase
+      );
+      if (detour) {
+        nextSystem._excluded = true;
+        nextSystem._excludedReason = `Failed jump (${jump.heatGenerated.toFixed(2)} heat)`;
+        const detourEntry = {
+          system: detour.system,
+          _detour: true,
+          _detourFrom: currentSystem.system.name,
+          _detourAround: nextSystem.system.name,
+          _detourDistance: detour.distance.toFixed(2),
+          _detourHeat: detour.heat.toFixed(2)
+        };
+        result.push(detourEntry);
+        accumulatedHeat += detour.heat;
+      } else {
+        nextSystem._noDetourAvailable = true;
+        nextSystem._failedHeat = jump.heatGenerated.toFixed(2);
+        accumulatedHeat += jump.heatGenerated;
+      }
+    } else {
+      accumulatedHeat += jump.heatGenerated;
+    }
+  }
+  const lastSystem = routeData[routeData.length - 1];
+  if (result[result.length - 1].system.id !== lastSystem.system.id) {
+    result.push(lastSystem);
+  }
+  return result;
+}
+__name(applyDetours, "applyDetours");
+
 // handlers/route.js
 var METERS_PER_LY = 946073e10;
 var STATUS_MAP2 = { "S": "SAFE", "M": "MODERATE", "D": "DANGEROUS", "C": "CRITICAL" };
@@ -719,8 +833,73 @@ async function handleRoute(request, env, cors) {
       });
       prevEntry = entry;
     }
+    let finalRouteData = routeData;
+    if (body.totalMass || body.hullMass || body.baseC || body.skillLevel >= 0) {
+      const systemDatabase = {};
+      for (const [name, entry] of Object.entries(D)) {
+        if (entry.length >= 11 && isFinite(entry[8])) {
+          systemDatabase[name.toUpperCase()] = {
+            id: entry[0],
+            name,
+            x: entry[8],
+            y: entry[9],
+            z: entry[10]
+          };
+        }
+      }
+      const routeJumps = [];
+      for (let i = 1; i < routeData.length; i++) {
+        const jump = routeData[i];
+        routeJumps.push({
+          heatGenerated: jump.jump_heat_gen || 0,
+          to: jump.name
+        });
+      }
+      const routeForDetour = routeData.map((entry) => ({
+        system: {
+          id: entry.id,
+          name: entry.name,
+          x: D[entry.name.toUpperCase()]?.[8],
+          y: D[entry.name.toUpperCase()]?.[9],
+          z: D[entry.name.toUpperCase()]?.[10]
+        }
+      }));
+      const shipParams = {
+        totalMass,
+        hullMass,
+        effectiveC
+      };
+      const detourResult = applyDetours(routeJumps, routeForDetour, shipParams, systemDatabase);
+      finalRouteData = detourResult.map((entry) => {
+        const originalEntry = routeData.find((r) => r.name.toUpperCase() === entry.system.name.toUpperCase());
+        if (originalEntry && !entry._detour) {
+          return {
+            ...originalEntry,
+            _excluded: entry._excluded || false,
+            _noDetourAvailable: entry._noDetourAvailable || false,
+            _excludedReason: entry._excludedReason
+          };
+        }
+        const sysEntry = D[entry.system.name.toUpperCase()];
+        if (!sysEntry) return null;
+        return {
+          name: entry.system.name,
+          id: entry.system.id,
+          low_heat: sysEntry[6],
+          status: STATUS_MAP2[sysEntry[7]] || "UNKNOWN",
+          distance_ly: entry._detourDistance ? Number(entry._detourDistance) : null,
+          jump_heat_gen: entry._detourHeat ? Number(entry._detourHeat) : null,
+          total_after_jump: null,
+          can_jump: true,
+          gate: null,
+          _detour: true,
+          _detourFrom: entry._detourFrom,
+          _detourAround: entry._detourAround
+        };
+      }).filter(Boolean);
+    }
     const respBody = {
-      route: routeData,
+      route: finalRouteData,
       total_distance_ly: Number(totalLY),
       can_complete_route: canComplete,
       playerGateDiagnostics

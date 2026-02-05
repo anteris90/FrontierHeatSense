@@ -17,6 +17,7 @@
 
 import { loadData, loadNpcGates, loadPlayerGatesR2 } from '../services/data-loader.js';
 import { resolvePlayerGatesFromApi } from '../services/player-gate-resolver.js';
+import { applyDetours } from '../services/detour-planner.js';
 
 const METERS_PER_LY = 9.46073e15;
 const STATUS_MAP = { 'S': 'SAFE', 'M': 'MODERATE', 'D': 'DANGEROUS', 'C': 'CRITICAL' };
@@ -249,8 +250,91 @@ async function handleRoute(request, env, cors) {
       prevEntry = entry;
     }
     
+    // Apply detour logic if ship parameters provided
+    let finalRouteData = routeData;
+    if (body.totalMass || body.hullMass || body.baseC || body.skillLevel >= 0) {
+      // Build system database from loaded data for detour planning
+      const systemDatabase = {};
+      for (const [name, entry] of Object.entries(D)) {
+        if (entry.length >= 11 && isFinite(entry[8])) {
+          systemDatabase[name.toUpperCase()] = {
+            id: entry[0],
+            name: name,
+            x: entry[8],
+            y: entry[9],
+            z: entry[10]
+          };
+        }
+      }
+      
+      // Calculate jump data for detour analysis
+      const routeJumps = [];
+      for (let i = 1; i < routeData.length; i++) {
+        const jump = routeData[i];
+        routeJumps.push({
+          heatGenerated: jump.jump_heat_gen || 0,
+          to: jump.name
+        });
+      }
+      
+      // Convert routeData to format expected by detour planner
+      const routeForDetour = routeData.map(entry => ({
+        system: {
+          id: entry.id,
+          name: entry.name,
+          x: D[entry.name.toUpperCase()]?.[8],
+          y: D[entry.name.toUpperCase()]?.[9],
+          z: D[entry.name.toUpperCase()]?.[10]
+        }
+      }));
+      
+      const shipParams = {
+        totalMass,
+        hullMass,
+        effectiveC
+      };
+      
+      // Apply detours
+      const detourResult = applyDetours(routeJumps, routeForDetour, shipParams, systemDatabase);
+      
+      // Convert back to route format - merge with original routeData
+      finalRouteData = detourResult.map(entry => {
+        // Check if this is an original route system (has matching name in routeData)
+        const originalEntry = routeData.find(r => r.name.toUpperCase() === entry.system.name.toUpperCase());
+        
+        if (originalEntry && !entry._detour) {
+          // Original route system - preserve all original data, add flags
+          return {
+            ...originalEntry,
+            _excluded: entry._excluded || false,
+            _noDetourAvailable: entry._noDetourAvailable || false,
+            _excludedReason: entry._excludedReason
+          };
+        }
+        
+        // New detour system - build entry from scratch
+        const sysEntry = D[entry.system.name.toUpperCase()];
+        if (!sysEntry) return null;
+        
+        return {
+          name: entry.system.name,
+          id: entry.system.id,
+          low_heat: sysEntry[6],
+          status: STATUS_MAP[sysEntry[7]] || 'UNKNOWN',
+          distance_ly: entry._detourDistance ? Number(entry._detourDistance) : null,
+          jump_heat_gen: entry._detourHeat ? Number(entry._detourHeat) : null,
+          total_after_jump: null,
+          can_jump: true,
+          gate: null,
+          _detour: true,
+          _detourFrom: entry._detourFrom,
+          _detourAround: entry._detourAround
+        };
+      }).filter(Boolean);
+    }
+    
     const respBody = {
-      route: routeData,
+      route: finalRouteData,
       total_distance_ly: Number(totalLY),
       can_complete_route: canComplete,
       playerGateDiagnostics
