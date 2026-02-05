@@ -109,13 +109,17 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
   for (const result of results) {
     let jumpStatus = '—';
     let jumpColor = '#888';
+    
+    // Check for detour or excluded flags
+    const isExcluded = result._excluded === true;
+    const isDetour = result._detour === true;
 
     if (result.error) {
       // System not found
       const jump = jumpMap[result.name];
       html += `
-        <tr>
-          <td data-label="System">${result.name}</td>
+        <tr${isExcluded ? ' class="excluded-system"' : ''}>
+          <td data-label="System"${isExcluded ? ' style="text-decoration:line-through;opacity:0.6"' : ''}>${result.name}</td>
           <td data-label="Star" style="color:#ff6666">❌ ${result.error}</td>
           <td data-label="Heat">—</td>
           <td data-label="Distance (LY)">${jump?.distance_ly != null ? jump.distance_ly.toFixed(2) : '—'}</td>
@@ -137,6 +141,12 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
     const jump = jumpMap[sys.name];
     const isTrap = (sys.coldest_point?.heat >= 85) || sys.status === 'CRITICAL';
     const statusEmoji = statusIcon[sys.status] || 'ℹ️';
+    
+    // Row styling for detours and excluded systems
+    const rowClass = isExcluded ? 'excluded-system' : (isDetour ? 'detour-system' : '');
+    const nameStyle = isExcluded ? 'text-decoration:line-through;opacity:0.6;' : '';
+    const namePrefix = isDetour ? '🔀 ' : '';
+    const detourLabel = isDetour ? ' <span style="color:#ffaa00;font-size:0.85em">(DETOUR)</span>' : '';
 
     // Determine jump status
     if (jump && jump.can_jump !== null) {
@@ -170,8 +180,8 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
       gateWarningHtml = ' <span title="Smart gate — availability may vary (owner-controlled)" style="color:#ffcc00">⚠️</span>';
     }
     html += `
-      <tr>
-        <td data-label="System"><strong>${sys.name || 'Unknown'}</strong></td>
+      <tr${rowClass ? ` class="${rowClass}"` : ''}>
+        <td data-label="System" style="${nameStyle}"><strong>${namePrefix}${sys.name || 'Unknown'}${detourLabel}</strong></td>
 
         <td data-label="Distance (LY)">${jump?.distance_ly != null ? jump.distance_ly.toFixed(2) : '—'}</td>
 
