@@ -17,11 +17,16 @@
  * - Accessibility: .skip-link, .sr-only, focus styles
  * - Animations: .dangerPulse, .trapPulse, fadeIn
  *
- * @author HeatSense Team
+ * HOW-TO: Update font stacks by editing `body`, `textarea`, `.btn`, etc., and load
+ * the desired family in `index.html` before referencing it here; the existing
+ * selectors inherit the theme defaults when the font-family line is removed.
+ *
+ * @author Anteris
  * @version 2.0
  */
 
 * {margin:0;padding:0;box-sizing:border-box}
+
 :root {
   color-scheme: dark;
   --bg: #120808;
@@ -41,10 +46,6 @@ body {
   font-family:'Segoe UI',system-ui,sans-serif;
   background:linear-gradient(135deg,var(--bg) 0%,var(--bg-2) 50%,#0f0505 100%);
   min-height:100vh;color:var(--text);padding:20px
-}
-.skip-link {
-  position:absolute;left:-999px;top:10px;background:#000;color:#fff;
-  padding:10px 14px;border-radius:8px;z-index:1000
 }
 .skip-link:focus {left:10px;box-shadow:var(--focus)}
 .container {max-width:1200px;margin:0 auto;padding:40px 20px;width:100%}
@@ -130,7 +131,7 @@ textarea {
   border-radius:10px;background:rgba(10,5,0,0.6);color:#ffddcc;transition:all 0.2s;
   font-family:inherit;resize:vertical;margin-bottom:6px
 }
-.input-hint {margin-top:8px;margin-bottom:12px;font-size:0.85em;color:var(--muted)}
+.input-hint {margin-top:8px;margin-bottom:12px;font-size:0.5em;color:var(--muted)}
 .input-hint a {color:var(--info);text-decoration:none}
 .input-hint a:hover {text-decoration:underline}
 .field-row {display:flex;gap:16px;flex-wrap:wrap}
