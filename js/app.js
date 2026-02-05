@@ -29,6 +29,7 @@ import { fetchSingleSystem, fetchBatchSystems, fetchRoute, API_BASE, API_BATCH }
 
 import { selectShip, getShips, hasShipSelected, calculateSkillBonus, calculateEffectiveC, getShipParameters, loadShips } from './services/ship-manager.js';
 import { loadPlayerGates } from './services/player-gate-resolver.js';
+import { applyDetours } from './services/detour-planner.js';
 
 import { displayResult, displayMultipleResults, showError } from './ui/renderer.js';
 import { mapRouteJumpsByName } from './ui/route-table.js';
@@ -189,6 +190,18 @@ async function searchSystems() {
         
         routeResp = await fetchRoute(body);
         routeJumps = routeResp.route || [];
+        
+        // Apply client-side detour planning if ship is selected
+        if (hasShipSelected() && routeJumps.length > 0) {
+          const shipParams = getShipParameters();
+          if (shipParams) {
+            routeJumps = await applyDetours(routeJumps, results, {
+              totalMass: shipParams.totalHullMass,
+              hullMass: shipParams.hullMass,
+              effectiveC: shipParams.baseC * (1 + shipParams.skillLevel * 0.02)
+            });
+          }
+        }
       }
 
       lastRouteResults = results;
