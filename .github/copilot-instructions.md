@@ -1,41 +1,276 @@
- # Copilot Instructions for FrontierHeatSense
+## Copilot Operating Mode
 
- ## Orientation
- - FrontierHeatSense couples a static browser UI (`index.html` + `css/styles.css` + `js/app.js`) with a Cloudflare Worker API under `workers/systems/`; all star/ship data lives under `db/` and the worker `workers/systems/data.json` or `db/data.json` fallbacks.
- - The browser uses `js/app.js` to orchestrate `core/` logic, `services/` business rules, and `ui/` DOM code; the worker handles route calculations/player gate resolution and talks to R2 via `services/data-loader.js`.
+You must treat complex tasks as multi-phase problems.
 
-## Directory roles
-- `js/core` contains pure algorithms like `api-client.js`, `calculations.js`, and `normalization.js` (no DOM access, no globals) while `js/services` bridges those utilities with higher-level concepts such as ship selection (`ship-manager.js`) and player-gate logic (`player-gate-resolver.js`).
-- `js/ui` modules (`renderer.js`, `route-table.js`, `event-handlers.js`, `ship-ui.js`, `skill-progress.js`) are the only place where DOM manipulation occurs; they ingest the normalized state produced by services.
-- Worker code lives in `workers/systems/` with `worker.js` routing requests into `handlers/` (route, systems, player-gates, admin) and shared helpers in `services/` and `utils/`.
+Before writing code:
+- Decompose the task into logical subtasks
+- Decide which role ("sub-agent") is responsible for each subtask
+- Switch roles explicitly when moving between subtasks
 
-## Data & API patterns
-- Always normalize user input through `core/normalization.js` (`normalizeSystemName`, `parseSystemInput`) before calling the API so casing, diacritics, and EF-Map anchors are handled.
-- Browser API calls use `core/api-client.js`’s `fetchBatchSystems()` to prefer the `/api/systems` endpoint (Cache-Control 86400, sorted key) and fall back to `/db/data.json`; treat `window.HEATSENSE_API` as an override during local testing.
-- Ship/jump metadata lives in `db/ships.json`, NPC gate data is committed as `workers/systems/npc_gates.json`, and player gates are fetched via `/api/player-gates`, `workers/systems/player_gates.json`, or the `PLAYER_GATE_API` env var if live data is needed.
+Always optimize for:
+- architectural consistency
+- correctness over speed
+- alignment with existing project patterns
 
-## Gate & route logic
-- `handlers/route.js` checks NPC gates first (bidirectional, zero heat) using `npc_gates.json`, then player gates from payload → R2 cache → live API, and only calculates heat when no gate exists.
-- The route response embeds `playerGateDiagnostics` (notes/authFailed/rateLimited/skippedSystems) so UI code can explain where gate data came from.
-- The worker computation uses the exposed skill bonus formula (`effectiveC = baseC * (1 + skillLevel * 0.02)`) and the hard limits (`totalAfter < 149`, `warning` when low heat > 90).
+## Available Sub-Agents
 
-## Conventions
-- The client is vanilla ES modules—always append `.js` in imports, export named functions only, and avoid bundlers.
-- Global debugging hooks live in `js/app.js` (`window.lastRouteResults`, `window.lastRouteJumps`) so use those when inspecting route state.
-- Communication between layers is synchronous: `services` call `core` helpers, then pass results to `ui` renderers; keep DOM-only concerns inside `ui/`.
-- Worker environment: define `R2_BUCKET`, `PLAYER_GATE_API`, and any staging override inside `wrangler.toml` so `services/data-loader.js` can reach R2; local worker dev uses `npx wrangler dev` to respect those bindings.
+### 🧠 System Architect
+Use when:
+- changing data flow between client and worker
+- modifying API contracts
+- introducing new services or handlers
 
-## Workflows & commands
-- Frontend: `python -m http.server 8000` serves the static site; edit `index.html`, `css/styles.css`, and `js/app.js` directly (no build step).
-- Worker: `cd workers/systems && npx wrangler dev` for local debugging, then `npx wrangler deploy` for production; keep the worker’s `package.json` synced with the handler scripts.
-- Validation: `npm run test:route` exercises the route endpoint, `npm run lint` enforces formatting if `eslint.config.cjs` is present, and `node scripts/stamp-version.js` (or `npm run stamp:commit`) injects the git hash into `index.html` before release.
+Focus on:
+- separation between core / services / ui
+- minimizing Worker cold-start cost
+- batch-first API design
 
-## Debug & observability
-- Use `window.PLAYER_GATES` (populated by `player-gate-resolver.js`) when tracing why a jump used an NPC vs player gate.
-- The worker exposes `playerGateDiagnostics` and includes `notes` strings like “Loaded player gates from R2” to confirm data freshness; rely on those when diagnosing stale gate problems.
-- Route heat thresholds, gate hits, and warnings are logged in `services/player-gate-resolver.js`/`handlers/route.js`, so step through those files when behavior deviates from expectations.
+---
 
-## Integration reminders
-- Avoid touching `db/data.json` manually; workers push canonical data via `workers/systems/handlers/admin.js` and `player_gates.json` is seeded from R2.
-- When smoothing route heat, respect the application’s `window.HEATSENSE_API` override so frontend calls can point at a custom worker (useful for integration tests).
-- Use the documented tuple order (`[id, class, temp, radius_km, coldest_au, coldest_ls, coldest_heat, status]`) whenever mirroring system data elsewhere—the entire pipeline assumes that schema.
+### ⚙️ Client Implementer
+Use when:
+- writing frontend ES6 modules
+- modifying UI behavior
+- integrating API responses
+
+Rules:
+- core/ must remain DOM-free
+- ui/ handles DOM exclusively
+- services/ bridge logic and IO
+
+---
+
+### ☁️ Worker Implementer
+Use when:
+- modifying Cloudflare Worker code
+- working with R2, handlers, or services
+- adding new endpoints
+
+Rules:
+- keep worker.js thin (routing only)
+- business logic stays in services/
+- handlers only validate + orchestrate
+
+---
+
+### 🧪 Route & Heat Validator
+Use when:
+- touching heat formulas
+- modifying route calculations
+- working with ship stats or jump logic
+
+Responsibilities:
+- validate math against Ergod model
+- check boundary cases (very small D, large stars)
+- ensure heat values remain realistic
+
+---
+
+### 🔍 Reviewer
+Use when:
+- refactoring existing code
+- reviewing changes
+- checking conventions
+
+Checklist:
+- ES6 module correctness
+- .js extension in imports
+- normalized system names
+- graceful fallback behavior
+
+
+## Response Rules
+
+- Always state which sub-agent you are acting as
+- If multiple roles are needed, switch roles explicitly
+- If a change affects both client and worker, address architecture first
+
+
+# Copilot Instructions for FrontierHeatSense
+
+## Project Overview
+
+FrontierHeatSense is an **EVE Frontier** heat prediction system using Ergod's Arctangent model (MAE 0.4 Heat). The application consists of:
+
+- **Frontend**: Modular ES6 client with no build tools (runs directly in browser)
+- **Backend**: Cloudflare Worker API with R2 storage for system data
+- **Data**: 24K+ star systems with heat calculations and player gate detection
+
+## Data Structure
+
+### System Data (`db/` and `workers/systems/`)
+- `db/data.json`: Local fallback with system data as `[id, class, temp, radius_km, coldest_au, coldest_ls, coldest_heat, status]`
+- `workers/systems/data.json`: Production system lookup data
+- `db/systems.csv`: Raw system data from measurements
+- `db/ships.json`: Ship specifications for jump calculations
+- `workers/systems/player_gates.json`: Player gate mappings stored in R2
+
+### API Response Format
+```json
+{
+  "systems": [{
+    "id": 30000004,
+    "name": "O3H-1FN", 
+    "class": "G0",
+    "temp": 6136,
+    "radius_km": 1110158,
+    "status": "SAFE",
+    "coldest": {
+      "au": 32.16,
+      "ls": 16048.0, 
+      "heat": 4.98
+    }
+  }]
+}
+```
+
+## Architecture
+
+### Client-Side Structure (`js/`)
+
+```
+js/
+├── app.js                    # Main orchestration layer
+├── core/                     # Pure logic, no DOM
+│   ├── api-client.js        # Worker API communication 
+│   ├── calculations.js      # Heat/distance formulas
+│   └── normalization.js     # System name parsing
+├── services/                # Business logic
+│   ├── ship-manager.js      # Ship selection & stats
+│   └── player-gate-resolver.js  # Smart gate detection
+└── ui/                      # DOM manipulation
+    ├── renderer.js          # Main UI updates
+    ├── route-table.js       # Route display
+    ├── event-handlers.js    # User interactions
+    └── ship-ui.js          # Ship selection UI
+```
+
+**Key Pattern**: Strict separation - `core/` has no DOM access, `ui/` handles all DOM manipulation, `services/` bridges business logic.
+
+### Worker Structure (`workers/systems/`)
+
+```
+workers/systems/
+├── worker.js               # Request router (84 lines)
+├── handlers/               # API endpoints
+│   ├── systems.js         # System lookups
+│   ├── route.js           # Route calculations  
+│   ├── player-gates.js    # Smart gate APIs
+│   └── admin.js           # Data management
+├── services/               # Business logic
+│   ├── data-loader.js     # R2 data access
+│   └── player-gate-resolver.js  # Gate resolution
+└── utils/                 # Shared utilities
+    ├── fetch-retry.js     # Reliable HTTP
+    └── concurrency.js     # Batch processing
+```
+
+## Critical Development Workflows
+
+### Local Development
+```bash
+# Frontend: Simple HTTP server (no build step)
+python -m http.server 8000
+
+# Worker: Local development
+cd workers/systems
+npx wrangler dev
+
+# Deployment
+cd workers/systems  
+npx wrangler deploy
+```
+
+### Version Stamping
+```bash
+# Auto-commit with git hash stamp
+node scripts/stamp-and-commit.js --push
+```
+
+### Testing Routes
+```bash
+# Test worker API endpoints
+node scripts/test_route.js
+```
+
+## Project-Specific Conventions
+
+### Import/Export Pattern
+- **No build tools** - use native ES6 modules with `.js` extensions
+- **Function exports**: `export { functionA, functionB }`
+- **Import style**: `import { specific, functions } from './path.js'`
+
+### System Name Handling
+- Always use `normalizeSystemName()` before API calls
+- System names are case-insensitive but stored uppercase
+- Handle both single systems and comma-separated lists
+
+### API Communication
+- **Local fallback**: All API calls gracefully fall back to `/db/data.json`
+- **Batch preferred**: Use `fetchBatchSystems()` over multiple single calls
+- **Error handling**: Always catch and display user-friendly messages
+
+### State Management
+```javascript
+// Global state in app.js - expose for debugging
+window.lastRouteResults = lastRouteResults;
+window.lastRouteJumps = lastRouteJumps;
+```
+
+## Integration Points
+
+### Player Gate Detection
+- **Client-side**: `loadPlayerGates()` resolves system → assembly mappings
+- **Server-side**: R2 storage + Frontier API fallback
+- **Flow**: Client preflight → attach to route request → server validation
+
+### Ship Data Integration
+- Ship stats loaded from `/db/data.json`
+- Mass/C-value calculations affect jump heat
+- Skill bonuses modify effective C-value
+
+### External APIs
+- **Frontier API**: `PLAYER_GATE_API` for live gate data
+- **R2 Storage**: `player_gates.json` for authoritative mapping
+- **Fallback**: Local JSON files for offline development
+
+## Heat Calculation Model
+
+```javascript
+// Ergod Arctangent v2.0 formula
+H(D) = A · (2/π) · arctan((π/2) · λ / D)
+where: λ = K · T^α · R^β
+
+// Parameters
+K = 1.287e-11, α = 1.686, β = 1.226, A = 99.02
+```
+
+## Configuration Points
+
+### API Override
+```javascript
+// Override worker URL for testing
+window.HEATSENSE_API = 'http://localhost:8787';
+```
+
+### Worker Environment
+```toml
+# wrangler.toml
+[vars]
+PLAYER_GATE_API = "https://world-api-stillness.live.tech.evefrontier.com/v2"
+```
+
+## Common Gotchas
+
+- **Module paths**: Always include `.js` extension in imports
+- **System names**: Use normalized uppercase for all internal operations  
+- **Route display**: Jump data shows departure heat (TO next system, not FROM)
+- **Player gates**: Client detection runs preflight, server validates
+- **R2 data**: Admin endpoints required for production gate mapping updates
+
+## File Naming Conventions
+
+- `kebab-case` for files and directories
+- `camelCase` for JavaScript functions/variables
+- `UPPER_CASE` for constants and environment variables
+- Module files export related functions, no default exports
