@@ -548,8 +548,14 @@ __name(resolvePlayerGatesFromApi, "resolvePlayerGatesFromApi");
 
 // services/detour-planner.js
 var METERS_PER_LY = 946073e10;
-var MAX_DETOUR_SEARCH_RADIUS_LY = 50;
 var DETOUR_HEAT_THRESHOLD = 140;
+var MAX_TOTAL_HEAT = 149;
+function calculateMaxJumpDistance(currentHeat, totalMass, effectiveC, hullMass, maxHeat = MAX_TOTAL_HEAT) {
+  if (currentHeat >= maxHeat) return 0;
+  const heatBudget = maxHeat - currentHeat;
+  return heatBudget * effectiveC * hullMass / (3 * totalMass);
+}
+__name(calculateMaxJumpDistance, "calculateMaxJumpDistance");
 function calculateDistance(sys1, sys2) {
   if (sys1.length < 11 || sys2.length < 11) return null;
   if (!isFinite(sys1[8]) || !isFinite(sys2[8])) return null;
@@ -584,12 +590,22 @@ function planDetour(failedIndex, routeData, D, npcGates, playerGates, shipParams
   const prevEntry = D[prevSystem.name.toUpperCase().trim()];
   const failedEntry = D[failedSystem.name.toUpperCase().trim()];
   if (!prevEntry || !failedEntry) return null;
+  const maxJumpDistanceFromPrev = calculateMaxJumpDistance(
+    prevSystem.low_heat,
+    totalMass,
+    effectiveC,
+    hullMass,
+    DETOUR_HEAT_THRESHOLD
+  );
+  if (maxJumpDistanceFromPrev <= 0) {
+    return null;
+  }
   const candidates = [];
   for (const [systemName, systemEntry] of Object.entries(D)) {
     const isInRoute = routeData.some((r) => r.name.toUpperCase().trim() === systemName);
     if (isInRoute) continue;
     const distFromPrev = calculateDistance(prevEntry, systemEntry);
-    if (!distFromPrev || distFromPrev > MAX_DETOUR_SEARCH_RADIUS_LY) continue;
+    if (!distFromPrev || distFromPrev > maxJumpDistanceFromPrev) continue;
     const gate1 = hasGateConnection(prevEntry[0], systemEntry[0], npcGates, playerGates);
     let jumpHeat1, totalHeat1;
     if (gate1) {
@@ -734,6 +750,8 @@ function applyDetours(routeData, D, npcGates, playerGates, shipParams) {
         enhancedRoute[rejoinIndex].can_jump = detourPlan.jumpFromDetour.total_after_jump < DETOUR_HEAT_THRESHOLD;
         enhancedRoute[rejoinIndex].gate = detourPlan.jumpFromDetour.gate;
       }
+    } else {
+      enhancedRoute[adjustedIndex]._noDetourAvailable = true;
     }
   }
   return enhancedRoute;

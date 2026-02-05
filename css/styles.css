@@ -366,6 +366,13 @@ textarea {
   opacity: 0.65;
   background: rgba(80, 40, 40, 0.25) !important;
 }
+.no-detour-available {
+  background: rgba(255, 50, 50, 0.12) !important;
+  border-left: 3px solid #ff4444;
+}
+.no-detour-available:hover {
+  background: rgba(255, 50, 50, 0.18) !important;
+}
 
 .heat-cell {
   font-weight:bold;font-size:1.1em

@@ -143,10 +143,12 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
     const statusEmoji = statusIcon[sys.status] || 'ℹ️';
     
     // Row styling for detours and excluded systems
-    const rowClass = isExcluded ? 'excluded-system' : (isDetour ? 'detour-system' : '');
+    const noDetourAvailable = result._noDetourAvailable === true;
+    const rowClass = isExcluded ? 'excluded-system' : (isDetour ? 'detour-system' : (noDetourAvailable ? 'no-detour-available' : ''));
     const nameStyle = isExcluded ? 'text-decoration:line-through;opacity:0.6;' : '';
-    const namePrefix = isDetour ? '🔀 ' : '';
-    const detourLabel = isDetour ? ' <span style="color:#ffaa00;font-size:0.85em">(DETOUR)</span>' : '';
+    const namePrefix = isDetour ? '🔀 ' : (noDetourAvailable ? '⚠️ ' : '');
+    const detourLabel = isDetour ? ' <span style="color:#ffaa00;font-size:0.85em">(DETOUR)</span>' : 
+                        (noDetourAvailable ? ' <span style="color:#ff6666;font-size:0.85em" title="No viable detour found within jumpable range">(NO DETOUR)</span>' : '');
 
     // Determine jump status
     if (jump && jump.can_jump !== null) {

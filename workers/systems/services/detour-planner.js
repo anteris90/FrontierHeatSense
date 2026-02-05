@@ -15,8 +15,23 @@
  */
 
 const METERS_PER_LY = 9.46073e15;
-const MAX_DETOUR_SEARCH_RADIUS_LY = 50;
 const DETOUR_HEAT_THRESHOLD = 140;
+const MAX_TOTAL_HEAT = 149;
+
+/**
+ * Calculate maximum jump distance based on heat budget
+ * @param {number} currentHeat - Current heat level
+ * @param {number} totalMass - Total ship mass
+ * @param {number} effectiveC - Effective C-value
+ * @param {number} hullMass - Hull mass
+ * @param {number} maxHeat - Maximum allowed heat (default 149)
+ * @returns {number} Maximum jumpable distance in LY
+ */
+function calculateMaxJumpDistance(currentHeat, totalMass, effectiveC, hullMass, maxHeat = MAX_TOTAL_HEAT) {
+  if (currentHeat >= maxHeat) return 0;
+  const heatBudget = maxHeat - currentHeat;
+  return (heatBudget * effectiveC * hullMass) / (3 * totalMass);
+}
 
 /**
  * Calculate 3D distance between two systems in light years
@@ -81,7 +96,21 @@ function planDetour(failedIndex, routeData, D, npcGates, playerGates, shipParams
   const failedEntry = D[failedSystem.name.toUpperCase().trim()];
   if (!prevEntry || !failedEntry) return null;
   
-  // Collect candidate detour systems within search radius
+  // Calculate maximum jumpable distance from previous system
+  const maxJumpDistanceFromPrev = calculateMaxJumpDistance(
+    prevSystem.low_heat, 
+    totalMass, 
+    effectiveC, 
+    hullMass, 
+    DETOUR_HEAT_THRESHOLD
+  );
+  
+  if (maxJumpDistanceFromPrev <= 0) {
+    // No heat budget available for any jump
+    return null;
+  }
+  
+  // Collect candidate detour systems within jumpable radius
   const candidates = [];
   
   for (const [systemName, systemEntry] of Object.entries(D)) {
@@ -91,7 +120,7 @@ function planDetour(failedIndex, routeData, D, npcGates, playerGates, shipParams
     
     // Check distance from previous system
     const distFromPrev = calculateDistance(prevEntry, systemEntry);
-    if (!distFromPrev || distFromPrev > MAX_DETOUR_SEARCH_RADIUS_LY) continue;
+    if (!distFromPrev || distFromPrev > maxJumpDistanceFromPrev) continue;
     
     // Check if jump from previous system is viable
     const gate1 = hasGateConnection(prevEntry[0], systemEntry[0], npcGates, playerGates);
@@ -284,6 +313,9 @@ function applyDetours(routeData, D, npcGates, playerGates, shipParams) {
         enhancedRoute[rejoinIndex].can_jump = detourPlan.jumpFromDetour.total_after_jump < DETOUR_HEAT_THRESHOLD;
         enhancedRoute[rejoinIndex].gate = detourPlan.jumpFromDetour.gate;
       }
+    } else {
+      // No detour found - mark system with diagnostic flag
+      enhancedRoute[adjustedIndex]._noDetourAvailable = true;
     }
   }
   
