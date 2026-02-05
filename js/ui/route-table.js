@@ -29,10 +29,42 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
   };
 
   const jumpMap = mapRouteJumpsByName(routeJumps);
+  const jumpByName = new Map();
+  if (Array.isArray(routeJumps)) {
+    for (const jump of routeJumps) {
+      if (jump && jump.name) {
+        jumpByName.set(String(jump.name).toUpperCase(), jump);
+      }
+    }
+  }
   const successCount = results.filter(r => !r.error).length;
-  const trapCount = results.filter(
-    r => !r.error && r.system?.coldest_point?.heat >= 85
-  ).length;
+  const trapCount = results.filter(r => {
+    if (r.error) return false;
+    const heat = r.system?.coldest_point?.heat;
+    if (heat == null || heat < 85) return false;
+    const jump = jumpByName.get(String(r.name || '').toUpperCase());
+    if (jump && String(jump.gate).toLowerCase() === 'npc') return false;
+    return true;
+  }).length;
+
+  const actualJumpDistance = Array.isArray(routeJumps)
+    ? routeJumps.reduce((sum, jump) => {
+        if (!jump || jump.distance_ly == null) return sum;
+        if (jump.gate) return sum;
+        return sum + Number(jump.distance_ly);
+      }, 0)
+    : 0;
+
+  const failedJumpCount = Array.isArray(routeJumps)
+    ? routeJumps.reduce((count, jump) => {
+        if (!jump) return count;
+        if (jump.gate) return count;
+        if (jump.can_jump === false || (jump.total_after_jump != null && jump.total_after_jump >= 149)) {
+          return count + 1;
+        }
+        return count;
+      }, 0)
+    : 0;
 
   let html = `
     ${
@@ -50,6 +82,12 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
         : ''}
       ${totalDistanceLY != null
         ? ` | <span style="color:#ffaa77">📏 Total Distance: ${totalDistanceLY.toFixed(2)} LY</span>`
+        : ''}
+      ${actualJumpDistance > 0
+        ? ` | <span style="color:#ffcc88">🚀 Jump Distance: ${actualJumpDistance.toFixed(2)} LY</span>`
+        : ''}
+      ${failedJumpCount != null
+        ? ` | <span style="color:#ff7777">❌ Failed Jumps: ${failedJumpCount}</span>`
         : ''}
     </p>
 
@@ -124,12 +162,13 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
       jumpColor = '#66CCFF';
     }
 
+    const suppressTrap = isGateJump && jump && String(jump.gate).toLowerCase() === 'npc';
+
     // Warning for smart gates
     let gateWarningHtml = '';
     if (isGateJump && jump && jump.gate === 'player') {
       gateWarningHtml = ' <span title="Smart gate — availability may vary (owner-controlled)" style="color:#ffcc00">⚠️</span>';
     }
-
     html += `
       <tr>
         <td data-label="System"><strong>${sys.name || 'Unknown'}</strong></td>
@@ -147,7 +186,7 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
         </td>
 
         <td data-label="Status">
-          ${isTrap ? '<span class="trap-indicator trap-yes">⚠️ TRAP!</span>' : `${statusEmoji} ${sys.status}`}
+          ${suppressTrap ? `${statusEmoji} ${sys.status}` : (isTrap ? '<span class="trap-indicator trap-yes">⚠️ TRAP!</span>' : `${statusEmoji} ${sys.status}`)}
         </td>
       </tr>
     `;
