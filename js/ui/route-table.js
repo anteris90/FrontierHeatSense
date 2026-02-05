@@ -110,13 +110,15 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
     let jumpStatus = '—';
     let jumpColor = '#888';
     
-    // Check for detour or excluded flags
-    const isExcluded = result._excluded === true;
-    const isDetour = result._detour === true;
+    // Get jump data for this system
+    const jump = result.error ? jumpMap[result.name] : jumpMap[result.system?.name];
+    
+    // Check for detour or excluded flags - check both result and jump objects
+    const isExcluded = result._excluded === true || (jump && jump._excluded === true);
+    const isDetour = result._detour === true || (jump && jump._detour === true);
 
     if (result.error) {
       // System not found
-      const jump = jumpMap[result.name];
       html += `
         <tr${isExcluded ? ' class="excluded-system"' : ''}>
           <td data-label="System"${isExcluded ? ' style="text-decoration:line-through;opacity:0.6"' : ''}>${result.name}</td>
@@ -138,12 +140,11 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
     const sys = result.system;
     if (!sys) continue; // Safety check
     
-    const jump = jumpMap[sys.name];
     const isTrap = (sys.coldest_point?.heat >= 85) || sys.status === 'CRITICAL';
     const statusEmoji = statusIcon[sys.status] || 'ℹ️';
     
-    // Row styling for detours and excluded systems
-    const noDetourAvailable = result._noDetourAvailable === true;
+    // Row styling for detours and excluded systems - flags already checked above
+    const noDetourAvailable = (jump && jump._noDetourAvailable === true) || result._noDetourAvailable === true;
     const rowClass = isExcluded ? 'excluded-system' : (isDetour ? 'detour-system' : (noDetourAvailable ? 'no-detour-available' : ''));
     const nameStyle = isExcluded ? 'text-decoration:line-through;opacity:0.6;' : '';
     const namePrefix = isDetour ? '🔀 ' : (noDetourAvailable ? '⚠️ ' : '');
