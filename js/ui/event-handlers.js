@@ -161,7 +161,7 @@ function updateSearchButton(loading, text) {
   if (!btnEl) return;
   
   btnEl.disabled = loading;
-  btnEl.textContent = text || 'Check Heat';
+  btnEl.textContent = text || 'CHECK HEAT';
 }
 
 /**
