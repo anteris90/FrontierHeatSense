@@ -145,7 +145,7 @@ async function fetchBatchSystems(normalizedNames) {
  * 
  * Response includes:
  * - route: array of system entries with gate and heat data
- * - total_distance_ly: total jump distance
+ * - total_distance_ly: total route distance including gate legs
  * - can_complete_route: feasibility check
  * - playerGateDiagnostics: diagnostic info about gate resolution
  * 

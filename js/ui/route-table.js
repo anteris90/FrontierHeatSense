@@ -31,8 +31,8 @@ function renderRouteTable(results, routeJumps, hasShipData, routeSummary = {}) {
   const totalDistanceLY = Number.isFinite(routeSummary.totalDistanceLY)
     ? routeSummary.totalDistanceLY
     : null;
-  const maxTotalJumpDistanceLY = Number.isFinite(routeSummary.maxTotalJumpDistanceLY)
-    ? routeSummary.maxTotalJumpDistanceLY
+  const totalJumpDistanceLY = Number.isFinite(routeSummary.totalJumpDistanceLY)
+    ? routeSummary.totalJumpDistanceLY
     : null;
 
   const jumpMap = mapRouteJumpsByName(routeJumps);
@@ -58,8 +58,8 @@ function renderRouteTable(results, routeJumps, hasShipData, routeSummary = {}) {
       ${totalDistanceLY != null
         ? ` | <span style="color:#ffaa77">📏 Total Distance: ${totalDistanceLY.toFixed(2)} LY</span>`
         : ''}
-      ${hasShipData && maxTotalJumpDistanceLY != null
-        ? ` | <span style="color:#7cffc4">⛭ Max Total Jump Distance: ${maxTotalJumpDistanceLY.toFixed(2)} LY</span>`
+      ${totalJumpDistanceLY != null
+        ? ` | <span style="color:#7cffc4">⛭ Total Jump Distance: ${totalJumpDistanceLY.toFixed(2)} LY</span>`
         : ''}
     </p>
 
