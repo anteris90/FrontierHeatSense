@@ -104,23 +104,9 @@ def load_systems(conn):
 
 def load_coldest_distances(conn):
     query = """
-        WITH orbital_candidates AS (
-            SELECT solarSystemID, orbitRadius AS orbital_radius_m
-            FROM planets
-            WHERE orbitRadius IS NOT NULL AND orbitRadius > 0
-
-            UNION ALL
-
-            SELECT p.solarSystemID, p.orbitRadius + m.orbitRadius AS orbital_radius_m
-            FROM moons m
-            JOIN planets p ON p.planetID = m.planetID
-            WHERE p.orbitRadius IS NOT NULL
-              AND p.orbitRadius > 0
-              AND m.orbitRadius IS NOT NULL
-              AND m.orbitRadius > 0
-        )
-        SELECT solarSystemID, MAX(orbital_radius_m) AS coldest_radius_m
-        FROM orbital_candidates
+        SELECT solarSystemID, MAX(orbitRadius) AS coldest_radius_m
+        FROM planets
+        WHERE orbitRadius IS NOT NULL AND orbitRadius > 0
         GROUP BY solarSystemID
     """
     return {int(system_id): float(radius_m) for system_id, radius_m in conn.execute(query)}
