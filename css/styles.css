@@ -57,6 +57,8 @@ h1 {font-size:2.5em;color:#ffaa77;margin-bottom:10px}
   padding:10px 20px;border-radius:10px;display:inline-block;margin-top:10px;
   font-size:0.9em;color:#6cf
 }
+.model-badge a {color:inherit;text-decoration:none}
+.model-badge a:hover {text-decoration:underline}
 .danger-link-box {
   display:block;margin:20px auto 40px;max-width:600px;
   background:rgba(255,100,50,0.1);border:2px solid rgba(255,100,50,0.3);
@@ -306,6 +308,7 @@ footer {
   text-align:center;margin-top:50px;padding-top:20px;
   border-top:1px solid rgba(255,255,255,0.1);color:#666;font-size:0.9em
 }
+.footer-model-badge {margin-top:14px}
 footer a {color:#6cf;text-decoration:none}
 footer a:hover {text-decoration:underline}
 
