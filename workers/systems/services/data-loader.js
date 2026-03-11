@@ -14,6 +14,7 @@
 let cachedData = null;
 let cachedNpcGates = null;
 let cachedPlayerGates = null;
+const SYSTEM_DATA_OBJECT_KEY = 'data-c5.json';
 
 /**
  * Load NPC gates mapping from R2
@@ -141,19 +142,19 @@ async function loadPlayerGatesR2(env) {
  * 
  * @param {object} env - Worker environment with R2_BUCKET
  * @returns {object} System lookup object keyed by normalized system name
- * @throws {Error} If data_latest.json not found or invalid
+ * @throws {Error} If the configured system data object is not found or invalid
  */
 async function loadData(env) {
   if (cachedData) return cachedData;
 
-  const object = await env.R2_BUCKET.get('data_latest.json');
-  if (!object) throw new Error('data_latest.json not found in R2');
+  const object = await env.R2_BUCKET.get(SYSTEM_DATA_OBJECT_KEY);
+  if (!object) throw new Error(`${SYSTEM_DATA_OBJECT_KEY} not found in R2`);
 
   const text = await object.text();
   cachedData = JSON.parse(text);
 
   if (!cachedData || typeof cachedData !== 'object') {
-    throw new Error('Invalid data format in data_latest.json');
+    throw new Error(`Invalid data format in ${SYSTEM_DATA_OBJECT_KEY}`);
   }
 
   return cachedData;
