@@ -170,6 +170,13 @@ function clearAllCaches() {
 }
 
 /**
+ * Clear only system data cache
+ */
+function clearDataCache() {
+  cachedData = null;
+}
+
+/**
  * Clear only NPC gates cache
  */
 function clearNpcGatesCache() {
@@ -188,6 +195,7 @@ export {
   loadNpcGates,
   loadPlayerGatesR2,
   clearAllCaches,
+  clearDataCache,
   clearNpcGatesCache,
   clearPlayerGatesCache
 };

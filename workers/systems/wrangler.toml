@@ -11,3 +11,13 @@ PLAYER_GATE_API = "https://world-api-stillness.live.tech.evefrontier.com/v2"
 [[r2_buckets]]
 binding = "R2_BUCKET"
 bucket_name = "heatsense-data"
+
+[env.preview]
+name = "systems-test"
+
+[env.preview.vars]
+PLAYER_GATE_API = "https://world-api-stillness.live.tech.evefrontier.com/v2"
+
+[[env.preview.r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "heatsense-data"

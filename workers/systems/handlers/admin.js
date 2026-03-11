@@ -5,6 +5,7 @@
  * All endpoints require 'x-admin-token' header matching env.ADMIN_TOKEN
  * 
  * Endpoints:
+ * - POST /api/admin/reload-data - Reload system data from R2 (clear cache)
  * - POST /api/admin/upload-npc-gates - Upload NPC gates mapping to R2
  * - POST /api/admin/reload-gates - Reload NPC gates from R2 (clear cache)
  * - POST /api/admin/upload-player-gates - Upload player gates mapping to R2
@@ -12,8 +13,10 @@
  */
 
 import { 
+  loadData,
   loadNpcGates, 
   loadPlayerGatesR2, 
+  clearDataCache,
   clearNpcGatesCache, 
   clearPlayerGatesCache 
 } from '../services/data-loader.js';
@@ -28,6 +31,23 @@ function verifyAdminToken(request, env, cors) {
     return Response.json({ error: 'Forbidden' }, { status: 403, headers: cors });
   }
   return false;
+}
+
+/**
+ * POST /api/admin/reload-data
+ * Clear system data cache and reload from R2
+ */
+async function handleReloadData(request, env, cors) {
+  const tokenError = verifyAdminToken(request, env, cors);
+  if (tokenError) return tokenError;
+
+  clearDataCache();
+  try {
+    await loadData(env);
+    return Response.json({ ok: true }, { headers: cors });
+  } catch (err) {
+    return Response.json({ error: 'Reload failed: ' + err.message }, { status: 500, headers: cors });
+  }
 }
 
 /**
@@ -114,6 +134,10 @@ async function handleReloadPlayerGates(request, env, cors) {
  * Route admin requests to appropriate handler
  */
 async function handleAdmin(pathname, request, env, cors) {
+  if (pathname === '/api/admin/reload-data' && request.method === 'POST') {
+    return await handleReloadData(request, env, cors);
+  }
+
   if (pathname === '/api/admin/upload-npc-gates' && request.method === 'POST') {
     return await handleUploadNpcGates(request, env, cors);
   }
