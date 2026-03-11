@@ -47,6 +47,10 @@ const SHARE_ROUTE_PARAM = 'route';
 const SHARE_SHIP_PARAM = 'ship';
 const SHARE_MASS_PARAM = 'mass';
 const SHARE_SKILL_PARAM = 'skill';
+const SHARE_COMPACT_ROUTE_PARAM = 'r';
+const SHARE_COMPACT_SHIP_PARAM = 's';
+const SHARE_COMPACT_MASS_PARAM = 'm';
+const SHARE_COMPACT_SKILL_PARAM = 'k';
 
 function setShareButtonState(enabled, text) {
   if (shareButtonResetTimer) {
@@ -79,6 +83,50 @@ function getShareRouteNames() {
     .filter(Boolean);
 }
 
+function encodeShipSelection(ship) {
+  if (!ship) {
+    return '';
+  }
+
+  const shipIndex = getShips().findIndex(candidate => candidate.name === ship.name);
+  return shipIndex >= 0 ? shipIndex.toString(36) : ship.name;
+}
+
+function decodeShipSelection(value) {
+  if (!value) {
+    return '';
+  }
+
+  if (/^[0-9a-z]+$/i.test(value)) {
+    const index = Number.parseInt(value, 36);
+    const ship = getShips()[index];
+    if (ship) {
+      return ship.name;
+    }
+  }
+
+  return value;
+}
+
+function encodeRouteNames(routeNames) {
+  return routeNames.join('.');
+}
+
+function decodeRouteNames(routeValue) {
+  if (!routeValue) {
+    return [];
+  }
+
+  if (routeValue.includes('.')) {
+    return routeValue
+      .split('.')
+      .map(name => normalizeSystemName(name))
+      .filter(Boolean);
+  }
+
+  return parseSystemInput(routeValue);
+}
+
 function buildShareUrl() {
   const routeNames = getShareRouteNames();
   if (routeNames.length < 2) {
@@ -88,18 +136,27 @@ function buildShareUrl() {
   const url = new URL(window.location.href);
   url.search = '';
   url.hash = '';
-  url.searchParams.set(SHARE_ROUTE_PARAM, routeNames.join(','));
+  const shareParams = new URLSearchParams();
+  shareParams.set(SHARE_COMPACT_ROUTE_PARAM, encodeRouteNames(routeNames));
 
   const selectedShip = getSelectedShip();
   if (selectedShip) {
-    url.searchParams.set(SHARE_SHIP_PARAM, selectedShip.name);
+    shareParams.set(SHARE_COMPACT_SHIP_PARAM, encodeShipSelection(selectedShip));
 
     const shipParams = getShipParameters();
     if (shipParams) {
-      url.searchParams.set(SHARE_MASS_PARAM, String(Math.round(shipParams.totalHullMass)));
-      url.searchParams.set(SHARE_SKILL_PARAM, String(shipParams.skillLevel));
+      const roundedMass = Math.round(shipParams.totalHullMass);
+      if (roundedMass !== selectedShip.hullMass) {
+        shareParams.set(SHARE_COMPACT_MASS_PARAM, roundedMass.toString(36));
+      }
+
+      if (shipParams.skillLevel > 0) {
+        shareParams.set(SHARE_COMPACT_SKILL_PARAM, shipParams.skillLevel.toString(36));
+      }
     }
   }
+
+  url.hash = shareParams.toString();
 
   return url.toString();
 }
@@ -148,15 +205,23 @@ async function copyRouteLink() {
 }
 
 function getSharedRouteState() {
-  const params = new URLSearchParams(window.location.search);
-  const routeParam = params.get(SHARE_ROUTE_PARAM);
-  const routeNames = routeParam ? parseSystemInput(routeParam) : [];
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const searchParams = new URLSearchParams(window.location.search);
+  const compactRouteValue = hashParams.get(SHARE_COMPACT_ROUTE_PARAM);
+  const legacyRouteValue = searchParams.get(SHARE_ROUTE_PARAM);
+  const routeNames = decodeRouteNames(compactRouteValue || legacyRouteValue || '');
+  const compactShipValue = hashParams.get(SHARE_COMPACT_SHIP_PARAM);
+  const legacyShipValue = searchParams.get(SHARE_SHIP_PARAM);
+  const compactMassValue = hashParams.get(SHARE_COMPACT_MASS_PARAM);
+  const legacyMassValue = searchParams.get(SHARE_MASS_PARAM);
+  const compactSkillValue = hashParams.get(SHARE_COMPACT_SKILL_PARAM);
+  const legacySkillValue = searchParams.get(SHARE_SKILL_PARAM);
 
   return {
     routeNames,
-    shipName: params.get(SHARE_SHIP_PARAM) || '',
-    totalMass: params.get(SHARE_MASS_PARAM),
-    skillLevel: params.get(SHARE_SKILL_PARAM)
+    shipName: decodeShipSelection(compactShipValue || legacyShipValue || ''),
+    totalMass: compactMassValue ? String(Number.parseInt(compactMassValue, 36)) : legacyMassValue,
+    skillLevel: compactSkillValue ? String(Number.parseInt(compactSkillValue, 36)) : legacySkillValue
   };
 }
 
