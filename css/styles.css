@@ -24,6 +24,7 @@
 * {margin:0;padding:0;box-sizing:border-box}
 :root {
   color-scheme: dark;
+  --ui-scale: 0.8;
   --bg: #120808;
   --bg-2: #1a0a0a;
   --panel: rgba(25,12,10,0.85);
@@ -40,6 +41,16 @@
   --terminal-glow: rgba(255, 136, 68, 0.16);
   --mono: Consolas, 'Cascadia Code', 'SFMono-Regular', 'Liberation Mono', monospace;
 }
+html {
+  zoom: var(--ui-scale);
+}
+
+@supports not (zoom: 1) {
+  html {
+    font-size: calc(16px * var(--ui-scale));
+  }
+}
+
 body {
   font-family:var(--mono);
   background:linear-gradient(135deg,var(--bg) 0%,var(--bg-2) 50%,#0f0505 100%);
