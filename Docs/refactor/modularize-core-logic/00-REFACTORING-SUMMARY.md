@@ -323,8 +323,8 @@ Every module includes:
 - `js/app.js` (replaced with modular orchestrator)
 
 ### Backed Up Files: 2 files
-- `js/app-old.js` (original 1207-line version)
-- `js/player-gates-old.js` (original player gates module)
+- `Archive/legacy-runtime/app-old.js` (original 1207-line version)
+- `Archive/legacy-runtime/player-gates-old.js` (original player gates module)
 
 ---
 
