@@ -17,6 +17,7 @@ const API_BASE = window.HEATSENSE_API || 'https://systems.heatsense.workers.dev'
 const API_SINGLE = `${API_BASE}/api/system`;
 const API_BATCH = `${API_BASE}/api/systems`;
 const API_ROUTE = `${API_BASE}/api/route`;
+const LOCAL_WORKER_DATA_PATH = '/workers/systems/data-c5.json';
 
 /**
  * Fetch single system by name
@@ -69,7 +70,7 @@ async function fetchBatchSystems(normalizedNames) {
   
   // Fallback to local data
   try {
-    const response = await fetch('/workers/systems/data.json');
+    const response = await fetch(LOCAL_WORKER_DATA_PATH);
     const data = await response.json();
     
     // Status mapping from server
@@ -160,7 +161,7 @@ async function fetchRoute(body) {
   // Load system data to get IDs
   let systemData = {};
   try {
-    const response = await fetch('/workers/systems/data.json');
+    const response = await fetch(LOCAL_WORKER_DATA_PATH);
     if (response.ok) {
       systemData = await response.json();
     }
