@@ -94,7 +94,7 @@ A web-based route calculator for EVE Frontier that calculates optimal jump route
 
 **Stack:**
 - Cloudflare Workers (V8 runtime)
-- R2 bucket storage (npc_gates.json, player_gates.json, data_latest.json)
+- R2 bucket storage (npc_gates.json, player_gates.json, data-c5.json)
 - EVE Frontier World API integration
 - wrangler 4.62.0 CLI
 
@@ -288,11 +288,11 @@ Result: 30004078 → 30004088
 
 **Contents:**
 
-1. **`data_latest.json`** (12.6 MB)
-   - Master system database
+1. **`data-c5.json`**
+  - Active cycle-5 system database
    - Format: `{ "SYSTEM_NAME": [id, class, temp, radius, coldest_au, coldest_ls, heat, status, x, y, z], ... }`
-   - 312,301 lines total
-   - Updated periodically with latest game data
+  - Generated from `scripts/generate_data_c5.py`
+  - Uploaded to remote R2 before worker cache reload
 
 2. **`npc_gates.json`** (176 KB)
    - NPC stargate connections
@@ -396,13 +396,21 @@ node scripts/test_route.js
 **Build & Deploy:**
 ```bash
 cd workers/systems
-npx wrangler deploy
+npm run deploy
+npm run deploy:preview
 ```
 
 **Upload Data to R2:**
 ```bash
 npx wrangler r2 object put heatsense-data/npc_gates.json --file=npc_gates.json
-npx wrangler r2 object put heatsense-data/data_latest.json --file=data_latest.json
+npm run upload:data:c5
+```
+
+**Reload Worker System Data Cache:**
+```bash
+curl -X POST \
+  -H "x-admin-token: YOUR_TOKEN" \
+  https://systems-test.heatsense.workers.dev/api/admin/reload-data
 ```
 
 **Admin Operations:**

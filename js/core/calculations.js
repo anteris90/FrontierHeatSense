@@ -11,6 +11,7 @@
  */
 
 const METERS_PER_LY = 9.4607e15;
+const MAX_TOTAL_HEAT = 149;
 
 /**
  * Calculate distance in light-years between two systems
@@ -40,7 +41,7 @@ function calculateDistanceLY(a, b) {
  * where C = baseC * (1 + skillLevel * 0.02)
  * 
  * Jump constraints:
- * - Total heat must be ≤ 150 to complete jump (canJump = true)
+ * - Total heat must stay below 149 to complete jump (canJump = true)
  * - Warning threshold: lowHeat > 90
  * 
  * @param {object} params - Calculation parameters
@@ -61,7 +62,7 @@ function calculateJumpHeat({
   const jumpHeat = (3 * totalHullMass * distanceLY) / (C * hullMass);
   const totalAfterJump = lowHeat + jumpHeat;
   const warning = lowHeat > 90;
-  const canJump = totalAfterJump < 149;
+  const canJump = totalAfterJump < MAX_TOTAL_HEAT;
 
   return {
     jumpHeat,
@@ -142,6 +143,7 @@ function mapRouteJumpsBySystem(routeJumps) {
 
 export {
   METERS_PER_LY,
+  MAX_TOTAL_HEAT,
   calculateDistanceLY,
   calculateJumpHeat,
   calculateRouteJumps,

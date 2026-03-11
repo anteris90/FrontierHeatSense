@@ -25,14 +25,14 @@
 
 import { normalizeSystemName, parseSystemInput } from './core/normalization.js';
 import { calculateDistanceLY, calculateRouteJumps } from './core/calculations.js';
-import { fetchSingleSystem, fetchBatchSystems, fetchRoute, API_BASE, API_BATCH } from './core/api-client.js';
+import { fetchSingleSystem, fetchBatchSystems, fetchRoute, createRouteShare, fetchRouteShare, API_BASE, API_BATCH } from './core/api-client.js';
 
-import { selectShip, getShips, hasShipSelected, calculateSkillBonus, calculateEffectiveC, getShipParameters, loadShips } from './services/ship-manager.js';
+import { selectShip, getSelectedShip, getShips, hasShipSelected, calculateSkillBonus, calculateEffectiveC, getShipParameters, loadShips } from './services/ship-manager.js';
 import { loadPlayerGates } from './services/player-gate-resolver.js';
 
 import { displayResult, displayMultipleResults, showError } from './ui/renderer.js';
 import { mapRouteJumpsByName } from './ui/route-table.js';
-import { bindSearchButton, bindReverseButton, bindPasteHandler, bindKeyboardShortcuts, bindShipSelect, bindSkillSlider, bindTotalMassInput, updateSearchButton, setResultsVisible, setErrorVisible, updateStatusMessage } from './ui/event-handlers.js';
+import { bindSearchButton, bindReverseButton, bindShareButton, bindPasteHandler, bindKeyboardShortcuts, bindShipSelect, bindSkillSlider, bindTotalMassInput, updateSearchButton, updateShareButton, setResultsVisible, setErrorVisible, updateStatusMessage } from './ui/event-handlers.js';
 import { populateShipSelect, updateShipDisplay, updateEffectiveCDisplay, updateSkillDisplay, resetSkillSlider, hideShipDetails } from './ui/ship-ui.js';
 
 // ============================================
@@ -41,6 +41,307 @@ import { populateShipSelect, updateShipDisplay, updateEffectiveCDisplay, updateS
 
 let lastRouteResults = null;
 let lastRouteJumps = [];
+let shareButtonResetTimer = null;
+
+const SHARE_ROUTE_PARAM = 'route';
+const SHARE_SHIP_PARAM = 'ship';
+const SHARE_MASS_PARAM = 'mass';
+const SHARE_SKILL_PARAM = 'skill';
+const SHARE_COMPACT_ROUTE_PARAM = 'r';
+const SHARE_COMPACT_SHIP_PARAM = 's';
+const SHARE_COMPACT_MASS_PARAM = 'm';
+const SHARE_COMPACT_SKILL_PARAM = 'k';
+const SHARE_SHORT_CODE_PARAM = 'x';
+
+function setShareButtonState(enabled, text) {
+  if (shareButtonResetTimer) {
+    window.clearTimeout(shareButtonResetTimer);
+    shareButtonResetTimer = null;
+  }
+
+  updateShareButton(enabled, text);
+}
+
+function flashShareButton(text) {
+  setShareButtonState(true, text);
+  shareButtonResetTimer = window.setTimeout(() => {
+    updateShareButton(hasShareableRoute());
+    shareButtonResetTimer = null;
+  }, 1800);
+}
+
+function hasShareableRoute() {
+  return Array.isArray(lastRouteResults) && lastRouteResults.length > 1 && lastRouteResults.every(result => !result.error);
+}
+
+function getShareRouteNames() {
+  if (!hasShareableRoute()) {
+    return [];
+  }
+
+  return lastRouteResults
+    .map(result => result?.system?.name || result?.name)
+    .filter(Boolean);
+}
+
+function encodeShipSelection(ship) {
+  if (!ship) {
+    return '';
+  }
+
+  const shipIndex = getShips().findIndex(candidate => candidate.name === ship.name);
+  return shipIndex >= 0 ? shipIndex.toString(36) : ship.name;
+}
+
+function decodeShipSelection(value) {
+  if (!value) {
+    return '';
+  }
+
+  if (/^[0-9a-z]+$/i.test(value)) {
+    const index = Number.parseInt(value, 36);
+    const ship = getShips()[index];
+    if (ship) {
+      return ship.name;
+    }
+  }
+
+  return value;
+}
+
+function encodeRouteNames(routeNames) {
+  return routeNames.join('.');
+}
+
+function decodeRouteNames(routeValue) {
+  if (!routeValue) {
+    return [];
+  }
+
+  if (routeValue.includes('.')) {
+    return routeValue
+      .split('.')
+      .map(name => normalizeSystemName(name))
+      .filter(Boolean);
+  }
+
+  return parseSystemInput(routeValue);
+}
+
+function buildShareUrl() {
+  const routeNames = getShareRouteNames();
+  if (routeNames.length < 2) {
+    return null;
+  }
+
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  const shareParams = new URLSearchParams();
+  shareParams.set(SHARE_COMPACT_ROUTE_PARAM, encodeRouteNames(routeNames));
+
+  const selectedShip = getSelectedShip();
+  if (selectedShip) {
+    shareParams.set(SHARE_COMPACT_SHIP_PARAM, encodeShipSelection(selectedShip));
+
+    const shipParams = getShipParameters();
+    if (shipParams) {
+      const roundedMass = Math.round(shipParams.totalHullMass);
+      if (roundedMass !== selectedShip.hullMass) {
+        shareParams.set(SHARE_COMPACT_MASS_PARAM, roundedMass.toString(36));
+      }
+
+      if (shipParams.skillLevel > 0) {
+        shareParams.set(SHARE_COMPACT_SKILL_PARAM, shipParams.skillLevel.toString(36));
+      }
+    }
+  }
+
+  url.hash = shareParams.toString();
+
+  return url.toString();
+}
+
+function buildShortShareFallbackPayload() {
+  const routeNames = getShareRouteNames();
+  if (routeNames.length < 2) {
+    return null;
+  }
+
+  const selectedShip = getSelectedShip();
+  const shipParams = selectedShip ? getShipParameters() : null;
+
+  return {
+    routeNames,
+    shipName: selectedShip?.name || '',
+    totalMass: shipParams?.totalHullMass ?? null,
+    skillLevel: shipParams?.skillLevel ?? null
+  };
+}
+
+async function buildPreferredShareUrl() {
+  const payload = buildShortShareFallbackPayload();
+  if (!payload) {
+    return null;
+  }
+
+  try {
+    const share = await createRouteShare(payload);
+    if (share?.code) {
+      const url = new URL(window.location.href);
+      url.search = `?${SHARE_SHORT_CODE_PARAM}=${encodeURIComponent(share.code)}`;
+      url.hash = '';
+      return url.toString();
+    }
+  } catch (error) {
+    console.warn('Short share link unavailable, falling back to compact link:', error);
+  }
+
+  return buildShareUrl();
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const tempInput = document.createElement('textarea');
+  tempInput.value = text;
+  tempInput.setAttribute('readonly', 'readonly');
+  tempInput.style.position = 'fixed';
+  tempInput.style.opacity = '0';
+  tempInput.style.pointerEvents = 'none';
+  document.body.appendChild(tempInput);
+  tempInput.select();
+  tempInput.setSelectionRange(0, tempInput.value.length);
+
+  const success = document.execCommand('copy');
+  document.body.removeChild(tempInput);
+
+  if (!success) {
+    throw new Error('Clipboard unavailable');
+  }
+}
+
+async function copyRouteLink() {
+  const shareUrl = await buildPreferredShareUrl();
+  if (!shareUrl) {
+    flashShareButton('NO ROUTE');
+    updateStatusMessage('Calculate a route with at least two systems before copying a short link.');
+    return;
+  }
+
+  try {
+    await copyTextToClipboard(shareUrl);
+    flashShareButton('LINK COPIED');
+    updateStatusMessage('Short link copied to clipboard.');
+  } catch (error) {
+    console.warn('Copy route link failed:', error);
+    updateStatusMessage('Unable to copy short link automatically.');
+    flashShareButton('COPY FAILED');
+  }
+}
+
+function getSharedRouteState() {
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const searchParams = new URLSearchParams(window.location.search);
+  const shortCode = searchParams.get(SHARE_SHORT_CODE_PARAM) || '';
+  const compactRouteValue = hashParams.get(SHARE_COMPACT_ROUTE_PARAM);
+  const legacyRouteValue = searchParams.get(SHARE_ROUTE_PARAM);
+  const routeNames = decodeRouteNames(compactRouteValue || legacyRouteValue || '');
+  const compactShipValue = hashParams.get(SHARE_COMPACT_SHIP_PARAM);
+  const legacyShipValue = searchParams.get(SHARE_SHIP_PARAM);
+  const compactMassValue = hashParams.get(SHARE_COMPACT_MASS_PARAM);
+  const legacyMassValue = searchParams.get(SHARE_MASS_PARAM);
+  const compactSkillValue = hashParams.get(SHARE_COMPACT_SKILL_PARAM);
+  const legacySkillValue = searchParams.get(SHARE_SKILL_PARAM);
+
+  return {
+    shortCode,
+    routeNames,
+    shipName: decodeShipSelection(compactShipValue || legacyShipValue || ''),
+    totalMass: compactMassValue ? String(Number.parseInt(compactMassValue, 36)) : legacyMassValue,
+    skillLevel: compactSkillValue ? String(Number.parseInt(compactSkillValue, 36)) : legacySkillValue
+  };
+}
+
+async function hydrateSharedRouteFromUrl() {
+  let sharedState = getSharedRouteState();
+
+  if (sharedState.shortCode) {
+    try {
+      const remoteState = await fetchRouteShare(sharedState.shortCode);
+      sharedState = {
+        shortCode: sharedState.shortCode,
+        routeNames: Array.isArray(remoteState?.routeNames) ? remoteState.routeNames : [],
+        shipName: remoteState?.shipName ? String(remoteState.shipName) : '',
+        totalMass: remoteState?.totalMass != null ? String(remoteState.totalMass) : null,
+        skillLevel: remoteState?.skillLevel != null ? String(remoteState.skillLevel) : null
+      };
+    } catch (error) {
+      console.warn('Failed to resolve short share code:', error);
+      updateStatusMessage('Unable to resolve shared short link.');
+      return;
+    }
+  }
+
+  if (sharedState.routeNames.length === 0) {
+    return;
+  }
+
+  const inputEl = document.getElementById('systemInput');
+  if (inputEl) {
+    inputEl.value = sharedState.routeNames.join(', ');
+  }
+
+  if (sharedState.shipName) {
+    const shipSelect = document.getElementById('shipSelect');
+    if (shipSelect) {
+      shipSelect.value = sharedState.shipName;
+    }
+    handleShipSelection(sharedState.shipName);
+
+    const totalMassInput = document.getElementById('totalHullMass');
+    if (totalMassInput && sharedState.totalMass != null && sharedState.totalMass !== '') {
+      totalMassInput.value = sharedState.totalMass;
+    }
+
+    const parsedSkillLevel = Number(sharedState.skillLevel);
+    const skillSlider = document.getElementById('skillSlider');
+    if (skillSlider && Number.isFinite(parsedSkillLevel)) {
+      skillSlider.value = String(parsedSkillLevel);
+      handleSkillChange(parsedSkillLevel);
+    }
+  }
+
+  await searchSystems();
+}
+
+function buildRouteSummary(routeJumps, totalDistanceLY) {
+  const summary = {
+    totalDistanceLY: Number.isFinite(totalDistanceLY) ? totalDistanceLY : null,
+    totalJumpDistanceLY: null
+  };
+
+  if (!Array.isArray(routeJumps) || routeJumps.length === 0) {
+    return summary;
+  }
+
+  summary.totalJumpDistanceLY = routeJumps.reduce((sum, jump) => {
+    if (jump?.gate) {
+      return sum;
+    }
+
+    const distanceLY = Number.isFinite(jump?.distance_ly)
+      ? jump.distance_ly
+      : (Number.isFinite(jump?.distanceLY) ? jump.distanceLY : null);
+
+    return distanceLY != null ? sum + distanceLY : sum;
+  }, 0);
+
+  return summary;
+}
 
 // Expose for backward compatibility and debugging
 window.lastRouteResults = lastRouteResults;
@@ -78,6 +379,7 @@ async function searchSystems() {
   resultDiv.style.display = 'none';
   errorDiv.style.display = 'none';
   srStatus.textContent = '';
+  setShareButtonState(false);
 
   if (!input) {
     showError('Please enter at least one system name');
@@ -162,6 +464,7 @@ async function searchSystems() {
 
     if (results.length === 1 && !results[0].error) {
       displayResult(results[0].system, results[0].model);
+      setShareButtonState(false);
     } else {
       // Calculate route for multiple systems
       let routeJumps = [];
@@ -195,7 +498,13 @@ async function searchSystems() {
       lastRouteJumps = routeJumps;
       window.lastRouteResults = results;
       window.lastRouteJumps = routeJumps;
-      displayMultipleResults(results, routeJumps, hasShipSelected(), routeResp?.total_distance_ly || null);
+      displayMultipleResults(
+        results,
+        routeJumps,
+        hasShipSelected(),
+        buildRouteSummary(routeJumps, routeResp?.total_distance_ly)
+      );
+      setShareButtonState(hasShareableRoute());
     }
     
     updateStatusMessage(`Results ready for ${results.length} system(s).`);
@@ -372,7 +681,13 @@ async function recalculateRoute() {
     const routeResp = await fetchRoute(body);
     lastRouteJumps = routeResp.route || [];
     window.lastRouteJumps = lastRouteJumps;
-    displayMultipleResults(lastRouteResults, lastRouteJumps, hasShipSelected(), routeResp.total_distance_ly);
+    displayMultipleResults(
+      lastRouteResults,
+      lastRouteJumps,
+      hasShipSelected(),
+      buildRouteSummary(lastRouteJumps, routeResp.total_distance_ly)
+    );
+    setShareButtonState(hasShareableRoute());
   } catch (err) {
     console.warn('Recalculate route failed:', err);
   }
@@ -384,7 +699,7 @@ window.recalculateRoute = recalculateRoute;
 // Event Binding & Initialization
 // ============================================
 
-function initialize() {
+async function initialize() {
   // Enable local system data for development
   window.USE_LOCAL_SYSTEM_DATA = true;
 
@@ -393,6 +708,10 @@ function initialize() {
   
   // Bind reverse route button
   bindReverseButton(reverseRoute);
+  bindShareButton(() => {
+    copyRouteLink().catch(err => console.warn('Copy route link failed:', err));
+  });
+  setShareButtonState(false);
 
   // Bind paste handler
   bindPasteHandler((pasted) => {
@@ -403,7 +722,7 @@ function initialize() {
   bindKeyboardShortcuts(searchSystems);
 
   // Initialize ships
-  initializeShips().catch(err => console.warn('Failed to init ships:', err));
+  await initializeShips();
 
   // Bind ship events
   bindShipSelect(handleShipSelection);
@@ -423,11 +742,15 @@ function initialize() {
   } catch (e) {
     // Ignore initialization errors
   }
+
+  await hydrateSharedRouteFromUrl();
 }
 
 // Auto-initialize when DOM ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initialize);
+  document.addEventListener('DOMContentLoaded', () => {
+    initialize().catch(err => console.warn('Initialization failed:', err));
+  });
 } else {
-  initialize();
+  initialize().catch(err => console.warn('Initialization failed:', err));
 }

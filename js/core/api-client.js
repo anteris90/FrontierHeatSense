@@ -13,10 +13,27 @@
 /**
  * API configuration (can be overridden via window.HEATSENSE_API)
  */
-const API_BASE = window.HEATSENSE_API || 'https://systems.heatsense.workers.dev';
+const PRODUCTION_API_BASE = 'https://systems.heatsense.workers.dev';
+const PREVIEW_API_BASE = 'https://systems-test.heatsense.workers.dev';
+
+function resolveApiBase() {
+  if (window.HEATSENSE_API) {
+    return window.HEATSENSE_API;
+  }
+
+  const hostname = window.location.hostname;
+  const isPagesPreview = hostname.endsWith('.pages.dev')
+    && hostname !== 'heatsense.pages.dev';
+
+  return isPagesPreview ? PREVIEW_API_BASE : PRODUCTION_API_BASE;
+}
+
+const API_BASE = resolveApiBase();
 const API_SINGLE = `${API_BASE}/api/system`;
 const API_BATCH = `${API_BASE}/api/systems`;
 const API_ROUTE = `${API_BASE}/api/route`;
+const API_SHARE_ROUTE = `${API_BASE}/api/share-route`;
+const LOCAL_WORKER_DATA_PATH = '/workers/systems/data-c5.json';
 
 /**
  * Fetch single system by name
@@ -69,7 +86,7 @@ async function fetchBatchSystems(normalizedNames) {
   
   // Fallback to local data
   try {
-    const response = await fetch('/workers/systems/data.json');
+    const response = await fetch(LOCAL_WORKER_DATA_PATH);
     const data = await response.json();
     
     // Status mapping from server
@@ -129,7 +146,7 @@ async function fetchBatchSystems(normalizedNames) {
  * 
  * Response includes:
  * - route: array of system entries with gate and heat data
- * - total_distance_ly: total jump distance
+ * - total_distance_ly: total route distance including gate legs
  * - can_complete_route: feasibility check
  * - playerGateDiagnostics: diagnostic info about gate resolution
  * 
@@ -160,7 +177,7 @@ async function fetchRoute(body) {
   // Load system data to get IDs
   let systemData = {};
   try {
-    const response = await fetch('/workers/systems/data.json');
+    const response = await fetch(LOCAL_WORKER_DATA_PATH);
     if (response.ok) {
       systemData = await response.json();
     }
@@ -231,12 +248,53 @@ async function fetchRoute(body) {
   };
 }
 
+/**
+ * Create a short share code for a route payload.
+ *
+ * @param {object} body - Share payload
+ * @returns {object} { ok, code }
+ */
+async function createRouteShare(body) {
+  const response = await fetch(API_SHARE_ROUTE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data?.code) {
+    throw new Error(data?.error || `Share route error: ${response.status}`);
+  }
+
+  return data;
+}
+
+/**
+ * Resolve a short share code back to the stored route payload.
+ *
+ * @param {string} code - Short share code
+ * @returns {object} Shared route payload
+ */
+async function fetchRouteShare(code) {
+  const response = await fetch(`${API_SHARE_ROUTE}/${encodeURIComponent(code)}`);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data?.error || `Fetch share route error: ${response.status}`);
+  }
+
+  return data;
+}
+
 export {
   API_BASE,
   API_SINGLE,
   API_BATCH,
   API_ROUTE,
+  API_SHARE_ROUTE,
   fetchSingleSystem,
   fetchBatchSystems,
-  fetchRoute
+  fetchRoute,
+  createRouteShare,
+  fetchRouteShare
 };

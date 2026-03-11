@@ -12,7 +12,7 @@ FrontierHeatSense is an **EVE Frontier** heat prediction system using Ergod's Ar
 
 ### System Data (`db/` and `workers/systems/`)
 - `db/data.json`: Local fallback with system data as `[id, class, temp, radius_km, coldest_au, coldest_ls, coldest_heat, status]`
-- `workers/systems/data.json`: Production system lookup data
+- `workers/systems/data-c5.json`: Active worker system lookup data for cycle-5
 - `db/systems.csv`: Raw system data from measurements
 - `db/ships.json`: Ship specifications for jump calculations
 - `workers/systems/player_gates.json`: Player gate mappings stored in R2
@@ -91,6 +91,9 @@ npx wrangler dev
 # Deployment
 cd workers/systems  
 npx wrangler deploy
+
+# Upload active worker dataset to remote R2
+npm run upload:data:c5
 ```
 
 ### Version Stamping
@@ -111,6 +114,7 @@ npm run lint (if available via eslint.config.cjs)
 ### Environment Configuration
 - **Frontend**: Override API via `window.HEATSENSE_API = 'http://localhost:8787'`
 - **Worker**: Environment variables in `wrangler.toml` [vars] section, R2 binding: `R2_BUCKET`
+- **Preview worker**: `npx wrangler deploy --env preview` publishes to `systems-test`
 
 ## Project-Specific Conventions
 
@@ -209,6 +213,7 @@ Player gates normalized in `normalizePlayerGatesInput()` to support:
 ### External APIs
 - **Frontier API**: `PLAYER_GATE_API` for live gate data
 - **R2 Storage**: `player_gates.json` for authoritative mapping
+- **System dataset**: worker reads `data-c5.json` from R2
 - **Fallback**: Local JSON files for offline development
 
 ## Route Calculation & Jump Heat

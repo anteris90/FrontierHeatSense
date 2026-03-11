@@ -6,6 +6,7 @@
  * 
  * Input: { names: [...], totalMass?, hullMass?, baseC?, skillLevel?, playerGates? }
  * Output: { route: [...], total_distance_ly, can_complete_route, playerGateDiagnostics? }
+ * total_distance_ly is the full route distance including gate-connected legs.
  * 
  * Gates Priority:
  * 1. NPC gates (hardcoded, bidirectional)

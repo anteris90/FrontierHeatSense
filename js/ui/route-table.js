@@ -17,16 +17,23 @@
  * @param {array} results - Search results with system data
  * @param {array} routeJumps - Jump analysis from server
  * @param {boolean} hasShipData - Whether ship is selected
- * @param {number} totalDistanceLY - Total route distance in light years
+ * @param {object} routeSummary - Route summary metrics for the header
  * @returns {string} HTML table
  */
-function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
+function renderRouteTable(results, routeJumps, hasShipData, routeSummary = {}) {
   const statusIcon = {
     SAFE: '✅',
     MODERATE: '⚠️',
     DANGEROUS: '🔥',
     CRITICAL: '☠️'
   };
+
+  const totalDistanceLY = Number.isFinite(routeSummary.totalDistanceLY)
+    ? routeSummary.totalDistanceLY
+    : null;
+  const totalJumpDistanceLY = Number.isFinite(routeSummary.totalJumpDistanceLY)
+    ? routeSummary.totalJumpDistanceLY
+    : null;
 
   const jumpMap = mapRouteJumpsByName(routeJumps);
   const successCount = results.filter(r => !r.error).length;
@@ -50,6 +57,9 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
         : ''}
       ${totalDistanceLY != null
         ? ` | <span style="color:#ffaa77">📏 Total Distance: ${totalDistanceLY.toFixed(2)} LY</span>`
+        : ''}
+      ${totalJumpDistanceLY != null
+        ? ` | <span style="color:#7cffc4">⛭ Total Jump Distance: ${totalJumpDistanceLY.toFixed(2)} LY</span>`
         : ''}
     </p>
 

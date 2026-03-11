@@ -77,15 +77,15 @@ function displayResult(system, model) {
  * @param {array} results - Search results with system data
  * @param {array} routeJumps - Jump analysis from server
  * @param {boolean} hasShipData - Whether ship is selected
- * @param {number} totalDistanceLY - Total route distance in light years
+ * @param {object} routeSummary - Route summary metrics for the header
  */
-function displayMultipleResults(results, routeJumps, hasShipData, totalDistanceLY) {
+function displayMultipleResults(results, routeJumps, hasShipData, routeSummary = {}) {
   try {
     const resultDiv = document.getElementById('result');
     const errorDiv = document.getElementById('error');
     
     errorDiv.style.display = 'none';
-    resultDiv.innerHTML = renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY);
+    resultDiv.innerHTML = renderRouteTable(results, routeJumps, hasShipData, routeSummary);
     resultDiv.style.display = 'block';
     resultDiv.focus();
   } catch (err) {

@@ -166,8 +166,8 @@ js/
 
 ### Files Backed Up
 
-- `app-old.js`: Original 1207-line version
-- `player-gates-old.js`: Original player gates module
+- `Archive/legacy-runtime/app-old.js`: Original 1207-line version
+- `Archive/legacy-runtime/player-gates-old.js`: Original player gates module
 
 ### Module Import Structure
 

@@ -4,6 +4,9 @@
   "description": "",
   "main": "worker.js",
   "scripts": {
+    "deploy": "wrangler deploy",
+    "deploy:preview": "wrangler deploy --env preview",
+    "upload:data:c5": "wrangler r2 object put heatsense-data/data-c5.json --file=data-c5.json --remote",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

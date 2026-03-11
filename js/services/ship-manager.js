@@ -27,7 +27,7 @@ async function loadShips() {
     {"name":"TADES","hullMass":74655480,"baseC":2.5},
     {"name":"USV","hullMass":30266600,"baseC":1.8},
     {"name":"RECURVE","hullMass":10400000,"baseC":1.0},
-    {"name":"REFLEX","hullMass":9750000,"baseC":2.0},
+    {"name":"REFLEX","hullMass":9750000,"baseC":3.0},
     {"name":"REIVER","hullMass":10200000,"baseC":1.0},
     {"name":"CAROM","hullMass":7200000,"baseC":8.5},
     {"name":"STRIDE","hullMass":7900000,"baseC":8.0},
