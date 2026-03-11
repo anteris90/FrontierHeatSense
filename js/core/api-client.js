@@ -13,7 +13,11 @@
 /**
  * API configuration (can be overridden via window.HEATSENSE_API)
  */
-const API_BASE = window.HEATSENSE_API || 'https://systems.heatsense.workers.dev';
+const PRODUCTION_API_BASE = 'https://systems.heatsense.workers.dev';
+const PREVIEW_API_BASE = 'https://systems-test.heatsense.workers.dev';
+const IS_PAGES_PREVIEW = window.location.hostname.endsWith('.pages.dev')
+  && window.location.hostname !== 'heatsense.pages.dev';
+const API_BASE = window.HEATSENSE_API || (IS_PAGES_PREVIEW ? PREVIEW_API_BASE : PRODUCTION_API_BASE);
 const API_SINGLE = `${API_BASE}/api/system`;
 const API_BATCH = `${API_BASE}/api/systems`;
 const API_ROUTE = `${API_BASE}/api/route`;

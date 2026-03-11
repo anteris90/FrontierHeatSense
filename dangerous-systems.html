@@ -187,9 +187,12 @@
 <a href="index.html" class="back-link">← Back to HeatSense</a>
 
 <script>
-const API = 'https://systems.heatsense.workers.dev/api/highheat';
-// ha ugyanazon domainen fut:
-// const API = '/api/highheat';
+const PRODUCTION_API_BASE = 'https://systems.heatsense.workers.dev';
+const PREVIEW_API_BASE = 'https://systems-test.heatsense.workers.dev';
+const IS_PAGES_PREVIEW = window.location.hostname.endsWith('.pages.dev')
+  && window.location.hostname !== 'heatsense.pages.dev';
+const API_BASE = window.HEATSENSE_API || (IS_PAGES_PREVIEW ? PREVIEW_API_BASE : PRODUCTION_API_BASE);
+const API = `${API_BASE}/api/highheat`;
 
 const tbody = document.getElementById('tableBody');
 const searchInput = document.getElementById('search');
