@@ -32,6 +32,7 @@ const API_BASE = resolveApiBase();
 const API_SINGLE = `${API_BASE}/api/system`;
 const API_BATCH = `${API_BASE}/api/systems`;
 const API_ROUTE = `${API_BASE}/api/route`;
+const API_SHARE_ROUTE = `${API_BASE}/api/share-route`;
 const LOCAL_WORKER_DATA_PATH = '/workers/systems/data-c5.json';
 
 /**
@@ -247,12 +248,53 @@ async function fetchRoute(body) {
   };
 }
 
+/**
+ * Create a short share code for a route payload.
+ *
+ * @param {object} body - Share payload
+ * @returns {object} { ok, code }
+ */
+async function createRouteShare(body) {
+  const response = await fetch(API_SHARE_ROUTE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data?.code) {
+    throw new Error(data?.error || `Share route error: ${response.status}`);
+  }
+
+  return data;
+}
+
+/**
+ * Resolve a short share code back to the stored route payload.
+ *
+ * @param {string} code - Short share code
+ * @returns {object} Shared route payload
+ */
+async function fetchRouteShare(code) {
+  const response = await fetch(`${API_SHARE_ROUTE}/${encodeURIComponent(code)}`);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data?.error || `Fetch share route error: ${response.status}`);
+  }
+
+  return data;
+}
+
 export {
   API_BASE,
   API_SINGLE,
   API_BATCH,
   API_ROUTE,
+  API_SHARE_ROUTE,
   fetchSingleSystem,
   fetchBatchSystems,
-  fetchRoute
+  fetchRoute,
+  createRouteShare,
+  fetchRouteShare
 };

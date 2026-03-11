@@ -190,7 +190,7 @@ function updateShareButton(enabled, text) {
   if (!btnEl) return;
 
   btnEl.disabled = !enabled;
-  btnEl.textContent = text || 'COPY ROUTE LINK';
+  btnEl.textContent = text || 'COPY SHORT LINK';
 }
 
 /**

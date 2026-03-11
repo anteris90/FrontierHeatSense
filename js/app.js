@@ -25,7 +25,7 @@
 
 import { normalizeSystemName, parseSystemInput } from './core/normalization.js';
 import { calculateDistanceLY, calculateRouteJumps } from './core/calculations.js';
-import { fetchSingleSystem, fetchBatchSystems, fetchRoute, API_BASE, API_BATCH } from './core/api-client.js';
+import { fetchSingleSystem, fetchBatchSystems, fetchRoute, createRouteShare, fetchRouteShare, API_BASE, API_BATCH } from './core/api-client.js';
 
 import { selectShip, getSelectedShip, getShips, hasShipSelected, calculateSkillBonus, calculateEffectiveC, getShipParameters, loadShips } from './services/ship-manager.js';
 import { loadPlayerGates } from './services/player-gate-resolver.js';
@@ -51,6 +51,7 @@ const SHARE_COMPACT_ROUTE_PARAM = 'r';
 const SHARE_COMPACT_SHIP_PARAM = 's';
 const SHARE_COMPACT_MASS_PARAM = 'm';
 const SHARE_COMPACT_SKILL_PARAM = 'k';
+const SHARE_SHORT_CODE_PARAM = 'x';
 
 function setShareButtonState(enabled, text) {
   if (shareButtonResetTimer) {
@@ -161,6 +162,44 @@ function buildShareUrl() {
   return url.toString();
 }
 
+function buildShortShareFallbackPayload() {
+  const routeNames = getShareRouteNames();
+  if (routeNames.length < 2) {
+    return null;
+  }
+
+  const selectedShip = getSelectedShip();
+  const shipParams = selectedShip ? getShipParameters() : null;
+
+  return {
+    routeNames,
+    shipName: selectedShip?.name || '',
+    totalMass: shipParams?.totalHullMass ?? null,
+    skillLevel: shipParams?.skillLevel ?? null
+  };
+}
+
+async function buildPreferredShareUrl() {
+  const payload = buildShortShareFallbackPayload();
+  if (!payload) {
+    return null;
+  }
+
+  try {
+    const share = await createRouteShare(payload);
+    if (share?.code) {
+      const url = new URL(window.location.href);
+      url.search = `?${SHARE_SHORT_CODE_PARAM}=${encodeURIComponent(share.code)}`;
+      url.hash = '';
+      return url.toString();
+    }
+  } catch (error) {
+    console.warn('Short share link unavailable, falling back to compact link:', error);
+  }
+
+  return buildShareUrl();
+}
+
 async function copyTextToClipboard(text) {
   if (navigator.clipboard && window.isSecureContext) {
     await navigator.clipboard.writeText(text);
@@ -186,20 +225,20 @@ async function copyTextToClipboard(text) {
 }
 
 async function copyRouteLink() {
-  const shareUrl = buildShareUrl();
+  const shareUrl = await buildPreferredShareUrl();
   if (!shareUrl) {
     flashShareButton('NO ROUTE');
-    updateStatusMessage('Calculate a route with at least two systems before copying a route link.');
+    updateStatusMessage('Calculate a route with at least two systems before copying a short link.');
     return;
   }
 
   try {
     await copyTextToClipboard(shareUrl);
     flashShareButton('LINK COPIED');
-    updateStatusMessage('Route link copied to clipboard.');
+    updateStatusMessage('Short link copied to clipboard.');
   } catch (error) {
     console.warn('Copy route link failed:', error);
-    updateStatusMessage('Unable to copy route link automatically.');
+    updateStatusMessage('Unable to copy short link automatically.');
     flashShareButton('COPY FAILED');
   }
 }
@@ -207,6 +246,7 @@ async function copyRouteLink() {
 function getSharedRouteState() {
   const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   const searchParams = new URLSearchParams(window.location.search);
+  const shortCode = searchParams.get(SHARE_SHORT_CODE_PARAM) || '';
   const compactRouteValue = hashParams.get(SHARE_COMPACT_ROUTE_PARAM);
   const legacyRouteValue = searchParams.get(SHARE_ROUTE_PARAM);
   const routeNames = decodeRouteNames(compactRouteValue || legacyRouteValue || '');
@@ -218,6 +258,7 @@ function getSharedRouteState() {
   const legacySkillValue = searchParams.get(SHARE_SKILL_PARAM);
 
   return {
+    shortCode,
     routeNames,
     shipName: decodeShipSelection(compactShipValue || legacyShipValue || ''),
     totalMass: compactMassValue ? String(Number.parseInt(compactMassValue, 36)) : legacyMassValue,
@@ -226,7 +267,25 @@ function getSharedRouteState() {
 }
 
 async function hydrateSharedRouteFromUrl() {
-  const sharedState = getSharedRouteState();
+  let sharedState = getSharedRouteState();
+
+  if (sharedState.shortCode) {
+    try {
+      const remoteState = await fetchRouteShare(sharedState.shortCode);
+      sharedState = {
+        shortCode: sharedState.shortCode,
+        routeNames: Array.isArray(remoteState?.routeNames) ? remoteState.routeNames : [],
+        shipName: remoteState?.shipName ? String(remoteState.shipName) : '',
+        totalMass: remoteState?.totalMass != null ? String(remoteState.totalMass) : null,
+        skillLevel: remoteState?.skillLevel != null ? String(remoteState.skillLevel) : null
+      };
+    } catch (error) {
+      console.warn('Failed to resolve short share code:', error);
+      updateStatusMessage('Unable to resolve shared short link.');
+      return;
+    }
+  }
+
   if (sharedState.routeNames.length === 0) {
     return;
   }

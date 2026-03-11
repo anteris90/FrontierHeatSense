@@ -19,6 +19,7 @@ import { handleAdmin } from './handlers/admin.js';
 import { handleSystems } from './handlers/systems.js';
 import { handlePlayerGates } from './handlers/player-gates.js';
 import { handleRouteEndpoint } from './handlers/route.js';
+import { handleShare } from './handlers/share.js';
 
 const VERSION = 'arctangent-v1.0';
 const MODEL_MAE = 1.45;
@@ -69,6 +70,10 @@ export default {
       // Route calculation endpoint
       const routeResponse = await handleRouteEndpoint(pathname, request, env, CORS_HEADERS);
       if (routeResponse) return routeResponse;
+
+      // Route share endpoints
+      const shareResponse = await handleShare(pathname, request, env, CORS_HEADERS);
+      if (shareResponse) return shareResponse;
 
       // No matching endpoint
       return new Response('Not Found', { status: 404, headers: CORS_HEADERS });
