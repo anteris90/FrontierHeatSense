@@ -24,7 +24,7 @@
 // ============================================
 
 import { normalizeSystemName, parseSystemInput } from './core/normalization.js';
-import { calculateDistanceLY, calculateRouteJumps } from './core/calculations.js';
+import { calculateDistanceLY, calculateRouteJumps, calculateMaxTotalRouteJumpDistance } from './core/calculations.js';
 import { fetchSingleSystem, fetchBatchSystems, fetchRoute, API_BASE, API_BATCH } from './core/api-client.js';
 
 import { selectShip, getShips, hasShipSelected, calculateSkillBonus, calculateEffectiveC, getShipParameters, loadShips } from './services/ship-manager.js';
@@ -41,6 +41,33 @@ import { populateShipSelect, updateShipDisplay, updateEffectiveCDisplay, updateS
 
 let lastRouteResults = null;
 let lastRouteJumps = [];
+
+function buildRouteSummary(results, totalDistanceLY) {
+  const summary = {
+    totalDistanceLY: Number.isFinite(totalDistanceLY) ? totalDistanceLY : null,
+    maxTotalJumpDistanceLY: null
+  };
+
+  if (!hasShipSelected() || !Array.isArray(results) || results.length < 2) {
+    return summary;
+  }
+
+  if (results.some(result => result.error || !result.system)) {
+    return summary;
+  }
+
+  const shipParams = getShipParameters();
+  if (!shipParams) {
+    return summary;
+  }
+
+  summary.maxTotalJumpDistanceLY = calculateMaxTotalRouteJumpDistance(
+    results.map(result => result.system),
+    shipParams
+  );
+
+  return summary;
+}
 
 // Expose for backward compatibility and debugging
 window.lastRouteResults = lastRouteResults;
@@ -195,7 +222,12 @@ async function searchSystems() {
       lastRouteJumps = routeJumps;
       window.lastRouteResults = results;
       window.lastRouteJumps = routeJumps;
-      displayMultipleResults(results, routeJumps, hasShipSelected(), routeResp?.total_distance_ly || null);
+      displayMultipleResults(
+        results,
+        routeJumps,
+        hasShipSelected(),
+        buildRouteSummary(results, routeResp?.total_distance_ly)
+      );
     }
     
     updateStatusMessage(`Results ready for ${results.length} system(s).`);
@@ -372,7 +404,12 @@ async function recalculateRoute() {
     const routeResp = await fetchRoute(body);
     lastRouteJumps = routeResp.route || [];
     window.lastRouteJumps = lastRouteJumps;
-    displayMultipleResults(lastRouteResults, lastRouteJumps, hasShipSelected(), routeResp.total_distance_ly);
+    displayMultipleResults(
+      lastRouteResults,
+      lastRouteJumps,
+      hasShipSelected(),
+      buildRouteSummary(lastRouteResults, routeResp.total_distance_ly)
+    );
   } catch (err) {
     console.warn('Recalculate route failed:', err);
   }

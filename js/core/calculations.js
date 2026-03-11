@@ -11,6 +11,7 @@
  */
 
 const METERS_PER_LY = 9.4607e15;
+const MAX_TOTAL_HEAT = 149;
 
 /**
  * Calculate distance in light-years between two systems
@@ -40,7 +41,7 @@ function calculateDistanceLY(a, b) {
  * where C = baseC * (1 + skillLevel * 0.02)
  * 
  * Jump constraints:
- * - Total heat must be ≤ 150 to complete jump (canJump = true)
+ * - Total heat must stay below 149 to complete jump (canJump = true)
  * - Warning threshold: lowHeat > 90
  * 
  * @param {object} params - Calculation parameters
@@ -61,7 +62,7 @@ function calculateJumpHeat({
   const jumpHeat = (3 * totalHullMass * distanceLY) / (C * hullMass);
   const totalAfterJump = lowHeat + jumpHeat;
   const warning = lowHeat > 90;
-  const canJump = totalAfterJump < 149;
+  const canJump = totalAfterJump < MAX_TOTAL_HEAT;
 
   return {
     jumpHeat,
@@ -69,6 +70,79 @@ function calculateJumpHeat({
     warning,
     canJump
   };
+}
+
+/**
+ * Calculate the maximum safe jump distance from a system for the current ship.
+ *
+ * Rearranged from the jump heat formula using the current heat ceiling:
+ * maxDistanceLY = ((maxTotalHeat - lowHeat) * C * hullMass) / (3 * totalHullMass)
+ *
+ * @param {object} params - Calculation parameters
+ * @param {number} params.lowHeat - System's coldest heat
+ * @param {number} params.totalHullMass - Ship mass with cargo
+ * @param {number} params.hullMass - Base ship hull mass
+ * @param {number} params.C - Effective C value (after skill bonus)
+ * @param {number} [params.maxTotalHeat=MAX_TOTAL_HEAT] - Maximum allowed post-jump heat
+ * @returns {number|null} Max safe jump distance in light-years
+ */
+function calculateMaxJumpDistanceLY({
+  lowHeat,
+  totalHullMass,
+  hullMass,
+  C,
+  maxTotalHeat = MAX_TOTAL_HEAT
+}) {
+  if (![lowHeat, totalHullMass, hullMass, C, maxTotalHeat].every(Number.isFinite)) {
+    return null;
+  }
+
+  if (totalHullMass <= 0 || hullMass <= 0 || C <= 0) {
+    return null;
+  }
+
+  const availableHeat = maxTotalHeat - lowHeat;
+  if (availableHeat <= 0) {
+    return 0;
+  }
+
+  return (availableHeat * C * hullMass) / (3 * totalHullMass);
+}
+
+/**
+ * Calculate the sum of all maximum safe jump distances for a route.
+ *
+ * Each segment uses the departure system's coldest heat. The last system has no
+ * outbound jump, so it is excluded.
+ *
+ * @param {array} systems - Route systems in order
+ * @param {object} shipParams - { hullMass, totalHullMass, C }
+ * @returns {number|null} Total max safe jump distance in light-years
+ */
+function calculateMaxTotalRouteJumpDistance(systems, shipParams = {}) {
+  if (!Array.isArray(systems) || systems.length < 2) {
+    return null;
+  }
+
+  let totalMaxDistanceLY = 0;
+
+  for (let i = 0; i < systems.length - 1; i++) {
+    const lowHeat = systems[i]?.coldest_point?.heat;
+    const maxDistanceLY = calculateMaxJumpDistanceLY({
+      lowHeat,
+      totalHullMass: shipParams.totalHullMass,
+      hullMass: shipParams.hullMass,
+      C: shipParams.C
+    });
+
+    if (maxDistanceLY == null) {
+      return null;
+    }
+
+    totalMaxDistanceLY += maxDistanceLY;
+  }
+
+  return totalMaxDistanceLY;
 }
 
 /**
@@ -142,8 +216,11 @@ function mapRouteJumpsBySystem(routeJumps) {
 
 export {
   METERS_PER_LY,
+  MAX_TOTAL_HEAT,
   calculateDistanceLY,
   calculateJumpHeat,
+  calculateMaxJumpDistanceLY,
+  calculateMaxTotalRouteJumpDistance,
   calculateRouteJumps,
   mapRouteJumpsBySystem
 };
