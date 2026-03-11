@@ -41,6 +41,21 @@ function bindReverseButton(onReverse) {
 }
 
 /**
+ * Bind share button click handler
+ *
+ * @param {function} onShare - Callback to execute on share
+ * @returns {boolean} Success
+ */
+function bindShareButton(onShare) {
+  const btnEl = document.getElementById('shareBtn');
+  if (!btnEl) return false;
+
+  btnEl.removeEventListener('click', onShare);
+  btnEl.addEventListener('click', onShare);
+  return true;
+}
+
+/**
  * Bind paste handler for system input
  * Handles: plain text, HTML anchors (EF-Map format), mixed
  * 
@@ -165,6 +180,20 @@ function updateSearchButton(loading, text) {
 }
 
 /**
+ * Update share button state
+ *
+ * @param {boolean} enabled - Whether the button should be enabled
+ * @param {string} text - Optional button text override
+ */
+function updateShareButton(enabled, text) {
+  const btnEl = document.getElementById('shareBtn');
+  if (!btnEl) return;
+
+  btnEl.disabled = !enabled;
+  btnEl.textContent = text || 'COPY ROUTE LINK';
+}
+
+/**
  * Update result visibility
  * 
  * @param {boolean} visible - Show or hide
@@ -197,12 +226,14 @@ function updateStatusMessage(message) {
 export {
   bindSearchButton,
   bindReverseButton,
+  bindShareButton,
   bindPasteHandler,
   bindKeyboardShortcuts,
   bindShipSelect,
   bindSkillSlider,
   bindTotalMassInput,
   updateSearchButton,
+  updateShareButton,
   setResultsVisible,
   setErrorVisible,
   updateStatusMessage

@@ -27,12 +27,12 @@ import { normalizeSystemName, parseSystemInput } from './core/normalization.js';
 import { calculateDistanceLY, calculateRouteJumps } from './core/calculations.js';
 import { fetchSingleSystem, fetchBatchSystems, fetchRoute, API_BASE, API_BATCH } from './core/api-client.js';
 
-import { selectShip, getShips, hasShipSelected, calculateSkillBonus, calculateEffectiveC, getShipParameters, loadShips } from './services/ship-manager.js';
+import { selectShip, getSelectedShip, getShips, hasShipSelected, calculateSkillBonus, calculateEffectiveC, getShipParameters, loadShips } from './services/ship-manager.js';
 import { loadPlayerGates } from './services/player-gate-resolver.js';
 
 import { displayResult, displayMultipleResults, showError } from './ui/renderer.js';
 import { mapRouteJumpsByName } from './ui/route-table.js';
-import { bindSearchButton, bindReverseButton, bindPasteHandler, bindKeyboardShortcuts, bindShipSelect, bindSkillSlider, bindTotalMassInput, updateSearchButton, setResultsVisible, setErrorVisible, updateStatusMessage } from './ui/event-handlers.js';
+import { bindSearchButton, bindReverseButton, bindShareButton, bindPasteHandler, bindKeyboardShortcuts, bindShipSelect, bindSkillSlider, bindTotalMassInput, updateSearchButton, updateShareButton, setResultsVisible, setErrorVisible, updateStatusMessage } from './ui/event-handlers.js';
 import { populateShipSelect, updateShipDisplay, updateEffectiveCDisplay, updateSkillDisplay, resetSkillSlider, hideShipDetails } from './ui/ship-ui.js';
 
 // ============================================
@@ -41,6 +41,158 @@ import { populateShipSelect, updateShipDisplay, updateEffectiveCDisplay, updateS
 
 let lastRouteResults = null;
 let lastRouteJumps = [];
+let shareButtonResetTimer = null;
+
+const SHARE_ROUTE_PARAM = 'route';
+const SHARE_SHIP_PARAM = 'ship';
+const SHARE_MASS_PARAM = 'mass';
+const SHARE_SKILL_PARAM = 'skill';
+
+function setShareButtonState(enabled, text) {
+  if (shareButtonResetTimer) {
+    window.clearTimeout(shareButtonResetTimer);
+    shareButtonResetTimer = null;
+  }
+
+  updateShareButton(enabled, text);
+}
+
+function flashShareButton(text) {
+  setShareButtonState(true, text);
+  shareButtonResetTimer = window.setTimeout(() => {
+    updateShareButton(hasShareableRoute());
+    shareButtonResetTimer = null;
+  }, 1800);
+}
+
+function hasShareableRoute() {
+  return Array.isArray(lastRouteResults) && lastRouteResults.length > 1 && lastRouteResults.every(result => !result.error);
+}
+
+function getShareRouteNames() {
+  if (!hasShareableRoute()) {
+    return [];
+  }
+
+  return lastRouteResults
+    .map(result => result?.system?.name || result?.name)
+    .filter(Boolean);
+}
+
+function buildShareUrl() {
+  const routeNames = getShareRouteNames();
+  if (routeNames.length < 2) {
+    return null;
+  }
+
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set(SHARE_ROUTE_PARAM, routeNames.join(','));
+
+  const selectedShip = getSelectedShip();
+  if (selectedShip) {
+    url.searchParams.set(SHARE_SHIP_PARAM, selectedShip.name);
+
+    const shipParams = getShipParameters();
+    if (shipParams) {
+      url.searchParams.set(SHARE_MASS_PARAM, String(Math.round(shipParams.totalHullMass)));
+      url.searchParams.set(SHARE_SKILL_PARAM, String(shipParams.skillLevel));
+    }
+  }
+
+  return url.toString();
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const tempInput = document.createElement('textarea');
+  tempInput.value = text;
+  tempInput.setAttribute('readonly', 'readonly');
+  tempInput.style.position = 'fixed';
+  tempInput.style.opacity = '0';
+  tempInput.style.pointerEvents = 'none';
+  document.body.appendChild(tempInput);
+  tempInput.select();
+  tempInput.setSelectionRange(0, tempInput.value.length);
+
+  const success = document.execCommand('copy');
+  document.body.removeChild(tempInput);
+
+  if (!success) {
+    throw new Error('Clipboard unavailable');
+  }
+}
+
+async function copyRouteLink() {
+  const shareUrl = buildShareUrl();
+  if (!shareUrl) {
+    flashShareButton('NO ROUTE');
+    updateStatusMessage('Calculate a route with at least two systems before copying a route link.');
+    return;
+  }
+
+  try {
+    await copyTextToClipboard(shareUrl);
+    flashShareButton('LINK COPIED');
+    updateStatusMessage('Route link copied to clipboard.');
+  } catch (error) {
+    console.warn('Copy route link failed:', error);
+    updateStatusMessage('Unable to copy route link automatically.');
+    flashShareButton('COPY FAILED');
+  }
+}
+
+function getSharedRouteState() {
+  const params = new URLSearchParams(window.location.search);
+  const routeParam = params.get(SHARE_ROUTE_PARAM);
+  const routeNames = routeParam ? parseSystemInput(routeParam) : [];
+
+  return {
+    routeNames,
+    shipName: params.get(SHARE_SHIP_PARAM) || '',
+    totalMass: params.get(SHARE_MASS_PARAM),
+    skillLevel: params.get(SHARE_SKILL_PARAM)
+  };
+}
+
+async function hydrateSharedRouteFromUrl() {
+  const sharedState = getSharedRouteState();
+  if (sharedState.routeNames.length === 0) {
+    return;
+  }
+
+  const inputEl = document.getElementById('systemInput');
+  if (inputEl) {
+    inputEl.value = sharedState.routeNames.join(', ');
+  }
+
+  if (sharedState.shipName) {
+    const shipSelect = document.getElementById('shipSelect');
+    if (shipSelect) {
+      shipSelect.value = sharedState.shipName;
+    }
+    handleShipSelection(sharedState.shipName);
+
+    const totalMassInput = document.getElementById('totalHullMass');
+    if (totalMassInput && sharedState.totalMass != null && sharedState.totalMass !== '') {
+      totalMassInput.value = sharedState.totalMass;
+    }
+
+    const parsedSkillLevel = Number(sharedState.skillLevel);
+    const skillSlider = document.getElementById('skillSlider');
+    if (skillSlider && Number.isFinite(parsedSkillLevel)) {
+      skillSlider.value = String(parsedSkillLevel);
+      handleSkillChange(parsedSkillLevel);
+    }
+  }
+
+  await searchSystems();
+}
 
 function buildRouteSummary(routeJumps, totalDistanceLY) {
   const summary = {
@@ -103,6 +255,7 @@ async function searchSystems() {
   resultDiv.style.display = 'none';
   errorDiv.style.display = 'none';
   srStatus.textContent = '';
+  setShareButtonState(false);
 
   if (!input) {
     showError('Please enter at least one system name');
@@ -187,6 +340,7 @@ async function searchSystems() {
 
     if (results.length === 1 && !results[0].error) {
       displayResult(results[0].system, results[0].model);
+      setShareButtonState(false);
     } else {
       // Calculate route for multiple systems
       let routeJumps = [];
@@ -226,6 +380,7 @@ async function searchSystems() {
         hasShipSelected(),
         buildRouteSummary(routeJumps, routeResp?.total_distance_ly)
       );
+      setShareButtonState(hasShareableRoute());
     }
     
     updateStatusMessage(`Results ready for ${results.length} system(s).`);
@@ -408,6 +563,7 @@ async function recalculateRoute() {
       hasShipSelected(),
       buildRouteSummary(lastRouteJumps, routeResp.total_distance_ly)
     );
+    setShareButtonState(hasShareableRoute());
   } catch (err) {
     console.warn('Recalculate route failed:', err);
   }
@@ -419,7 +575,7 @@ window.recalculateRoute = recalculateRoute;
 // Event Binding & Initialization
 // ============================================
 
-function initialize() {
+async function initialize() {
   // Enable local system data for development
   window.USE_LOCAL_SYSTEM_DATA = true;
 
@@ -428,6 +584,10 @@ function initialize() {
   
   // Bind reverse route button
   bindReverseButton(reverseRoute);
+  bindShareButton(() => {
+    copyRouteLink().catch(err => console.warn('Copy route link failed:', err));
+  });
+  setShareButtonState(false);
 
   // Bind paste handler
   bindPasteHandler((pasted) => {
@@ -438,7 +598,7 @@ function initialize() {
   bindKeyboardShortcuts(searchSystems);
 
   // Initialize ships
-  initializeShips().catch(err => console.warn('Failed to init ships:', err));
+  await initializeShips();
 
   // Bind ship events
   bindShipSelect(handleShipSelection);
@@ -458,11 +618,15 @@ function initialize() {
   } catch (e) {
     // Ignore initialization errors
   }
+
+  await hydrateSharedRouteFromUrl();
 }
 
 // Auto-initialize when DOM ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initialize);
+  document.addEventListener('DOMContentLoaded', () => {
+    initialize().catch(err => console.warn('Initialization failed:', err));
+  });
 } else {
-  initialize();
+  initialize().catch(err => console.warn('Initialization failed:', err));
 }
