@@ -15,9 +15,20 @@
  */
 const PRODUCTION_API_BASE = 'https://systems.heatsense.workers.dev';
 const PREVIEW_API_BASE = 'https://systems-test.heatsense.workers.dev';
-const IS_PAGES_PREVIEW = window.location.hostname.endsWith('.pages.dev')
-  && window.location.hostname !== 'heatsense.pages.dev';
-const API_BASE = window.HEATSENSE_API || (IS_PAGES_PREVIEW ? PREVIEW_API_BASE : PRODUCTION_API_BASE);
+
+function resolveApiBase() {
+  if (window.HEATSENSE_API) {
+    return window.HEATSENSE_API;
+  }
+
+  const hostname = window.location.hostname;
+  const isPagesPreview = hostname.endsWith('.pages.dev')
+    && hostname !== 'heatsense.pages.dev';
+
+  return isPagesPreview ? PREVIEW_API_BASE : PRODUCTION_API_BASE;
+}
+
+const API_BASE = resolveApiBase();
 const API_SINGLE = `${API_BASE}/api/system`;
 const API_BATCH = `${API_BASE}/api/systems`;
 const API_ROUTE = `${API_BASE}/api/route`;
