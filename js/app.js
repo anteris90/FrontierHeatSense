@@ -251,6 +251,11 @@ async function buildPreferredShareUrl() {
       const url = new URL(window.location.href);
       url.search = `?${SHARE_SHORT_CODE_PARAM}=${encodeURIComponent(share.code)}`;
       url.hash = '';
+      if (Array.isArray(payload.routeHints) && payload.routeHints.length > 0) {
+        const shareParams = new URLSearchParams();
+        shareParams.set(SHARE_COMPACT_GATE_PARAM, encodeRouteHints(payload.routeHints));
+        url.hash = shareParams.toString();
+      }
       return url.toString();
     }
   } catch (error) {
@@ -342,7 +347,9 @@ async function hydrateSharedRouteFromUrl() {
       sharedState = {
         shortCode: sharedState.shortCode,
         routeNames: Array.isArray(remoteState?.routeNames) ? remoteState.routeNames : [],
-        routeHints: Array.isArray(remoteState?.routeHints) ? remoteState.routeHints : [],
+        routeHints: Array.isArray(remoteState?.routeHints) && remoteState.routeHints.length
+          ? remoteState.routeHints
+          : (Array.isArray(sharedState.routeHints) ? sharedState.routeHints : []),
         shipName: remoteState?.shipName ? String(remoteState.shipName) : '',
         totalMass: remoteState?.totalMass != null ? String(remoteState.totalMass) : null,
         skillLevel: remoteState?.skillLevel != null ? String(remoteState.skillLevel) : null
