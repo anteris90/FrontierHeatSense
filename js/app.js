@@ -262,8 +262,12 @@ async function buildPreferredShareUrl() {
 
 async function copyTextToClipboard(text) {
   if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (error) {
+      console.warn('Clipboard API copy failed, falling back to execCommand:', error);
+    }
   }
 
   const tempInput = document.createElement('textarea');
