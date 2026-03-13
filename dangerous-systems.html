@@ -29,6 +29,9 @@
         .dangerous-page .search-section {
             margin-bottom: 22px;
         }
+        .dangerous-page .page-actions {
+          margin: 0 0 18px;
+        }
         .dangerous-page .search-section::before {
             content: 'FILTER_BUFFER';
         }
@@ -63,6 +66,9 @@
         }
         .dangerous-page .route-table {
             margin: 0;
+        }
+        .dangerous-page .route-table th {
+          background: #2c130d;
         }
         .dangerous-page .route-table td:nth-child(5) {
             color: var(--accent-2);
@@ -104,6 +110,10 @@
     <h1>High-Heat and Trap Systems</h1>
     <div class="subtitle">Danger >= 85 | Trap >= 90</div>
   </header>
+
+  <div class="page-actions">
+    <a href="index.html" class="return-link">Return to HeatSense Console</a>
+  </div>
 
   <section class="search-section" aria-labelledby="danger-search-title">
     <div class="sr-only" id="danger-search-title">Danger system filter</div>
