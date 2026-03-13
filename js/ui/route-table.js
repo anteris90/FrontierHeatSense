@@ -50,10 +50,10 @@ function renderRouteTable(results, routeJumps, hasShipData, routeSummary = {}) {
   const travelSummary = [];
 
   if (totalDistanceLY != null) {
-    travelSummary.push(`📏 ${totalDistanceLY.toFixed(2)} LY total`);
+    travelSummary.push(`⛭ Total: ${totalDistanceLY.toFixed(2)} LY`);
   }
   if (totalJumpDistanceLY != null) {
-    travelSummary.push(`⛭ ${totalJumpDistanceLY.toFixed(2)} LY jump`);
+    travelSummary.push(`⛭ Ship Jump(s): ${totalJumpDistanceLY.toFixed(2)} LY`);
   }
 
   let html = `
