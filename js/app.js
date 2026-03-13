@@ -41,6 +41,7 @@ import { populateShipSelect, updateShipDisplay, updateEffectiveCDisplay, updateS
 
 let lastRouteResults = null;
 let lastRouteJumps = [];
+let lastRouteHints = [];
 let shareButtonResetTimer = null;
 
 const SHARE_ROUTE_PARAM = 'route';
@@ -48,6 +49,7 @@ const SHARE_SHIP_PARAM = 'ship';
 const SHARE_MASS_PARAM = 'mass';
 const SHARE_SKILL_PARAM = 'skill';
 const SHARE_COMPACT_ROUTE_PARAM = 'r';
+const SHARE_COMPACT_GATE_PARAM = 'g';
 const SHARE_COMPACT_SHIP_PARAM = 's';
 const SHARE_COMPACT_MASS_PARAM = 'm';
 const SHARE_COMPACT_SKILL_PARAM = 'k';
@@ -84,6 +86,21 @@ function getShareRouteNames() {
     .filter(Boolean);
 }
 
+function getShareRouteHints() {
+  if (!Array.isArray(lastRouteHints) || lastRouteHints.length === 0) {
+    return [];
+  }
+
+  return lastRouteHints
+    .filter(hint => hint?.from && hint?.to && Number.isFinite(hint?.jumpCount))
+    .map(hint => ({
+      from: normalizeSystemName(hint.from),
+      to: normalizeSystemName(hint.to),
+      jumpCount: Number(hint.jumpCount),
+      gate: hint.gate || 'npc'
+    }));
+}
+
 function encodeShipSelection(ship) {
   if (!ship) {
     return '';
@@ -113,6 +130,37 @@ function encodeRouteNames(routeNames) {
   return routeNames.join('.');
 }
 
+function encodeRouteHints(routeHints) {
+  return routeHints
+    .filter(hint => hint?.from && hint?.to && Number.isFinite(hint?.jumpCount))
+    .map(hint => `${normalizeSystemName(hint.from)}>${normalizeSystemName(hint.to)}:${Math.max(1, Math.round(hint.jumpCount))}`)
+    .join(',');
+}
+
+function encodeIndexedRouteHints(routeHints, routeNames) {
+  if (!Array.isArray(routeHints) || !Array.isArray(routeNames) || routeNames.length < 2) {
+    return '';
+  }
+
+  const normalizedRouteNames = routeNames.map(name => normalizeSystemName(name));
+  const encodedHints = [];
+
+  for (const hint of routeHints) {
+    if (!hint?.from || !hint?.to || !Number.isFinite(hint?.jumpCount)) continue;
+
+    const from = normalizeSystemName(hint.from);
+    const to = normalizeSystemName(hint.to);
+    const fromIndex = normalizedRouteNames.indexOf(from);
+
+    if (fromIndex < 0 || fromIndex >= normalizedRouteNames.length - 1) continue;
+    if (normalizedRouteNames[fromIndex + 1] !== to) continue;
+
+    encodedHints.push(`${fromIndex.toString(36)}.${Math.max(1, Math.round(hint.jumpCount)).toString(36)}`);
+  }
+
+  return encodedHints.join(',');
+}
+
 function decodeRouteNames(routeValue) {
   if (!routeValue) {
     return [];
@@ -128,8 +176,64 @@ function decodeRouteNames(routeValue) {
   return parseSystemInput(routeValue);
 }
 
+function decodeRouteHints(routeHintValue, routeNames = []) {
+  if (!routeHintValue) {
+    return [];
+  }
+
+  const normalizedRouteNames = Array.isArray(routeNames)
+    ? routeNames.map(name => normalizeSystemName(name))
+    : [];
+
+  return String(routeHintValue)
+    .split(',')
+    .map(entry => entry.trim())
+    .filter(Boolean)
+    .map(entry => {
+      if (entry.includes('.')) {
+        const [fromIndexRaw, jumpCountRaw] = entry.split('.', 2);
+        const fromIndex = Number.parseInt(fromIndexRaw, 36);
+        const jumpCount = Number.parseInt(jumpCountRaw, 36);
+
+        if (!Number.isInteger(fromIndex) || !Number.isFinite(jumpCount)) {
+          return null;
+        }
+
+        if (fromIndex < 0 || fromIndex >= normalizedRouteNames.length - 1) {
+          return null;
+        }
+
+        return {
+          from: normalizedRouteNames[fromIndex],
+          to: normalizedRouteNames[fromIndex + 1],
+          jumpCount,
+          gate: 'npc'
+        };
+      }
+
+      const separatorIndex = entry.indexOf('>');
+      const countIndex = entry.lastIndexOf(':');
+
+      if (separatorIndex <= 0 || countIndex <= separatorIndex + 1) {
+        return null;
+      }
+
+      const from = normalizeSystemName(entry.slice(0, separatorIndex));
+      const to = normalizeSystemName(entry.slice(separatorIndex + 1, countIndex));
+      const jumpCount = Number.parseInt(entry.slice(countIndex + 1), 10);
+
+      if (!from || !to || !Number.isFinite(jumpCount)) {
+        return null;
+      }
+
+      return { from, to, jumpCount, gate: 'npc' };
+    })
+    .filter(Boolean);
+}
+
 function buildShareUrl() {
   const routeNames = getShareRouteNames();
+  const routeHints = getShareRouteHints();
   if (routeNames.length < 2) {
     return null;
   }
@@ -139,6 +243,10 @@ function buildShareUrl() {
   url.hash = '';
   const shareParams = new URLSearchParams();
   shareParams.set(SHARE_COMPACT_ROUTE_PARAM, encodeRouteNames(routeNames));
+  if (routeHints.length) {
+    const compactHints = encodeIndexedRouteHints(routeHints, routeNames) || encodeRouteHints(routeHints);
+    shareParams.set(SHARE_COMPACT_GATE_PARAM, compactHints);
+  }
 
   const selectedShip = getSelectedShip();
   if (selectedShip) {
@@ -170,9 +278,11 @@ function buildShortShareFallbackPayload() {
 
   const selectedShip = getSelectedShip();
   const shipParams = selectedShip ? getShipParameters() : null;
+  const routeHints = getShareRouteHints();
 
   return {
     routeNames,
+    routeHints,
     shipName: selectedShip?.name || '',
     totalMass: shipParams?.totalHullMass ?? null,
     skillLevel: shipParams?.skillLevel ?? null
@@ -191,6 +301,14 @@ async function buildPreferredShareUrl() {
       const url = new URL(window.location.href);
       url.search = `?${SHARE_SHORT_CODE_PARAM}=${encodeURIComponent(share.code)}`;
       url.hash = '';
+      if (Array.isArray(payload.routeHints) && payload.routeHints.length > 0) {
+        const compactHints = encodeIndexedRouteHints(payload.routeHints, payload.routeNames);
+        if (compactHints) {
+          const shareParams = new URLSearchParams();
+          shareParams.set(SHARE_COMPACT_GATE_PARAM, compactHints);
+          url.hash = shareParams.toString();
+        }
+      }
       return url.toString();
     }
   } catch (error) {
@@ -202,8 +320,12 @@ async function buildPreferredShareUrl() {
 
 async function copyTextToClipboard(text) {
   if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (error) {
+      console.warn('Clipboard API copy failed, falling back to execCommand:', error);
+    }
   }
 
   const tempInput = document.createElement('textarea');
@@ -248,8 +370,10 @@ function getSharedRouteState() {
   const searchParams = new URLSearchParams(window.location.search);
   const shortCode = searchParams.get(SHARE_SHORT_CODE_PARAM) || '';
   const compactRouteValue = hashParams.get(SHARE_COMPACT_ROUTE_PARAM);
+  const compactGateValue = hashParams.get(SHARE_COMPACT_GATE_PARAM);
   const legacyRouteValue = searchParams.get(SHARE_ROUTE_PARAM);
   const routeNames = decodeRouteNames(compactRouteValue || legacyRouteValue || '');
+  const routeHints = decodeRouteHints(compactGateValue || '', routeNames);
   const compactShipValue = hashParams.get(SHARE_COMPACT_SHIP_PARAM);
   const legacyShipValue = searchParams.get(SHARE_SHIP_PARAM);
   const compactMassValue = hashParams.get(SHARE_COMPACT_MASS_PARAM);
@@ -259,7 +383,9 @@ function getSharedRouteState() {
 
   return {
     shortCode,
+    routeHintToken: compactGateValue || '',
     routeNames,
+    routeHints,
     shipName: decodeShipSelection(compactShipValue || legacyShipValue || ''),
     totalMass: compactMassValue ? String(Number.parseInt(compactMassValue, 36)) : legacyMassValue,
     skillLevel: compactSkillValue ? String(Number.parseInt(compactSkillValue, 36)) : legacySkillValue
@@ -274,7 +400,11 @@ async function hydrateSharedRouteFromUrl() {
       const remoteState = await fetchRouteShare(sharedState.shortCode);
       sharedState = {
         shortCode: sharedState.shortCode,
+        routeHintToken: sharedState.routeHintToken,
         routeNames: Array.isArray(remoteState?.routeNames) ? remoteState.routeNames : [],
+        routeHints: Array.isArray(remoteState?.routeHints) && remoteState.routeHints.length
+          ? remoteState.routeHints
+          : decodeRouteHints(sharedState.routeHintToken || '', Array.isArray(remoteState?.routeNames) ? remoteState.routeNames : []),
         shipName: remoteState?.shipName ? String(remoteState.shipName) : '',
         totalMass: remoteState?.totalMass != null ? String(remoteState.totalMass) : null,
         skillLevel: remoteState?.skillLevel != null ? String(remoteState.skillLevel) : null
@@ -294,6 +424,14 @@ async function hydrateSharedRouteFromUrl() {
   if (inputEl) {
     inputEl.value = sharedState.routeNames.join(', ');
   }
+
+  window.__systemInputRouteHints = Array.isArray(sharedState.routeHints)
+    ? sharedState.routeHints.slice()
+    : [];
+  lastRouteHints = Array.isArray(sharedState.routeHints)
+    ? sharedState.routeHints.slice()
+    : [];
+  window.lastRouteHints = lastRouteHints;
 
   if (sharedState.shipName) {
     const shipSelect = document.getElementById('shipSelect');
@@ -329,7 +467,7 @@ function buildRouteSummary(routeJumps, totalDistanceLY) {
   }
 
   summary.totalJumpDistanceLY = routeJumps.reduce((sum, jump) => {
-    if (jump?.gate) {
+    if (jump?.ui_gate || jump?.gate) {
       return sum;
     }
 
@@ -346,6 +484,76 @@ function buildRouteSummary(routeJumps, totalDistanceLY) {
 // Expose for backward compatibility and debugging
 window.lastRouteResults = lastRouteResults;
 window.lastRouteJumps = lastRouteJumps;
+window.lastRouteHints = lastRouteHints;
+
+function cloneRouteJumpEntries(routeJumps) {
+  return Array.isArray(routeJumps) ? routeJumps.map(jump => (jump ? { ...jump } : jump)) : [];
+}
+
+function reverseRouteHints(routeHints) {
+  if (!Array.isArray(routeHints)) return [];
+
+  return routeHints.map(hint => ({
+    ...hint,
+    from: hint.to,
+    to: hint.from
+  }));
+}
+
+function consumeRouteHints(systemNames) {
+  const inputRouteHints = Array.isArray(window.__systemInputRouteHints) ? window.__systemInputRouteHints : [];
+  const parsedHints = Array.isArray(window.__lastParsedRouteHints) ? window.__lastParsedRouteHints : [];
+  const pendingHints = Array.isArray(window.__pendingRouteHints) ? window.__pendingRouteHints : [];
+  const routeHints = inputRouteHints.length
+    ? inputRouteHints
+    : (parsedHints.length ? parsedHints : pendingHints);
+
+  window.__pendingRouteHints = [];
+
+  if (!Array.isArray(systemNames) || systemNames.length < 2 || !routeHints.length) return [];
+
+  const systemSet = new Set(systemNames.map(name => normalizeSystemName(name)));
+  return routeHints.filter(hint => systemSet.has(normalizeSystemName(hint.from)) && systemSet.has(normalizeSystemName(hint.to)));
+}
+
+function applyRouteHints(routeResp, routeHints) {
+  const route = cloneRouteJumpEntries(routeResp?.route);
+  if (!route.length || !Array.isArray(routeHints) || routeHints.length === 0) {
+    return {
+      route,
+      totalDistanceLY: routeResp?.total_distance_ly ?? null
+    };
+  }
+
+  const hintMap = new Map(
+    routeHints.map(hint => [`${normalizeSystemName(hint.from)}=>${normalizeSystemName(hint.to)}`, hint])
+  );
+
+  let totalDistanceLY = Number.isFinite(routeResp?.total_distance_ly)
+    ? Number(routeResp.total_distance_ly)
+    : null;
+
+  for (let index = 1; index < route.length; index++) {
+    const previousEntry = route[index - 1];
+    const currentEntry = route[index];
+    if (!previousEntry?.name || !currentEntry?.name) continue;
+
+    const hintKey = `${normalizeSystemName(previousEntry.name)}=>${normalizeSystemName(currentEntry.name)}`;
+    const hint = hintMap.get(hintKey);
+    if (!hint) continue;
+
+    if (totalDistanceLY != null && Number.isFinite(currentEntry.distance_ly)) {
+      totalDistanceLY = Math.max(0, totalDistanceLY - Number(currentEntry.distance_ly));
+    }
+
+    currentEntry.distance_label = 'GATE';
+    currentEntry.ui_gate = 'npc';
+    currentEntry.hidden_jump_count = hint.jumpCount;
+    currentEntry.route_hint = 'npc_gate_span';
+  }
+
+  return { route, totalDistanceLY };
+}
 
 // ============================================
 // Initialization
@@ -387,6 +595,8 @@ async function searchSystems() {
   }
 
   const systemNames = parseSystemInput(input);
+  lastRouteHints = consumeRouteHints(systemNames);
+  window.lastRouteHints = lastRouteHints;
   document.getElementById('systemInput').value = systemNames.join(', ');
 
   if (systemNames.length === 0) {
@@ -491,7 +701,9 @@ async function searchSystems() {
         }
         
         routeResp = await fetchRoute(body);
-        routeJumps = routeResp.route || [];
+        const hintedRoute = applyRouteHints(routeResp, lastRouteHints);
+        routeJumps = hintedRoute.route;
+        routeResp = { ...routeResp, route: routeJumps, total_distance_ly: hintedRoute.totalDistanceLY };
       }
 
       lastRouteResults = results;
@@ -532,6 +744,12 @@ function reverseRoute() {
   // Parse current systems
   const systemNames = parseSystemInput(currentInput);
   if (systemNames.length <= 1) return; // Nothing to reverse
+
+  const reversedHints = reverseRouteHints(lastRouteHints);
+  window.__pendingRouteHints = reversedHints;
+  window.__systemInputRouteHints = reversedHints;
+  lastRouteHints = reversedHints;
+  window.lastRouteHints = lastRouteHints;
   
   // Reverse the order
   const reversedNames = systemNames.reverse();
@@ -679,13 +897,14 @@ async function recalculateRoute() {
 
   try {
     const routeResp = await fetchRoute(body);
-    lastRouteJumps = routeResp.route || [];
+    const hintedRoute = applyRouteHints(routeResp, lastRouteHints);
+    lastRouteJumps = hintedRoute.route;
     window.lastRouteJumps = lastRouteJumps;
     displayMultipleResults(
       lastRouteResults,
       lastRouteJumps,
       hasShipSelected(),
-      buildRouteSummary(lastRouteJumps, routeResp.total_distance_ly)
+      buildRouteSummary(lastRouteJumps, hintedRoute.totalDistanceLY)
     );
     setShareButtonState(hasShareableRoute());
   } catch (err) {

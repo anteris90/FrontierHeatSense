@@ -52,6 +52,48 @@ function normalizeSystemName(name) {
   return s;
 }
 
+const SYSTEM_NAME_PATTERN = '[A-Z0-9]+(?:[-:.|][A-Z0-9]+)+';
+
+/**
+ * Extract anonymous NPC gate spans from copied route text.
+ * Example: "IV3-BDJ (2)→ IMC-9KJ"
+ *
+ * @param {string} input - Raw textarea input
+ * @returns {array} [{ from, to, jumpCount, gate: 'npc' }]
+ */
+function extractNpcGateRouteHints(input) {
+  if (!input) return [];
+
+  const normalizedText = String(input)
+    .replace(/<[^>]*>/g, ' ')
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[\u2012\u2013\u2014\u2015\u2212]/g, '-');
+
+  const hintRegex = new RegExp(
+    `\\b(${SYSTEM_NAME_PATTERN})\\b\\s*\\((\\d+)\\)\\s*(?:→|->|&rarr;|&#8594;)\\s*\\b(${SYSTEM_NAME_PATTERN})\\b`,
+    'gi'
+  );
+
+  const hints = [];
+  const seen = new Set();
+  let match;
+
+  while ((match = hintRegex.exec(normalizedText)) !== null) {
+    const from = normalizeSystemName(match[1]);
+    const to = normalizeSystemName(match[3]);
+    const jumpCount = Number.parseInt(match[2], 10);
+    const key = `${from}=>${to}`;
+
+    if (!from || !to || !Number.isFinite(jumpCount) || seen.has(key)) continue;
+
+    seen.add(key);
+    hints.push({ from, to, jumpCount, gate: 'npc' });
+  }
+
+  return hints;
+}
+
 /**
  * Parse system input from textarea
  * Supports: plain names, HTML anchors (EF-Map format), mixed
@@ -66,6 +108,7 @@ function normalizeSystemName(name) {
  * Also exposes parsed IDs globally for downstream use:
  * - window.__lastParsedSystemNames
  * - window.__lastParsedSystemIds
+ * - window.__lastParsedRouteHints
  * 
  * @param {string} input - Textarea input (plain text or HTML)
  * @returns {array} Normalized system names in order, deduplicated
@@ -75,8 +118,9 @@ function parseSystemInput(input) {
   const temp = document.createElement('div');
   temp.innerHTML = input || '';
 
-  const nameRegex = /\b[A-Z0-9]+(?:[-:.|][A-Z0-9]+)+\b/gi;
+  const nameRegex = new RegExp(`\\b${SYSTEM_NAME_PATTERN}\\b`, 'gi');
   const results = [];
+  const routeHints = extractNpcGateRouteHints(input);
 
   /**
    * Push normalized names from text string
@@ -150,8 +194,9 @@ function parseSystemInput(input) {
   // Expose globally for downstream use
   window.__lastParsedSystemIds = ids;
   window.__lastParsedSystemNames = systems.slice();
+  window.__lastParsedRouteHints = routeHints;
 
   return systems;
 }
 
-export { normalizeSystemName, parseSystemInput };
+export { normalizeSystemName, parseSystemInput, extractNpcGateRouteHints };
