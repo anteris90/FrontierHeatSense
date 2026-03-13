@@ -67,15 +67,15 @@ function renderRouteTable(results, routeJumps, hasShipData, routeSummary = {}) {
 
     <div class="route-summary" aria-label="Route summary">
       <div class="route-summary-row">
-        <span class="route-summary-label">INIT_SYSTEMS</span>
+        <span class="route-summary-label">INIT_SYSTEMS...</span>
         <span class="route-summary-value">${successCount} / ${results.length} systems found</span>
       </div>
       <div class="route-summary-row">
-        <span class="route-summary-label">INIT_ERRORS</span>
+        <span class="route-summary-label">INIT_ERRORS....</span>
         <span class="route-summary-value ${trapCount > 0 ? 'route-summary-alert' : 'route-summary-clear'}">${trapSummary}${warningSummary}</span>
       </div>
       <div class="route-summary-row">
-        <span class="route-summary-label">INIT_TRAVEL</span>
+        <span class="route-summary-label">INIT_TRAVEL....</span>
         <span class="route-summary-value route-summary-travel">${travelSummary.length > 0 ? travelSummary.join(' | ') : 'Travel data unavailable'}</span>
       </div>
     </div>
