@@ -80,7 +80,11 @@ function renderRouteTable(results, routeJumps, hasShipData, routeSummary = {}) {
 
   function formatDistanceCell(jump) {
     if (!jump) return '—';
-    if (jump.distance_label) return jump.distance_label;
+    if (jump.distance_label) {
+      return Number.isFinite(jump.hidden_jump_count)
+        ? `${jump.distance_label} (${jump.hidden_jump_count})`
+        : jump.distance_label;
+    }
     if (jump.distance_ly != null) return jump.distance_ly.toFixed(2);
     return '—';
   }
