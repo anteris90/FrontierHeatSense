@@ -63,9 +63,12 @@ function reverseRouteHints(routeHints) {
 }
 
 function consumeRouteHints(systemNames) {
+  const inputRouteHints = Array.isArray(window.__systemInputRouteHints) ? window.__systemInputRouteHints : [];
   const parsedHints = Array.isArray(window.__lastParsedRouteHints) ? window.__lastParsedRouteHints : [];
   const pendingHints = Array.isArray(window.__pendingRouteHints) ? window.__pendingRouteHints : [];
-  const routeHints = parsedHints.length ? parsedHints : pendingHints;
+  const routeHints = inputRouteHints.length
+    ? inputRouteHints
+    : (parsedHints.length ? parsedHints : pendingHints);
 
   window.__pendingRouteHints = [];
 
@@ -302,6 +305,7 @@ function reverseRoute() {
 
   const reversedHints = reverseRouteHints(lastRouteHints);
   window.__pendingRouteHints = reversedHints;
+  window.__systemInputRouteHints = reversedHints;
   lastRouteHints = reversedHints;
   window.lastRouteHints = lastRouteHints;
   

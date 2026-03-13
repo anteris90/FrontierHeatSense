@@ -93,6 +93,7 @@ function bindPasteHandler(onPaste, parseInput) {
     const merged = current.slice();
 
     window.__pendingRouteHints = mergeRouteHints(existingPendingHints, currentRouteHints, pastedRouteHints);
+    window.__systemInputRouteHints = window.__pendingRouteHints.slice();
     
     for (const s of pasted) {
       if (!merged.includes(s)) merged.push(s);
