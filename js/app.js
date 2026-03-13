@@ -137,6 +137,30 @@ function encodeRouteHints(routeHints) {
     .join(',');
 }
 
+function encodeIndexedRouteHints(routeHints, routeNames) {
+  if (!Array.isArray(routeHints) || !Array.isArray(routeNames) || routeNames.length < 2) {
+    return '';
+  }
+
+  const normalizedRouteNames = routeNames.map(name => normalizeSystemName(name));
+  const encodedHints = [];
+
+  for (const hint of routeHints) {
+    if (!hint?.from || !hint?.to || !Number.isFinite(hint?.jumpCount)) continue;
+
+    const from = normalizeSystemName(hint.from);
+    const to = normalizeSystemName(hint.to);
+    const fromIndex = normalizedRouteNames.indexOf(from);
+
+    if (fromIndex < 0 || fromIndex >= normalizedRouteNames.length - 1) continue;
+    if (normalizedRouteNames[fromIndex + 1] !== to) continue;
+
+    encodedHints.push(`${fromIndex.toString(36)}.${Math.max(1, Math.round(hint.jumpCount)).toString(36)}`);
+  }
+
+  return encodedHints.join(',');
+}
+
 function decodeRouteNames(routeValue) {
   if (!routeValue) {
     return [];
@@ -152,16 +176,41 @@ function decodeRouteNames(routeValue) {
   return parseSystemInput(routeValue);
 }
 
-function decodeRouteHints(routeHintValue) {
+function decodeRouteHints(routeHintValue, routeNames = []) {
   if (!routeHintValue) {
     return [];
   }
+
+  const normalizedRouteNames = Array.isArray(routeNames)
+    ? routeNames.map(name => normalizeSystemName(name))
+    : [];
 
   return String(routeHintValue)
     .split(',')
     .map(entry => entry.trim())
     .filter(Boolean)
     .map(entry => {
+      if (entry.includes('.')) {
+        const [fromIndexRaw, jumpCountRaw] = entry.split('.', 2);
+        const fromIndex = Number.parseInt(fromIndexRaw, 36);
+        const jumpCount = Number.parseInt(jumpCountRaw, 36);
+
+        if (!Number.isInteger(fromIndex) || !Number.isFinite(jumpCount)) {
+          return null;
+        }
+
+        if (fromIndex < 0 || fromIndex >= normalizedRouteNames.length - 1) {
+          return null;
+        }
+
+        return {
+          from: normalizedRouteNames[fromIndex],
+          to: normalizedRouteNames[fromIndex + 1],
+          jumpCount,
+          gate: 'npc'
+        };
+      }
+
       const separatorIndex = entry.indexOf('>');
       const countIndex = entry.lastIndexOf(':');
 
@@ -195,7 +244,8 @@ function buildShareUrl() {
   const shareParams = new URLSearchParams();
   shareParams.set(SHARE_COMPACT_ROUTE_PARAM, encodeRouteNames(routeNames));
   if (routeHints.length) {
-    shareParams.set(SHARE_COMPACT_GATE_PARAM, encodeRouteHints(routeHints));
+    const compactHints = encodeIndexedRouteHints(routeHints, routeNames) || encodeRouteHints(routeHints);
+    shareParams.set(SHARE_COMPACT_GATE_PARAM, compactHints);
   }
 
   const selectedShip = getSelectedShip();
@@ -251,6 +301,14 @@ async function buildPreferredShareUrl() {
       const url = new URL(window.location.href);
       url.search = `?${SHARE_SHORT_CODE_PARAM}=${encodeURIComponent(share.code)}`;
       url.hash = '';
+      if (Array.isArray(payload.routeHints) && payload.routeHints.length > 0) {
+        const compactHints = encodeIndexedRouteHints(payload.routeHints, payload.routeNames);
+        if (compactHints) {
+          const shareParams = new URLSearchParams();
+          shareParams.set(SHARE_COMPACT_GATE_PARAM, compactHints);
+          url.hash = shareParams.toString();
+        }
+      }
       return url.toString();
     }
   } catch (error) {
@@ -315,7 +373,7 @@ function getSharedRouteState() {
   const compactGateValue = hashParams.get(SHARE_COMPACT_GATE_PARAM);
   const legacyRouteValue = searchParams.get(SHARE_ROUTE_PARAM);
   const routeNames = decodeRouteNames(compactRouteValue || legacyRouteValue || '');
-  const routeHints = decodeRouteHints(compactGateValue || '');
+  const routeHints = decodeRouteHints(compactGateValue || '', routeNames);
   const compactShipValue = hashParams.get(SHARE_COMPACT_SHIP_PARAM);
   const legacyShipValue = searchParams.get(SHARE_SHIP_PARAM);
   const compactMassValue = hashParams.get(SHARE_COMPACT_MASS_PARAM);
@@ -325,6 +383,7 @@ function getSharedRouteState() {
 
   return {
     shortCode,
+    routeHintToken: compactGateValue || '',
     routeNames,
     routeHints,
     shipName: decodeShipSelection(compactShipValue || legacyShipValue || ''),
@@ -341,10 +400,11 @@ async function hydrateSharedRouteFromUrl() {
       const remoteState = await fetchRouteShare(sharedState.shortCode);
       sharedState = {
         shortCode: sharedState.shortCode,
+        routeHintToken: sharedState.routeHintToken,
         routeNames: Array.isArray(remoteState?.routeNames) ? remoteState.routeNames : [],
         routeHints: Array.isArray(remoteState?.routeHints) && remoteState.routeHints.length
           ? remoteState.routeHints
-          : (Array.isArray(sharedState.routeHints) ? sharedState.routeHints : []),
+          : decodeRouteHints(sharedState.routeHintToken || '', Array.isArray(remoteState?.routeNames) ? remoteState.routeNames : []),
         shipName: remoteState?.shipName ? String(remoteState.shipName) : '',
         totalMass: remoteState?.totalMass != null ? String(remoteState.totalMass) : null,
         skillLevel: remoteState?.skillLevel != null ? String(remoteState.skillLevel) : null
