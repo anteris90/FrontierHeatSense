@@ -38,7 +38,7 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
     ${
       !hasShipData
         ? `<div class="input-hint" style="margin:6px 0 10px">
-             💡 Tip: Select a ship to evaluate jump feasibility.
+             💡 Tip: Select a ship to enable Jump Heat, Post‑Jump Heat, and jump feasibility calculations.
            </div>`
         : ''
     }
@@ -75,6 +75,10 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
     return '—';
   }
 
+  function formatNoShipCell() {
+    return '<span title="Select a ship to calculate this value" style="color:#aa8866">Select ship</span>';
+  }
+
   for (const result of results) {
     let jumpStatus = '—';
     let jumpColor = '#888';
@@ -88,10 +92,10 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
           <td data-label="Star" style="color:#ff6666">❌ ${result.error}</td>
           <td data-label="Heat">—</td>
           <td data-label="Distance (LY)">${formatDistanceCell(jump)}</td>
-          <td data-label="Jump Heat">${hasShipData ? (jump?.jump_heat_gen != null ? jump.jump_heat_gen.toFixed(2) : '—') : '—'}</td>
-          <td data-label="Post‑Jump Heat">${hasShipData ? (jump?.total_after_jump != null ? jump.total_after_jump.toFixed(2) : '—') : '—'}</td>
+          <td data-label="Jump Heat">${hasShipData ? (jump?.jump_heat_gen != null ? jump.jump_heat_gen.toFixed(2) : '—') : formatNoShipCell()}</td>
+          <td data-label="Post‑Jump Heat">${hasShipData ? (jump?.total_after_jump != null ? jump.total_after_jump.toFixed(2) : '—') : formatNoShipCell()}</td>
           <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
-            ${hasShipData ? jumpStatus : '—'}
+            ${hasShipData ? jumpStatus : formatNoShipCell()}
           </td>
           <td data-label="Status" style="color:#ff6666">ERROR</td>
         </tr>
@@ -147,11 +151,11 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
         <td data-label="Heat" class="heat-cell" style="color:${
           (sys.coldest_point?.heat >= 70) ? '#ff6666' : (sys.coldest_point?.heat >= 50) ? '#ffaa66' : '#7CFF7C'
         }">${sys.coldest_point?.heat?.toFixed(1) || '—'}</td>
-        <td data-label="Jump Heat">${!hasShipData ? '—' : (isGateJump ? '—' : (jump?.jump_heat_gen != null ? jump.jump_heat_gen.toFixed(2) : '—'))}</td>
-        <td data-label="Post‑Jump Heat">${!hasShipData ? '—' : (isGateJump ? '—' : (jump?.total_after_jump != null ? jump.total_after_jump.toFixed(2) : '—'))}</td>
+        <td data-label="Jump Heat">${!hasShipData ? formatNoShipCell() : (isGateJump ? '—' : (jump?.jump_heat_gen != null ? jump.jump_heat_gen.toFixed(2) : '—'))}</td>
+        <td data-label="Post‑Jump Heat">${!hasShipData ? formatNoShipCell() : (isGateJump ? '—' : (jump?.total_after_jump != null ? jump.total_after_jump.toFixed(2) : '—'))}</td>
 
         <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
-          ${hasShipData ? (jumpStatus + gateWarningHtml) : '—'}
+          ${hasShipData ? (jumpStatus + gateWarningHtml) : formatNoShipCell()}
         </td>
 
         <td data-label="Status">
