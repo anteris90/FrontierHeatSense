@@ -68,6 +68,13 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
       <tbody>
   `;
 
+  function formatDistanceCell(jump) {
+    if (!jump) return '—';
+    if (jump.distance_label) return jump.distance_label;
+    if (jump.distance_ly != null) return jump.distance_ly.toFixed(2);
+    return '—';
+  }
+
   for (const result of results) {
     let jumpStatus = '—';
     let jumpColor = '#888';
@@ -80,7 +87,7 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
           <td data-label="System">${result.name}</td>
           <td data-label="Star" style="color:#ff6666">❌ ${result.error}</td>
           <td data-label="Heat">—</td>
-          <td data-label="Distance (LY)">${jump?.distance_ly != null ? jump.distance_ly.toFixed(2) : '—'}</td>
+          <td data-label="Distance (LY)">${formatDistanceCell(jump)}</td>
           <td data-label="Jump Heat">${hasShipData ? (jump?.jump_heat_gen != null ? jump.jump_heat_gen.toFixed(2) : '—') : '—'}</td>
           <td data-label="Post‑Jump Heat">${hasShipData ? (jump?.total_after_jump != null ? jump.total_after_jump.toFixed(2) : '—') : '—'}</td>
           <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
@@ -134,7 +141,7 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
       <tr>
         <td data-label="System"><strong>${sys.name || 'Unknown'}</strong></td>
 
-        <td data-label="Distance (LY)">${jump?.distance_ly != null ? jump.distance_ly.toFixed(2) : '—'}</td>
+  <td data-label="Distance (LY)">${formatDistanceCell(jump)}</td>
 
         <td data-label="Heat" class="heat-cell" style="color:${
           (sys.coldest_point?.heat >= 70) ? '#ff6666' : (sys.coldest_point?.heat >= 50) ? '#ffaa66' : '#7CFF7C'
