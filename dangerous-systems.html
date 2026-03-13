@@ -29,9 +29,6 @@
         .dangerous-page .search-section {
             margin-bottom: 22px;
         }
-        .dangerous-page .page-actions {
-          margin: 0 0 18px;
-        }
         .dangerous-page .search-section::before {
             content: 'FILTER_BUFFER';
         }
@@ -62,17 +59,36 @@
             box-shadow: none;
         }
         .dangerous-page .table-shell {
-            overflow-x: auto;
+          position: relative;
+          max-height: calc(100vh - 320px);
+          overflow: auto;
+          border: 1px solid rgba(255,136,68,0.18);
+          border-radius: 6px;
+          background: rgba(10,5,4,0.85);
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
         }
         .dangerous-page .route-table {
             margin: 0;
         }
         .dangerous-page .route-table th {
           background: #2c130d;
+          top: 0;
+          z-index: 12;
         }
         .dangerous-page .route-table td:nth-child(5) {
             color: var(--accent-2);
             font-weight: 700;
+        }
+        .dangerous-page .table-actions {
+          position: sticky;
+          bottom: 12px;
+          z-index: 20;
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 12px;
+          padding: 12px 0 0;
+          background: linear-gradient(180deg, rgba(18,8,8,0), rgba(18,8,8,0.92) 42%);
         }
         .dangerous-page .trap-indicator {
             margin-top: 0;
@@ -81,7 +97,6 @@
         }
         .dangerous-page .return-link {
             display: inline-block;
-            margin-top: 22px;
             color: var(--info);
             text-decoration: none;
             text-transform: uppercase;
@@ -90,6 +105,7 @@
             border-radius: 4px;
             padding: 10px 14px;
             background: rgba(14, 20, 26, 0.55);
+          box-shadow: 0 8px 22px rgba(0,0,0,0.28);
         }
         .dangerous-page .return-link:hover {
             color: #8ef;
@@ -100,6 +116,17 @@
             .dangerous-page {
                 padding-bottom: 18px;
             }
+          .dangerous-page .table-shell {
+            max-height: calc(100vh - 280px);
+          }
+          .dangerous-page .table-actions {
+            justify-content: stretch;
+            bottom: 8px;
+          }
+          .dangerous-page .return-link {
+            width: 100%;
+            text-align: center;
+          }
         }
     </style>
 </head>
@@ -110,10 +137,6 @@
     <h1>High-Heat and Trap Systems</h1>
     <div class="subtitle">Danger >= 85 | Trap >= 90</div>
   </header>
-
-  <div class="page-actions">
-    <a href="index.html" class="return-link">Return to HeatSense Console</a>
-  </div>
 
   <section class="search-section" aria-labelledby="danger-search-title">
     <div class="sr-only" id="danger-search-title">Danger system filter</div>
@@ -142,10 +165,12 @@
         </tbody>
       </table>
     </div>
+    <div class="table-actions">
+      <a href="index.html" class="return-link">Return to HeatSense Console</a>
+    </div>
   </div>
 
   <footer>
-    <p><a href="index.html" class="return-link">Return to HeatSense Console</a></p>
     <p>Danger Index | Shared Console Styling | Live API Feed</p>
   </footer>
   </main>
