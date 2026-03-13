@@ -41,6 +41,7 @@ import { populateShipSelect, updateShipDisplay, updateEffectiveCDisplay, updateS
 
 let lastRouteResults = null;
 let lastRouteJumps = [];
+let lastRouteHints = [];
 let shareButtonResetTimer = null;
 
 const SHARE_ROUTE_PARAM = 'route';
@@ -329,7 +330,7 @@ function buildRouteSummary(routeJumps, totalDistanceLY) {
   }
 
   summary.totalJumpDistanceLY = routeJumps.reduce((sum, jump) => {
-    if (jump?.gate) {
+    if (jump?.ui_gate || jump?.gate) {
       return sum;
     }
 
@@ -346,6 +347,76 @@ function buildRouteSummary(routeJumps, totalDistanceLY) {
 // Expose for backward compatibility and debugging
 window.lastRouteResults = lastRouteResults;
 window.lastRouteJumps = lastRouteJumps;
+window.lastRouteHints = lastRouteHints;
+
+function cloneRouteJumpEntries(routeJumps) {
+  return Array.isArray(routeJumps) ? routeJumps.map(jump => (jump ? { ...jump } : jump)) : [];
+}
+
+function reverseRouteHints(routeHints) {
+  if (!Array.isArray(routeHints)) return [];
+
+  return routeHints.map(hint => ({
+    ...hint,
+    from: hint.to,
+    to: hint.from
+  }));
+}
+
+function consumeRouteHints(systemNames) {
+  const inputRouteHints = Array.isArray(window.__systemInputRouteHints) ? window.__systemInputRouteHints : [];
+  const parsedHints = Array.isArray(window.__lastParsedRouteHints) ? window.__lastParsedRouteHints : [];
+  const pendingHints = Array.isArray(window.__pendingRouteHints) ? window.__pendingRouteHints : [];
+  const routeHints = inputRouteHints.length
+    ? inputRouteHints
+    : (parsedHints.length ? parsedHints : pendingHints);
+
+  window.__pendingRouteHints = [];
+
+  if (!Array.isArray(systemNames) || systemNames.length < 2 || !routeHints.length) return [];
+
+  const systemSet = new Set(systemNames.map(name => normalizeSystemName(name)));
+  return routeHints.filter(hint => systemSet.has(normalizeSystemName(hint.from)) && systemSet.has(normalizeSystemName(hint.to)));
+}
+
+function applyRouteHints(routeResp, routeHints) {
+  const route = cloneRouteJumpEntries(routeResp?.route);
+  if (!route.length || !Array.isArray(routeHints) || routeHints.length === 0) {
+    return {
+      route,
+      totalDistanceLY: routeResp?.total_distance_ly ?? null
+    };
+  }
+
+  const hintMap = new Map(
+    routeHints.map(hint => [`${normalizeSystemName(hint.from)}=>${normalizeSystemName(hint.to)}`, hint])
+  );
+
+  let totalDistanceLY = Number.isFinite(routeResp?.total_distance_ly)
+    ? Number(routeResp.total_distance_ly)
+    : null;
+
+  for (let index = 1; index < route.length; index++) {
+    const previousEntry = route[index - 1];
+    const currentEntry = route[index];
+    if (!previousEntry?.name || !currentEntry?.name) continue;
+
+    const hintKey = `${normalizeSystemName(previousEntry.name)}=>${normalizeSystemName(currentEntry.name)}`;
+    const hint = hintMap.get(hintKey);
+    if (!hint) continue;
+
+    if (totalDistanceLY != null && Number.isFinite(currentEntry.distance_ly)) {
+      totalDistanceLY = Math.max(0, totalDistanceLY - Number(currentEntry.distance_ly));
+    }
+
+    currentEntry.distance_label = 'GATE';
+    currentEntry.ui_gate = 'npc';
+    currentEntry.hidden_jump_count = hint.jumpCount;
+    currentEntry.route_hint = 'npc_gate_span';
+  }
+
+  return { route, totalDistanceLY };
+}
 
 // ============================================
 // Initialization
@@ -387,6 +458,8 @@ async function searchSystems() {
   }
 
   const systemNames = parseSystemInput(input);
+  lastRouteHints = consumeRouteHints(systemNames);
+  window.lastRouteHints = lastRouteHints;
   document.getElementById('systemInput').value = systemNames.join(', ');
 
   if (systemNames.length === 0) {
@@ -491,7 +564,9 @@ async function searchSystems() {
         }
         
         routeResp = await fetchRoute(body);
-        routeJumps = routeResp.route || [];
+        const hintedRoute = applyRouteHints(routeResp, lastRouteHints);
+        routeJumps = hintedRoute.route;
+        routeResp = { ...routeResp, route: routeJumps, total_distance_ly: hintedRoute.totalDistanceLY };
       }
 
       lastRouteResults = results;
@@ -532,6 +607,12 @@ function reverseRoute() {
   // Parse current systems
   const systemNames = parseSystemInput(currentInput);
   if (systemNames.length <= 1) return; // Nothing to reverse
+
+  const reversedHints = reverseRouteHints(lastRouteHints);
+  window.__pendingRouteHints = reversedHints;
+  window.__systemInputRouteHints = reversedHints;
+  lastRouteHints = reversedHints;
+  window.lastRouteHints = lastRouteHints;
   
   // Reverse the order
   const reversedNames = systemNames.reverse();
@@ -679,13 +760,14 @@ async function recalculateRoute() {
 
   try {
     const routeResp = await fetchRoute(body);
-    lastRouteJumps = routeResp.route || [];
+    const hintedRoute = applyRouteHints(routeResp, lastRouteHints);
+    lastRouteJumps = hintedRoute.route;
     window.lastRouteJumps = lastRouteJumps;
     displayMultipleResults(
       lastRouteResults,
       lastRouteJumps,
       hasShipSelected(),
-      buildRouteSummary(lastRouteJumps, routeResp.total_distance_ly)
+      buildRouteSummary(lastRouteJumps, hintedRoute.totalDistanceLY)
     );
     setShareButtonState(hasShareableRoute());
   } catch (err) {
