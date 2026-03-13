@@ -80,19 +80,20 @@ function renderRouteTable(results, routeJumps, hasShipData, routeSummary = {}) {
       </div>
     </div>
 
-    <table class="route-table">
-      <thead>
-        <tr>
-          <th>System</th>
-          <th>Distance (LY)</th>
-          <th>Heat</th>
-          <th>Jump Heat</th>
-          <th>Post‑Jump Heat</th>
-          <th>Jump</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
+    <div class="route-table-wrap">
+      <table class="route-table">
+        <thead>
+          <tr>
+            <th>System</th>
+            <th>Distance (LY)</th>
+            <th>Heat</th>
+            <th>Jump Heat</th>
+            <th>Post‑Jump Heat</th>
+            <th>Jump</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
   `;
 
   function formatDistanceCell(jump) {
@@ -192,7 +193,7 @@ function renderRouteTable(results, routeJumps, hasShipData, routeSummary = {}) {
     `;
   }
 
-  html += `</tbody></table>`;
+  html += `</tbody></table></div>`;
   return html;
 }
 

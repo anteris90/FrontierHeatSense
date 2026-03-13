@@ -295,13 +295,16 @@ textarea {
 .route-summary-travel {
   color:#ffd29a
 }
+.route-table-wrap {
+  position:relative;
+  margin:20px 0
+}
 .route-table {
-  width:100%;border-collapse:collapse;margin:20px 0;
+  width:100%;border-collapse:separate;border-spacing:0;margin:0;
   table-layout:fixed;
   font-size:clamp(0.7rem, 1.5vw, 0.95em);
   background:rgba(10,5,4,0.85);
   border-radius:6px;
-  overflow:hidden;
   box-shadow:var(--shadow);
   font-family:var(--mono)
 }
@@ -310,6 +313,15 @@ textarea {
   border-bottom:1px solid rgba(255,255,255,0.1);color:var(--accent-2);font-weight:600;
   position:sticky;top:0;z-index:10;
   text-transform:uppercase;letter-spacing:0.1em;font-size:0.74rem
+}
+.route-table thead th {
+  box-shadow:0 1px 0 rgba(255,255,255,0.08), 0 10px 18px rgba(0,0,0,0.28)
+}
+.route-table thead th:first-child {
+  border-top-left-radius:6px
+}
+.route-table thead th:last-child {
+  border-top-right-radius:6px
 }
 .route-table td {
   padding:12px;border-bottom:1px solid rgba(255,255,255,0.08)
