@@ -51,11 +51,31 @@ function bindPasteHandler(onPaste, parseInput) {
   const textarea = document.getElementById('systemInput');
   if (!textarea) return;
 
+  function mergeRouteHints(...hintGroups) {
+    const merged = [];
+    const seen = new Set();
+
+    for (const group of hintGroups) {
+      if (!Array.isArray(group)) continue;
+      for (const hint of group) {
+        if (!hint?.from || !hint?.to) continue;
+        const key = `${String(hint.from).toUpperCase()}=>${String(hint.to).toUpperCase()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push({ ...hint });
+      }
+    }
+
+    return merged;
+  }
+
   textarea.addEventListener('paste', function(e) {
     e.preventDefault();
     
     const text = (e.clipboardData || window.clipboardData).getData('text');
+    const existingPendingHints = Array.isArray(window.__pendingRouteHints) ? window.__pendingRouteHints : [];
     const pasted = parseInput(text);
+    const pastedRouteHints = Array.isArray(window.__lastParsedRouteHints) ? window.__lastParsedRouteHints.slice() : [];
 
     // Trigger player gate resolution if available
     try {
@@ -69,7 +89,10 @@ function bindPasteHandler(onPaste, parseInput) {
 
     // Merge with existing systems
     const current = parseInput(this.value || '');
+    const currentRouteHints = Array.isArray(window.__lastParsedRouteHints) ? window.__lastParsedRouteHints.slice() : [];
     const merged = current.slice();
+
+    window.__pendingRouteHints = mergeRouteHints(existingPendingHints, currentRouteHints, pastedRouteHints);
     
     for (const s of pasted) {
       if (!merged.includes(s)) merged.push(s);
