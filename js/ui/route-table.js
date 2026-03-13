@@ -106,6 +106,7 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
     const jump = jumpMap[sys.name];
     const isTrap = (sys.coldest_point?.heat >= 85) || sys.status === 'CRITICAL';
     const statusEmoji = statusIcon[sys.status] || 'ℹ️';
+    const jumpGateType = jump?.ui_gate || jump?.gate || null;
 
     // Determine jump status
     if (jump && jump.can_jump !== null) {
@@ -125,15 +126,15 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
     }
 
     // Check if gate jump
-    const isGateJump = !!(jump && (String(jump.gate).toLowerCase() === 'npc' || String(jump.gate).toLowerCase() === 'player'));
+    const isGateJump = jumpGateType === 'npc' || jumpGateType === 'player';
     if (isGateJump) {
-      jumpStatus = (jump.gate === 'npc') ? 'GATE (NPC)' : 'GATE (SMART)';
+      jumpStatus = (jumpGateType === 'npc') ? 'GATE (NPC)' : 'GATE (SMART)';
       jumpColor = '#66CCFF';
     }
 
     // Warning for smart gates
     let gateWarningHtml = '';
-    if (isGateJump && jump && jump.gate === 'player') {
+    if (isGateJump && jumpGateType === 'player') {
       gateWarningHtml = ' <span title="Smart gate — availability may vary (owner-controlled)" style="color:#ffcc00">⚠️</span>';
     }
 
@@ -146,8 +147,8 @@ function renderRouteTable(results, routeJumps, hasShipData, totalDistanceLY) {
         <td data-label="Heat" class="heat-cell" style="color:${
           (sys.coldest_point?.heat >= 70) ? '#ff6666' : (sys.coldest_point?.heat >= 50) ? '#ffaa66' : '#7CFF7C'
         }">${sys.coldest_point?.heat?.toFixed(1) || '—'}</td>
-        <td data-label="Jump Heat">${!hasShipData ? '—' : ((jump && jump.gate) ? '—' : (jump?.jump_heat_gen != null ? jump.jump_heat_gen.toFixed(2) : '—'))}</td>
-        <td data-label="Post‑Jump Heat">${!hasShipData ? '—' : ((jump && jump.gate) ? '—' : (jump?.total_after_jump != null ? jump.total_after_jump.toFixed(2) : '—'))}</td>
+        <td data-label="Jump Heat">${!hasShipData ? '—' : (isGateJump ? '—' : (jump?.jump_heat_gen != null ? jump.jump_heat_gen.toFixed(2) : '—'))}</td>
+        <td data-label="Post‑Jump Heat">${!hasShipData ? '—' : (isGateJump ? '—' : (jump?.total_after_jump != null ? jump.total_after_jump.toFixed(2) : '—'))}</td>
 
         <td data-label="Jump" style="font-weight:bold;color:${jumpColor}">
           ${hasShipData ? (jumpStatus + gateWarningHtml) : '—'}

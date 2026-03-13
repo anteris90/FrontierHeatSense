@@ -108,12 +108,8 @@ function applyRouteHints(routeResp, routeHints) {
       totalDistanceLY = Math.max(0, totalDistanceLY - Number(currentEntry.distance_ly));
     }
 
-    currentEntry.distance_ly = null;
     currentEntry.distance_label = 'GATE';
-    currentEntry.jump_heat_gen = null;
-    currentEntry.total_after_jump = null;
-    currentEntry.can_jump = true;
-    currentEntry.gate = 'npc';
+    currentEntry.ui_gate = 'npc';
     currentEntry.hidden_jump_count = hint.jumpCount;
     currentEntry.route_hint = 'npc_gate_span';
   }
