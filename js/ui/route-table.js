@@ -37,9 +37,24 @@ function renderRouteTable(results, routeJumps, hasShipData, routeSummary = {}) {
 
   const jumpMap = mapRouteJumpsByName(routeJumps);
   const successCount = results.filter(r => !r.error).length;
+  const lookupWarningCount = results.length - successCount;
   const trapCount = results.filter(
     r => !r.error && r.system?.coldest_point?.heat >= 85
   ).length;
+  const trapSummary = trapCount > 0
+    ? `⚠️ ${trapCount} TRAP(s) detected`
+    : 'CLEAR';
+  const warningSummary = lookupWarningCount > 0
+    ? ` | ${lookupWarningCount} lookup warning(s)`
+    : '';
+  const travelSummary = [];
+
+  if (totalDistanceLY != null) {
+    travelSummary.push(`📏 ${totalDistanceLY.toFixed(2)} LY total`);
+  }
+  if (totalJumpDistanceLY != null) {
+    travelSummary.push(`⛭ ${totalJumpDistanceLY.toFixed(2)} LY jump`);
+  }
 
   let html = `
     ${
@@ -50,18 +65,20 @@ function renderRouteTable(results, routeJumps, hasShipData, routeSummary = {}) {
         : ''
     }
 
-    <p style="text-align:center;margin:15px 0;font-size:1.1em;color:#ffaa77">
-      ${successCount} / ${results.length} systems found
-      ${trapCount > 0
-        ? ` | <span style="color:#ff6666">⚠️ ${trapCount} TRAP(s) detected!</span>`
-        : ''}
-      ${totalDistanceLY != null
-        ? ` | <span style="color:#ffaa77">📏 Total Distance: ${totalDistanceLY.toFixed(2)} LY</span>`
-        : ''}
-      ${totalJumpDistanceLY != null
-        ? ` | <span style="color:#7cffc4">⛭ Total Jump Distance: ${totalJumpDistanceLY.toFixed(2)} LY</span>`
-        : ''}
-    </p>
+    <div class="route-summary" aria-label="Route summary">
+      <div class="route-summary-row">
+        <span class="route-summary-label">INIT_SYSTEMS...</span>
+        <span class="route-summary-value">${successCount} / ${results.length} systems found</span>
+      </div>
+      <div class="route-summary-row">
+        <span class="route-summary-label">INIT_ERRORS....</span>
+        <span class="route-summary-value ${trapCount > 0 ? 'route-summary-alert' : 'route-summary-clear'}">${trapSummary}${warningSummary}</span>
+      </div>
+      <div class="route-summary-row">
+        <span class="route-summary-label">INIT_TRAVEL....</span>
+        <span class="route-summary-value route-summary-travel">${travelSummary.length > 0 ? travelSummary.join(' | ') : 'Travel data unavailable'}</span>
+      </div>
+    </div>
 
     <table class="route-table">
       <thead>
