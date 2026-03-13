@@ -16,9 +16,34 @@ const MAX_SYSTEM_NAME_LENGTH = 32;
 
 function normalizeSharePayload(body) {
   const rawRoute = Array.isArray(body?.routeNames) ? body.routeNames : [];
+  const rawRouteHints = Array.isArray(body?.routeHints) ? body.routeHints : [];
   const routeNames = rawRoute
     .map(name => String(name || '').trim().toUpperCase())
     .filter(name => name && name.length <= MAX_SYSTEM_NAME_LENGTH)
+    .slice(0, MAX_ROUTE_SYSTEMS);
+
+  const routeHints = rawRouteHints
+    .map(hint => {
+      const from = String(hint?.from || '').trim().toUpperCase();
+      const to = String(hint?.to || '').trim().toUpperCase();
+      const jumpCount = Number(hint?.jumpCount);
+
+      if (!from || !to || from.length > MAX_SYSTEM_NAME_LENGTH || to.length > MAX_SYSTEM_NAME_LENGTH) {
+        return null;
+      }
+
+      if (!Number.isFinite(jumpCount) || jumpCount < 1) {
+        return null;
+      }
+
+      return {
+        from,
+        to,
+        jumpCount: Math.round(jumpCount),
+        gate: 'npc'
+      };
+    })
+    .filter(Boolean)
     .slice(0, MAX_ROUTE_SYSTEMS);
 
   if (routeNames.length < 2) {
@@ -27,6 +52,7 @@ function normalizeSharePayload(body) {
 
   const payload = {
     routeNames,
+    routeHints,
     shipName: body?.shipName ? String(body.shipName).trim() : '',
     totalMass: body?.totalMass != null ? Number(body.totalMass) : null,
     skillLevel: body?.skillLevel != null ? Number(body.skillLevel) : null,

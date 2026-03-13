@@ -49,6 +49,7 @@ const SHARE_SHIP_PARAM = 'ship';
 const SHARE_MASS_PARAM = 'mass';
 const SHARE_SKILL_PARAM = 'skill';
 const SHARE_COMPACT_ROUTE_PARAM = 'r';
+const SHARE_COMPACT_GATE_PARAM = 'g';
 const SHARE_COMPACT_SHIP_PARAM = 's';
 const SHARE_COMPACT_MASS_PARAM = 'm';
 const SHARE_COMPACT_SKILL_PARAM = 'k';
@@ -85,6 +86,21 @@ function getShareRouteNames() {
     .filter(Boolean);
 }
 
+function getShareRouteHints() {
+  if (!Array.isArray(lastRouteHints) || lastRouteHints.length === 0) {
+    return [];
+  }
+
+  return lastRouteHints
+    .filter(hint => hint?.from && hint?.to && Number.isFinite(hint?.jumpCount))
+    .map(hint => ({
+      from: normalizeSystemName(hint.from),
+      to: normalizeSystemName(hint.to),
+      jumpCount: Number(hint.jumpCount),
+      gate: hint.gate || 'npc'
+    }));
+}
+
 function encodeShipSelection(ship) {
   if (!ship) {
     return '';
@@ -114,6 +130,13 @@ function encodeRouteNames(routeNames) {
   return routeNames.join('.');
 }
 
+function encodeRouteHints(routeHints) {
+  return routeHints
+    .filter(hint => hint?.from && hint?.to && Number.isFinite(hint?.jumpCount))
+    .map(hint => `${normalizeSystemName(hint.from)}>${normalizeSystemName(hint.to)}:${Math.max(1, Math.round(hint.jumpCount))}`)
+    .join(',');
+}
+
 function decodeRouteNames(routeValue) {
   if (!routeValue) {
     return [];
@@ -129,8 +152,39 @@ function decodeRouteNames(routeValue) {
   return parseSystemInput(routeValue);
 }
 
+function decodeRouteHints(routeHintValue) {
+  if (!routeHintValue) {
+    return [];
+  }
+
+  return String(routeHintValue)
+    .split(',')
+    .map(entry => entry.trim())
+    .filter(Boolean)
+    .map(entry => {
+      const separatorIndex = entry.indexOf('>');
+      const countIndex = entry.lastIndexOf(':');
+
+      if (separatorIndex <= 0 || countIndex <= separatorIndex + 1) {
+        return null;
+      }
+
+      const from = normalizeSystemName(entry.slice(0, separatorIndex));
+      const to = normalizeSystemName(entry.slice(separatorIndex + 1, countIndex));
+      const jumpCount = Number.parseInt(entry.slice(countIndex + 1), 10);
+
+      if (!from || !to || !Number.isFinite(jumpCount)) {
+        return null;
+      }
+
+      return { from, to, jumpCount, gate: 'npc' };
+    })
+    .filter(Boolean);
+}
+
 function buildShareUrl() {
   const routeNames = getShareRouteNames();
+  const routeHints = getShareRouteHints();
   if (routeNames.length < 2) {
     return null;
   }
@@ -140,6 +194,9 @@ function buildShareUrl() {
   url.hash = '';
   const shareParams = new URLSearchParams();
   shareParams.set(SHARE_COMPACT_ROUTE_PARAM, encodeRouteNames(routeNames));
+  if (routeHints.length) {
+    shareParams.set(SHARE_COMPACT_GATE_PARAM, encodeRouteHints(routeHints));
+  }
 
   const selectedShip = getSelectedShip();
   if (selectedShip) {
@@ -171,9 +228,11 @@ function buildShortShareFallbackPayload() {
 
   const selectedShip = getSelectedShip();
   const shipParams = selectedShip ? getShipParameters() : null;
+  const routeHints = getShareRouteHints();
 
   return {
     routeNames,
+    routeHints,
     shipName: selectedShip?.name || '',
     totalMass: shipParams?.totalHullMass ?? null,
     skillLevel: shipParams?.skillLevel ?? null
@@ -184,6 +243,11 @@ async function buildPreferredShareUrl() {
   const payload = buildShortShareFallbackPayload();
   if (!payload) {
     return null;
+  }
+
+  // Preserve hinted NPC gate spans immediately even if the share worker has not been updated yet.
+  if (Array.isArray(payload.routeHints) && payload.routeHints.length > 0) {
+    return buildShareUrl();
   }
 
   try {
@@ -249,8 +313,10 @@ function getSharedRouteState() {
   const searchParams = new URLSearchParams(window.location.search);
   const shortCode = searchParams.get(SHARE_SHORT_CODE_PARAM) || '';
   const compactRouteValue = hashParams.get(SHARE_COMPACT_ROUTE_PARAM);
+  const compactGateValue = hashParams.get(SHARE_COMPACT_GATE_PARAM);
   const legacyRouteValue = searchParams.get(SHARE_ROUTE_PARAM);
   const routeNames = decodeRouteNames(compactRouteValue || legacyRouteValue || '');
+  const routeHints = decodeRouteHints(compactGateValue || '');
   const compactShipValue = hashParams.get(SHARE_COMPACT_SHIP_PARAM);
   const legacyShipValue = searchParams.get(SHARE_SHIP_PARAM);
   const compactMassValue = hashParams.get(SHARE_COMPACT_MASS_PARAM);
@@ -261,6 +327,7 @@ function getSharedRouteState() {
   return {
     shortCode,
     routeNames,
+    routeHints,
     shipName: decodeShipSelection(compactShipValue || legacyShipValue || ''),
     totalMass: compactMassValue ? String(Number.parseInt(compactMassValue, 36)) : legacyMassValue,
     skillLevel: compactSkillValue ? String(Number.parseInt(compactSkillValue, 36)) : legacySkillValue
@@ -276,6 +343,7 @@ async function hydrateSharedRouteFromUrl() {
       sharedState = {
         shortCode: sharedState.shortCode,
         routeNames: Array.isArray(remoteState?.routeNames) ? remoteState.routeNames : [],
+        routeHints: Array.isArray(remoteState?.routeHints) ? remoteState.routeHints : [],
         shipName: remoteState?.shipName ? String(remoteState.shipName) : '',
         totalMass: remoteState?.totalMass != null ? String(remoteState.totalMass) : null,
         skillLevel: remoteState?.skillLevel != null ? String(remoteState.skillLevel) : null
@@ -295,6 +363,14 @@ async function hydrateSharedRouteFromUrl() {
   if (inputEl) {
     inputEl.value = sharedState.routeNames.join(', ');
   }
+
+  window.__systemInputRouteHints = Array.isArray(sharedState.routeHints)
+    ? sharedState.routeHints.slice()
+    : [];
+  lastRouteHints = Array.isArray(sharedState.routeHints)
+    ? sharedState.routeHints.slice()
+    : [];
+  window.lastRouteHints = lastRouteHints;
 
   if (sharedState.shipName) {
     const shipSelect = document.getElementById('shipSelect');
