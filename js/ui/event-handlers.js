@@ -213,7 +213,7 @@ function updateShareButton(enabled, text) {
   if (!btnEl) return;
 
   btnEl.disabled = !enabled;
-  btnEl.textContent = text || 'COPY ROUTE';
+  btnEl.textContent = text || 'SHARE ROUTE';
 }
 
 /**
