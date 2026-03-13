@@ -245,11 +245,6 @@ async function buildPreferredShareUrl() {
     return null;
   }
 
-  // Preserve hinted NPC gate spans immediately even if the share worker has not been updated yet.
-  if (Array.isArray(payload.routeHints) && payload.routeHints.length > 0) {
-    return buildShareUrl();
-  }
-
   try {
     const share = await createRouteShare(payload);
     if (share?.code) {
